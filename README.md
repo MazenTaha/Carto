@@ -1,4 +1,4 @@
-# CartoMAIN - Smart Shopping Cart System
+# Carto - Smart Shopping Cart System
 
 A comprehensive Next.js application for managing smart shopping carts with real-time tracking, virtual receipts, and secure checkout.
 
