@@ -51,6 +51,13 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
       emoji = productOrName.emoji;
     }
 
+    console.log('[CLIENT DEBUG] Adding item to list:', {
+      listId,
+      productName: name,
+      category,
+      quantity,
+    });
+
     try {
       createListItemSchema.parse({
         name,
@@ -58,7 +65,10 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
         category: category || undefined,
       });
 
-      const response = await fetch(`/api/lists/${listId}/items`, {
+      const apiUrl = `/api/lists/${listId}/items`;
+      console.log('[CLIENT DEBUG] Making POST request to:', apiUrl);
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -71,8 +81,15 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
       const data = await response.json();
 
       if (!response.ok) {
+        console.error('[CLIENT DEBUG] API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+        });
         throw new Error(data.error || 'Failed to add item');
       }
+
+      console.log('[CLIENT DEBUG] Item added successfully:', data);
 
       setNewItemName('');
       setNewItemQuantity(1);
@@ -81,6 +98,7 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
       await fetchItems();
       return true;
     } catch (err: any) {
+      console.error('[CLIENT DEBUG] Error in handleAddItem:', err);
       setError(err.message || 'An error occurred');
       return false;
     } finally {
@@ -228,8 +246,8 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
           <div
             key={item.id}
             className={`flex items-center justify-between p-4 rounded-lg border ${item.isCollected
-                ? 'bg-gray-700 border-gray-600 opacity-60'
-                : 'bg-gray-700 border-gray-600'
+              ? 'bg-gray-700 border-gray-600 opacity-60'
+              : 'bg-gray-700 border-gray-600'
               }`}
           >
             <div className="flex items-center space-x-4 flex-1">
@@ -242,8 +260,8 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
               <div className="flex-1">
                 <span
                   className={`text-lg ${item.isCollected
-                      ? 'line-through text-gray-400'
-                      : 'text-white'
+                    ? 'line-through text-gray-400'
+                    : 'text-white'
                     }`}
                 >
                   {item.name}

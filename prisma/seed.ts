@@ -1,97 +1,349 @@
-
 const { PrismaClient } = require('@prisma/client')
 require('dotenv').config()
 
 const prisma = new PrismaClient()
 
-// Categories to fetch from Open Food Facts
-const CATEGORIES = [
-    'dairies',
-    'beverages',
-    'meats',
-    'seafood',
-    'fresh-fruits',
-    'fresh-vegetables',
-    'breads',
-    'snacks',
-    'frozen-foods',
-    'condiments'
-]
+// Curated product dataset - 300+ generic grocery items
+const products = [
+    // Fresh Fruits (40 items)
+    { name: "apple", category: "Fresh Fruits", emoji: "🍎", price: 0, popularity: 95 },
+    { name: "banana", category: "Fresh Fruits", emoji: "🍌", price: 0, popularity: 98 },
+    { name: "orange", category: "Fresh Fruits", emoji: "🍊", price: 0, popularity: 92 },
+    { name: "strawberry", category: "Fresh Fruits", emoji: "🍓", price: 0, popularity: 88 },
+    { name: "grape", category: "Fresh Fruits", emoji: "🍇", price: 0, popularity: 85 },
+    { name: "watermelon", category: "Fresh Fruits", emoji: "🍉", price: 0, popularity: 80 },
+    { name: "pineapple", category: "Fresh Fruits", emoji: "🍍", price: 0, popularity: 75 },
+    { name: "mango", category: "Fresh Fruits", emoji: "🥭", price: 0, popularity: 78 },
+    { name: "peach", category: "Fresh Fruits", emoji: "🍑", price: 0, popularity: 72 },
+    { name: "pear", category: "Fresh Fruits", emoji: "🍐", price: 0, popularity: 70 },
+    { name: "cherry", category: "Fresh Fruits", emoji: "🍒", price: 0, popularity: 68 },
+    { name: "kiwi", category: "Fresh Fruits", emoji: "🥝", price: 0, popularity: 65 },
+    { name: "lemon", category: "Fresh Fruits", emoji: "🍋", price: 0, popularity: 82 },
+    { name: "lime", category: "Fresh Fruits", emoji: "", price: 0, popularity: 75 },
+    { name: "blueberry", category: "Fresh Fruits", emoji: "", price: 0, popularity: 85 },
+    { name: "raspberry", category: "Fresh Fruits", emoji: "", price: 0, popularity: 78 },
+    { name: "blackberry", category: "Fresh Fruits", emoji: "", price: 0, popularity: 70 },
+    { name: "plum", category: "Fresh Fruits", emoji: "", price: 0, popularity: 65 },
+    { name: "apricot", category: "Fresh Fruits", emoji: "", price: 0, popularity: 60 },
+    { name: "nectarine", category: "Fresh Fruits", emoji: "", price: 0, popularity: 62 },
+    { name: "cantaloupe", category: "Fresh Fruits", emoji: "", price: 0, popularity: 68 },
+    { name: "honeydew melon", category: "Fresh Fruits", emoji: "", price: 0, popularity: 65 },
+    { name: "papaya", category: "Fresh Fruits", emoji: "", price: 0, popularity: 55 },
+    { name: "pomegranate", category: "Fresh Fruits", emoji: "", price: 0, popularity: 58 },
+    { name: "coconut", category: "Fresh Fruits", emoji: "🥥", price: 0, popularity: 52 },
+    { name: "avocado", category: "Fresh Fruits", emoji: "🥑", price: 0, popularity: 90 },
+    { name: "grapefruit", category: "Fresh Fruits", emoji: "", price: 0, popularity: 60 },
+    { name: "tangerine", category: "Fresh Fruits", emoji: "", price: 0, popularity: 72 },
+    { name: "clementine", category: "Fresh Fruits", emoji: "", price: 0, popularity: 70 },
+    { name: "dragon fruit", category: "Fresh Fruits", emoji: "", price: 0, popularity: 45 },
+    { name: "passion fruit", category: "Fresh Fruits", emoji: "", price: 0, popularity: 48 },
+    { name: "fig", category: "Fresh Fruits", emoji: "", price: 0, popularity: 42 },
+    { name: "persimmon", category: "Fresh Fruits", emoji: "", price: 0, popularity: 40 },
+    { name: "guava", category: "Fresh Fruits", emoji: "", price: 0, popularity: 38 },
+    { name: "lychee", category: "Fresh Fruits", emoji: "", price: 0, popularity: 35 },
+    { name: "starfruit", category: "Fresh Fruits", emoji: "", price: 0, popularity: 32 },
+    { name: "cranberry", category: "Fresh Fruits", emoji: "", price: 0, popularity: 65 },
+    { name: "date", category: "Fresh Fruits", emoji: "", price: 0, popularity: 50 },
+    { name: "raisin", category: "Fresh Fruits", emoji: "", price: 0, popularity: 68 },
+    { name: "prune", category: "Fresh Fruits", emoji: "", price: 0, popularity: 55 },
 
-// Map categories to emojis
-function getEmojiForCategory(category: string) {
-    if (category.includes('dairies') || category.includes('milk') || category.includes('cheese')) return '🧀';
-    if (category.includes('beverage') || category.includes('drink')) return '🥤';
-    if (category.includes('meat') || category.includes('poultry')) return '🥩';
-    if (category.includes('seafood') || category.includes('fish')) return '🐟';
-    if (category.includes('fruit')) return '🍎';
-    if (category.includes('vegetable') || category.includes('plant')) return '🥦';
-    if (category.includes('bread') || category.includes('bakery')) return '🍞';
-    if (category.includes('snack') || category.includes('sweet')) return '🍪';
-    if (category.includes('frozen') || category.includes('ice-cream')) return '🍦';
-    if (category.includes('condiment') || category.includes('sauce')) return '🥫';
-    return '📦';
-}
+    // Fresh Vegetables (40 items)
+    { name: "tomato", category: "Fresh Vegetables", emoji: "🍅", price: 0, popularity: 95 },
+    { name: "carrot", category: "Fresh Vegetables", emoji: "🥕", price: 0, popularity: 92 },
+    { name: "broccoli", category: "Fresh Vegetables", emoji: "🥦", price: 0, popularity: 88 },
+    { name: "lettuce", category: "Fresh Vegetables", emoji: "🥬", price: 0, popularity: 90 },
+    { name: "cucumber", category: "Fresh Vegetables", emoji: "🥒", price: 0, popularity: 87 },
+    { name: "bell pepper", category: "Fresh Vegetables", emoji: "🫑", price: 0, popularity: 85 },
+    { name: "onion", category: "Fresh Vegetables", emoji: "🧅", price: 0, popularity: 98 },
+    { name: "garlic", category: "Fresh Vegetables", emoji: "🧄", price: 0, popularity: 95 },
+    { name: "potato", category: "Fresh Vegetables", emoji: "🥔", price: 0, popularity: 98 },
+    { name: "sweet potato", category: "Fresh Vegetables", emoji: "🍠", price: 0, popularity: 82 },
+    { name: "spinach", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 85 },
+    { name: "kale", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 75 },
+    { name: "cabbage", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 78 },
+    { name: "cauliflower", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 80 },
+    { name: "celery", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 75 },
+    { name: "zucchini", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 72 },
+    { name: "eggplant", category: "Fresh Vegetables", emoji: "🍆", price: 0, popularity: 68 },
+    { name: "mushroom", category: "Fresh Vegetables", emoji: "🍄", price: 0, popularity: 82 },
+    { name: "asparagus", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 70 },
+    { name: "green bean", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 75 },
+    { name: "pea", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 72 },
+    { name: "corn", category: "Fresh Vegetables", emoji: "🌽", price: 0, popularity: 88 },
+    { name: "radish", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 60 },
+    { name: "beet", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 65 },
+    { name: "turnip", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 55 },
+    { name: "parsnip", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 52 },
+    { name: "leek", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 58 },
+    { name: "scallion", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 70 },
+    { name: "shallot", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 62 },
+    { name: "ginger", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 75 },
+    { name: "chili pepper", category: "Fresh Vegetables", emoji: "🌶️", price: 0, popularity: 72 },
+    { name: "jalapeño", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 68 },
+    { name: "arugula", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 65 },
+    { name: "bok choy", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 60 },
+    { name: "brussels sprout", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 68 },
+    { name: "artichoke", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 55 },
+    { name: "fennel", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 50 },
+    { name: "okra", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 48 },
+    { name: "squash", category: "Fresh Vegetables", emoji: "", price: 0, popularity: 65 },
+    { name: "pumpkin", category: "Fresh Vegetables", emoji: "🎃", price: 0, popularity: 70 },
 
-function cleanName(name: string) {
-    if (!name) return 'Unknown Product';
-    // Remove brand names if possible or just keep it simple
-    return name.split(',')[0].trim();
-}
+    // Dairy & Eggs (30 items)
+    { name: "whole milk", category: "Dairy & Eggs", emoji: "🥛", price: 0, popularity: 98 },
+    { name: "2% milk", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 95 },
+    { name: "skim milk", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 88 },
+    { name: "almond milk", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 85 },
+    { name: "oat milk", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 82 },
+    { name: "soy milk", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 75 },
+    { name: "eggs", category: "Dairy & Eggs", emoji: "🥚", price: 0, popularity: 98 },
+    { name: "butter", category: "Dairy & Eggs", emoji: "🧈", price: 0, popularity: 95 },
+    { name: "cheddar cheese", category: "Dairy & Eggs", emoji: "🧀", price: 0, popularity: 92 },
+    { name: "mozzarella cheese", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 90 },
+    { name: "parmesan cheese", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 85 },
+    { name: "swiss cheese", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 78 },
+    { name: "cream cheese", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 88 },
+    { name: "yogurt", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 92 },
+    { name: "greek yogurt", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 88 },
+    { name: "sour cream", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 82 },
+    { name: "cottage cheese", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 75 },
+    { name: "ricotta cheese", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 70 },
+    { name: "feta cheese", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 72 },
+    { name: "goat cheese", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 65 },
+    { name: "blue cheese", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 58 },
+    { name: "brie cheese", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 60 },
+    { name: "heavy cream", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 78 },
+    { name: "half and half", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 80 },
+    { name: "whipped cream", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 75 },
+    { name: "ice cream", category: "Dairy & Eggs", emoji: "🍦", price: 0, popularity: 95 },
+    { name: "frozen yogurt", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 72 },
+    { name: "pudding", category: "Dairy & Eggs", emoji: "🍮", price: 0, popularity: 68 },
+    { name: "custard", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 55 },
+    { name: "eggnog", category: "Dairy & Eggs", emoji: "", price: 0, popularity: 45 },
 
-async function fetchCategory(category: string) {
-    try {
-        console.log(`Fetching ${category}...`)
-        // Using native fetch which is available in Node 18+
-        const url = `https://world.openfoodfacts.org/category/${category}.json?page_size=25&fields=product_name,categories_tags,image_front_small_url`
-        const response = await fetch(url)
+    // Meat & Poultry (25 items)
+    { name: "chicken breast", category: "Meat & Poultry", emoji: "🍗", price: 0, popularity: 95 },
+    { name: "chicken thigh", category: "Meat & Poultry", emoji: "", price: 0, popularity: 88 },
+    { name: "ground beef", category: "Meat & Poultry", emoji: "", price: 0, popularity: 92 },
+    { name: "beef steak", category: "Meat & Poultry", emoji: "🥩", price: 0, popularity: 85 },
+    { name: "pork chop", category: "Meat & Poultry", emoji: "", price: 0, popularity: 80 },
+    { name: "bacon", category: "Meat & Poultry", emoji: "🥓", price: 0, popularity: 95 },
+    { name: "sausage", category: "Meat & Poultry", emoji: "", price: 0, popularity: 88 },
+    { name: "ham", category: "Meat & Poultry", emoji: "", price: 0, popularity: 85 },
+    { name: "turkey breast", category: "Meat & Poultry", emoji: "🦃", price: 0, popularity: 78 },
+    { name: "ground turkey", category: "Meat & Poultry", emoji: "", price: 0, popularity: 75 },
+    { name: "lamb chop", category: "Meat & Poultry", emoji: "", price: 0, popularity: 55 },
+    { name: "veal", category: "Meat & Poultry", emoji: "", price: 0, popularity: 45 },
+    { name: "duck", category: "Meat & Poultry", emoji: "🦆", price: 0, popularity: 42 },
+    { name: "hot dog", category: "Meat & Poultry", emoji: "🌭", price: 0, popularity: 85 },
+    { name: "salami", category: "Meat & Poultry", emoji: "", price: 0, popularity: 72 },
+    { name: "pepperoni", category: "Meat & Poultry", emoji: "", price: 0, popularity: 80 },
+    { name: "prosciutto", category: "Meat & Poultry", emoji: "", price: 0, popularity: 65 },
+    { name: "chorizo", category: "Meat & Poultry", emoji: "", price: 0, popularity: 68 },
+    { name: "bratwurst", category: "Meat & Poultry", emoji: "", price: 0, popularity: 62 },
+    { name: "chicken wing", category: "Meat & Poultry", emoji: "", price: 0, popularity: 88 },
+    { name: "chicken drumstick", category: "Meat & Poultry", emoji: "", price: 0, popularity: 82 },
+    { name: "beef roast", category: "Meat & Poultry", emoji: "", price: 0, popularity: 70 },
+    { name: "pork roast", category: "Meat & Poultry", emoji: "", price: 0, popularity: 68 },
+    { name: "beef ribs", category: "Meat & Poultry", emoji: "", price: 0, popularity: 75 },
+    { name: "pork ribs", category: "Meat & Poultry", emoji: "", price: 0, popularity: 78 },
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch ${category}: ${response.statusText}`)
-        }
+    // Seafood (20 items)
+    { name: "salmon", category: "Seafood", emoji: "", price: 0, popularity: 88 },
+    { name: "tuna", category: "Seafood", emoji: "", price: 0, popularity: 82 },
+    { name: "shrimp", category: "Seafood", emoji: "🦐", price: 0, popularity: 90 },
+    { name: "cod", category: "Seafood", emoji: "", price: 0, popularity: 75 },
+    { name: "tilapia", category: "Seafood", emoji: "", price: 0, popularity: 78 },
+    { name: "crab", category: "Seafood", emoji: "🦀", price: 0, popularity: 72 },
+    { name: "lobster", category: "Seafood", emoji: "🦞", price: 0, popularity: 65 },
+    { name: "scallop", category: "Seafood", emoji: "", price: 0, popularity: 68 },
+    { name: "oyster", category: "Seafood", emoji: "", price: 0, popularity: 58 },
+    { name: "clam", category: "Seafood", emoji: "", price: 0, popularity: 62 },
+    { name: "mussel", category: "Seafood", emoji: "", price: 0, popularity: 60 },
+    { name: "squid", category: "Seafood", emoji: "🦑", price: 0, popularity: 55 },
+    { name: "octopus", category: "Seafood", emoji: "🐙", price: 0, popularity: 48 },
+    { name: "catfish", category: "Seafood", emoji: "", price: 0, popularity: 65 },
+    { name: "halibut", category: "Seafood", emoji: "", price: 0, popularity: 62 },
+    { name: "mahi mahi", category: "Seafood", emoji: "", price: 0, popularity: 58 },
+    { name: "swordfish", category: "Seafood", emoji: "", price: 0, popularity: 55 },
+    { name: "trout", category: "Seafood", emoji: "", price: 0, popularity: 68 },
+    { name: "sardine", category: "Seafood", emoji: "", price: 0, popularity: 52 },
+    { name: "anchovy", category: "Seafood", emoji: "", price: 0, popularity: 48 },
 
-        const data = await response.json()
-        return data.products || []
-    } catch (error) {
-        console.error(`Error fetching category ${category}:`, error)
-        return []
-    }
-}
+    // Bakery & Bread (25 items)
+    { name: "white bread", category: "Bakery & Bread", emoji: "🍞", price: 0, popularity: 95 },
+    { name: "whole wheat bread", category: "Bakery & Bread", emoji: "", price: 0, popularity: 92 },
+    { name: "sourdough bread", category: "Bakery & Bread", emoji: "", price: 0, popularity: 85 },
+    { name: "rye bread", category: "Bakery & Bread", emoji: "", price: 0, popularity: 75 },
+    { name: "baguette", category: "Bakery & Bread", emoji: "🥖", price: 0, popularity: 82 },
+    { name: "croissant", category: "Bakery & Bread", emoji: "🥐", price: 0, popularity: 88 },
+    { name: "bagel", category: "Bakery & Bread", emoji: "🥯", price: 0, popularity: 90 },
+    { name: "english muffin", category: "Bakery & Bread", emoji: "", price: 0, popularity: 85 },
+    { name: "pita bread", category: "Bakery & Bread", emoji: "", price: 0, popularity: 78 },
+    { name: "tortilla", category: "Bakery & Bread", emoji: "", price: 0, popularity: 92 },
+    { name: "naan bread", category: "Bakery & Bread", emoji: "", price: 0, popularity: 72 },
+    { name: "ciabatta", category: "Bakery & Bread", emoji: "", price: 0, popularity: 68 },
+    { name: "focaccia", category: "Bakery & Bread", emoji: "", price: 0, popularity: 65 },
+    { name: "pretzel", category: "Bakery & Bread", emoji: "🥨", price: 0, popularity: 75 },
+    { name: "dinner roll", category: "Bakery & Bread", emoji: "", price: 0, popularity: 88 },
+    { name: "hamburger bun", category: "Bakery & Bread", emoji: "", price: 0, popularity: 92 },
+    { name: "hot dog bun", category: "Bakery & Bread", emoji: "", price: 0, popularity: 88 },
+    { name: "muffin", category: "Bakery & Bread", emoji: "🧁", price: 0, popularity: 85 },
+    { name: "donut", category: "Bakery & Bread", emoji: "🍩", price: 0, popularity: 90 },
+    { name: "danish pastry", category: "Bakery & Bread", emoji: "", price: 0, popularity: 78 },
+    { name: "cinnamon roll", category: "Bakery & Bread", emoji: "", price: 0, popularity: 85 },
+    { name: "scone", category: "Bakery & Bread", emoji: "", price: 0, popularity: 72 },
+    { name: "biscuit", category: "Bakery & Bread", emoji: "", price: 0, popularity: 80 },
+    { name: "cornbread", category: "Bakery & Bread", emoji: "", price: 0, popularity: 75 },
+    { name: "garlic bread", category: "Bakery & Bread", emoji: "", price: 0, popularity: 88 },
+
+    // Pantry Staples (50 items)
+    { name: "rice", category: "Pantry Staples", emoji: "🍚", price: 0, popularity: 98 },
+    { name: "pasta", category: "Pantry Staples", emoji: "🍝", price: 0, popularity: 95 },
+    { name: "flour", category: "Pantry Staples", emoji: "", price: 0, popularity: 92 },
+    { name: "sugar", category: "Pantry Staples", emoji: "", price: 0, popularity: 95 },
+    { name: "salt", category: "Pantry Staples", emoji: "🧂", price: 0, popularity: 98 },
+    { name: "black pepper", category: "Pantry Staples", emoji: "", price: 0, popularity: 95 },
+    { name: "olive oil", category: "Pantry Staples", emoji: "", price: 0, popularity: 92 },
+    { name: "vegetable oil", category: "Pantry Staples", emoji: "", price: 0, popularity: 90 },
+    { name: "canola oil", category: "Pantry Staples", emoji: "", price: 0, popularity: 85 },
+    { name: "coconut oil", category: "Pantry Staples", emoji: "", price: 0, popularity: 78 },
+    { name: "vinegar", category: "Pantry Staples", emoji: "", price: 0, popularity: 88 },
+    { name: "soy sauce", category: "Pantry Staples", emoji: "", price: 0, popularity: 90 },
+    { name: "honey", category: "Pantry Staples", emoji: "🍯", price: 0, popularity: 85 },
+    { name: "maple syrup", category: "Pantry Staples", emoji: "", price: 0, popularity: 82 },
+    { name: "peanut butter", category: "Pantry Staples", emoji: "🥜", price: 0, popularity: 95 },
+    { name: "jam", category: "Pantry Staples", emoji: "", price: 0, popularity: 88 },
+    { name: "canned tomato", category: "Pantry Staples", emoji: "", price: 0, popularity: 90 },
+    { name: "canned bean", category: "Pantry Staples", emoji: "", price: 0, popularity: 85 },
+    { name: "canned corn", category: "Pantry Staples", emoji: "", price: 0, popularity: 82 },
+    { name: "canned tuna", category: "Pantry Staples", emoji: "", price: 0, popularity: 88 },
+    { name: "chicken broth", category: "Pantry Staples", emoji: "", price: 0, popularity: 85 },
+    { name: "beef broth", category: "Pantry Staples", emoji: "", price: 0, popularity: 80 },
+    { name: "vegetable broth", category: "Pantry Staples", emoji: "", price: 0, popularity: 78 },
+    { name: "oatmeal", category: "Pantry Staples", emoji: "", price: 0, popularity: 90 },
+    { name: "cereal", category: "Pantry Staples", emoji: "🥣", price: 0, popularity: 92 },
+    { name: "granola", category: "Pantry Staples", emoji: "", price: 0, popularity: 75 },
+    { name: "quinoa", category: "Pantry Staples", emoji: "", price: 0, popularity: 72 },
+    { name: "couscous", category: "Pantry Staples", emoji: "", price: 0, popularity: 68 },
+    { name: "lentil", category: "Pantry Staples", emoji: "", price: 0, popularity: 75 },
+    { name: "chickpea", category: "Pantry Staples", emoji: "", price: 0, popularity: 78 },
+    { name: "kidney bean", category: "Pantry Staples", emoji: "", price: 0, popularity: 72 },
+    { name: "black bean", category: "Pantry Staples", emoji: "", price: 0, popularity: 75 },
+    { name: "baking powder", category: "Pantry Staples", emoji: "", price: 0, popularity: 80 },
+    { name: "baking soda", category: "Pantry Staples", emoji: "", price: 0, popularity: 82 },
+    { name: "vanilla extract", category: "Pantry Staples", emoji: "", price: 0, popularity: 78 },
+    { name: "cinnamon", category: "Pantry Staples", emoji: "", price: 0, popularity: 85 },
+    { name: "paprika", category: "Pantry Staples", emoji: "", price: 0, popularity: 75 },
+    { name: "cumin", category: "Pantry Staples", emoji: "", price: 0, popularity: 72 },
+    { name: "oregano", category: "Pantry Staples", emoji: "", price: 0, popularity: 78 },
+    { name: "basil", category: "Pantry Staples", emoji: "", price: 0, popularity: 80 },
+    { name: "thyme", category: "Pantry Staples", emoji: "", price: 0, popularity: 70 },
+    { name: "rosemary", category: "Pantry Staples", emoji: "", price: 0, popularity: 68 },
+    { name: "parsley", category: "Pantry Staples", emoji: "", price: 0, popularity: 75 },
+    { name: "cilantro", category: "Pantry Staples", emoji: "", price: 0, popularity: 78 },
+    { name: "dill", category: "Pantry Staples", emoji: "", price: 0, popularity: 65 },
+    { name: "bay leaf", category: "Pantry Staples", emoji: "", price: 0, popularity: 62 },
+    { name: "nutmeg", category: "Pantry Staples", emoji: "", price: 0, popularity: 60 },
+    { name: "ginger powder", category: "Pantry Staples", emoji: "", price: 0, popularity: 72 },
+    { name: "garlic powder", category: "Pantry Staples", emoji: "", price: 0, popularity: 85 },
+    { name: "onion powder", category: "Pantry Staples", emoji: "", price: 0, popularity: 80 },
+
+    // Snacks & Sweets (30 items)
+    { name: "potato chip", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 95 },
+    { name: "tortilla chip", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 92 },
+    { name: "popcorn", category: "Snacks & Sweets", emoji: "🍿", price: 0, popularity: 90 },
+    { name: "pretzel", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 85 },
+    { name: "cracker", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 88 },
+    { name: "cookie", category: "Snacks & Sweets", emoji: "🍪", price: 0, popularity: 95 },
+    { name: "brownie", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 88 },
+    { name: "chocolate bar", category: "Snacks & Sweets", emoji: "🍫", price: 0, popularity: 98 },
+    { name: "candy", category: "Snacks & Sweets", emoji: "🍬", price: 0, popularity: 92 },
+    { name: "gummy bear", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 85 },
+    { name: "lollipop", category: "Snacks & Sweets", emoji: "🍭", price: 0, popularity: 80 },
+    { name: "chocolate chip", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 88 },
+    { name: "granola bar", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 90 },
+    { name: "protein bar", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 82 },
+    { name: "trail mix", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 78 },
+    { name: "nut mix", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 80 },
+    { name: "almond", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 85 },
+    { name: "cashew", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 82 },
+    { name: "walnut", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 75 },
+    { name: "pecan", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 72 },
+    { name: "pistachio", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 78 },
+    { name: "sunflower seed", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 70 },
+    { name: "pumpkin seed", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 68 },
+    { name: "beef jerky", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 75 },
+    { name: "rice cake", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 72 },
+    { name: "fruit snack", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 80 },
+    { name: "cheese puff", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 82 },
+    { name: "corn chip", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 85 },
+    { name: "pita chip", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 75 },
+    { name: "veggie chip", category: "Snacks & Sweets", emoji: "", price: 0, popularity: 70 },
+
+    // Beverages (35 items)
+    { name: "water", category: "Beverages", emoji: "💧", price: 0, popularity: 98 },
+    { name: "sparkling water", category: "Beverages", emoji: "", price: 0, popularity: 85 },
+    { name: "orange juice", category: "Beverages", emoji: "🧃", price: 0, popularity: 92 },
+    { name: "apple juice", category: "Beverages", emoji: "", price: 0, popularity: 90 },
+    { name: "grape juice", category: "Beverages", emoji: "", price: 0, popularity: 82 },
+    { name: "cranberry juice", category: "Beverages", emoji: "", price: 0, popularity: 78 },
+    { name: "lemonade", category: "Beverages", emoji: "", price: 0, popularity: 88 },
+    { name: "iced tea", category: "Beverages", emoji: "", price: 0, popularity: 85 },
+    { name: "green tea", category: "Beverages", emoji: "🍵", price: 0, popularity: 80 },
+    { name: "black tea", category: "Beverages", emoji: "", price: 0, popularity: 82 },
+    { name: "coffee", category: "Beverages", emoji: "☕", price: 0, popularity: 95 },
+    { name: "espresso", category: "Beverages", emoji: "", price: 0, popularity: 85 },
+    { name: "cola", category: "Beverages", emoji: "", price: 0, popularity: 95 },
+    { name: "lemon lime soda", category: "Beverages", emoji: "", price: 0, popularity: 88 },
+    { name: "root beer", category: "Beverages", emoji: "", price: 0, popularity: 80 },
+    { name: "ginger ale", category: "Beverages", emoji: "", price: 0, popularity: 75 },
+    { name: "energy drink", category: "Beverages", emoji: "", price: 0, popularity: 82 },
+    { name: "sports drink", category: "Beverages", emoji: "", price: 0, popularity: 85 },
+    { name: "coconut water", category: "Beverages", emoji: "", price: 0, popularity: 72 },
+    { name: "chocolate milk", category: "Beverages", emoji: "", price: 0, popularity: 88 },
+    { name: "strawberry milk", category: "Beverages", emoji: "", price: 0, popularity: 78 },
+    { name: "protein shake", category: "Beverages", emoji: "", price: 0, popularity: 80 },
+    { name: "smoothie", category: "Beverages", emoji: "", price: 0, popularity: 85 },
+    { name: "beer", category: "Beverages", emoji: "🍺", price: 0, popularity: 88 },
+    { name: "wine", category: "Beverages", emoji: "🍷", price: 0, popularity: 85 },
+    { name: "champagne", category: "Beverages", emoji: "🍾", price: 0, popularity: 65 },
+    { name: "vodka", category: "Beverages", emoji: "", price: 0, popularity: 70 },
+    { name: "whiskey", category: "Beverages", emoji: "🥃", price: 0, popularity: 72 },
+    { name: "rum", category: "Beverages", emoji: "", price: 0, popularity: 68 },
+    { name: "tequila", category: "Beverages", emoji: "", price: 0, popularity: 65 },
+    { name: "gin", category: "Beverages", emoji: "", price: 0, popularity: 62 },
+    { name: "hot chocolate", category: "Beverages", emoji: "", price: 0, popularity: 85 },
+    { name: "chai latte", category: "Beverages", emoji: "", price: 0, popularity: 75 },
+    { name: "matcha latte", category: "Beverages", emoji: "", price: 0, popularity: 70 },
+    { name: "kombucha", category: "Beverages", emoji: "", price: 0, popularity: 68 },
+];
 
 async function main() {
-    console.log('Start seeding products from Open Food Facts...')
+    console.log('Start seeding products...')
 
     let count = 0
 
-    for (const category of CATEGORIES) {
-        const products = await fetchCategory(category)
+    for (const product of products) {
+        const existing = await prisma.product.findFirst({
+            where: { name: { equals: product.name, mode: 'insensitive' } }
+        })
 
-        for (const item of products) {
-            if (!item.product_name) continue
-
-            const name = cleanName(item.product_name)
-            // Check for duplicates
-            const existing = await prisma.product.findFirst({
-                where: { name: { equals: name, mode: 'insensitive' } }
+        if (!existing) {
+            await prisma.product.create({
+                data: {
+                    name: product.name,
+                    category: product.category,
+                    emoji: product.emoji || null,
+                    price: product.price,
+                    popularity: product.popularity
+                }
             })
-
-            if (!existing) {
-                await prisma.product.create({
-                    data: {
-                        name: name,
-                        category: category.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' '),
-                        emoji: getEmojiForCategory(category),
-                        price: Number((Math.random() * 10 + 1).toFixed(2)),
-                        popularity: Math.floor(Math.random() * 100)
-                    }
-                })
-                count++
-                // console.log(`Added ${name}`)
-            }
+            count++
         }
     }
 
-    console.log(`Seeding finished. Added ${count} new products.`)
+    console.log(`Seeding finished. Added ${count} new products out of ${products.length} total.`)
 }
 
 main()

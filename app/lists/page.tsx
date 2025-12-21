@@ -1,5 +1,3 @@
-// Shopping lists page - list all user's lists
-
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
@@ -10,6 +8,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Card } from '@/components/ui/Card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { ListCards } from '@/components/lists/ListCards';
 
 export default async function ListsPage() {
   const session = await getServerSession(authOptions);
@@ -23,7 +22,7 @@ export default async function ListsPage() {
 
   // Fetch lists based on user type
   let lists: any[] = [];
-  
+
   if (session) {
     // Logged-in users: fetch from database
     lists = await prisma.shoppingList.findMany({
@@ -67,32 +66,7 @@ export default async function ListsPage() {
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {lists.map((list) => (
-              <Card key={list.id} className="hover:shadow-lg transition-shadow">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{list.name}</h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {list._count.items} items • {list.isActive && 'Active'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex space-x-2">
-                  <Link href={`/lists/${list.id}`} className="flex-1">
-                    <Button variant="primary" className="w-full" size="sm">
-                      View
-                    </Button>
-                  </Link>
-                  <Link href={`/lists/${list.id}/edit`} className="flex-1">
-                    <Button variant="outline" className="w-full" size="sm">
-                      Edit
-                    </Button>
-                  </Link>
-                </div>
-              </Card>
-            ))}
-          </div>
+          <ListCards lists={lists} />
         )}
       </main>
     </div>

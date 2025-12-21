@@ -25,7 +25,7 @@ export default async function ListDetailPage({
   }
 
   let list: any = null;
-  
+
   if (session) {
     // Logged-in users: fetch from database
     list = await prisma.shoppingList.findFirst({
@@ -34,9 +34,7 @@ export default async function ListDetailPage({
         userId: session.user.id,
       },
       include: {
-        items: {
-          orderBy: { createdAt: 'asc' },
-        },
+        items: true,
       },
     });
   } else if (guestMode) {
@@ -61,7 +59,29 @@ export default async function ListDetailPage({
         {/* Header with editable title and icons */}
         <div className="bg-gray-800 border-b border-gray-700 px-8 py-6">
           <div className="flex items-center justify-between">
-            <EditableListTitle initialName={list.name} listId={list.id} />
+            <div className="flex items-center gap-4">
+              {/* Home Button */}
+              <a
+                href="/lists"
+                className="text-gray-400 hover:text-white transition-colors"
+                title="Back to lists"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  />
+                </svg>
+              </a>
+              <EditableListTitle initialName={list.name} listId={list.id} />
+            </div>
             <div className="flex items-center gap-4">
               {/* Search Icon */}
               <button className="text-gray-400 hover:text-white transition-colors">

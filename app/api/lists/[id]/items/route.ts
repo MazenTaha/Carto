@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { createListItemSchema, updateListItemSchema } from '@/lib/validations';
 import {
   getGuestList,
+  getGuestLists,
   addGuestListItem,
   generateGuestSessionId,
 } from '@/store/guest-store';
@@ -33,8 +34,9 @@ export async function GET(
     const guestMode = request.cookies.get('guest_mode')?.value === 'true';
     const isGuestEmail = session?.user?.email === 'guest@carto.local';
 
-    // Handle guest users (either no session or guest email)
-    if ((guestMode && !session) || isGuestEmail) {
+    // Handle ONLY truly unauthenticated guest users (no session, guest mode enabled)
+    // Note: guest@carto.local users have sessions and use the database, not the guest store
+    if (guestMode && !session) {
       const { sessionId, needsCookie } = getGuestSessionId(request);
       const list = getGuestList(sessionId, params.id);
 
@@ -57,6 +59,8 @@ export async function GET(
       return response;
     }
 
+    // Check if user is logged in (includes guest@carto.local users)
+
     // Check if user is logged in
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -76,7 +80,6 @@ export async function GET(
 
     const items = await prisma.listItem.findMany({
       where: { listId: params.id },
-      orderBy: { createdAt: 'asc' },
     });
 
     return NextResponse.json({ success: true, data: items });
@@ -95,19 +98,44 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('[DEBUG POST START] Request received for list:', params.id);
+
     const session = await getServerSession(authOptions);
     const guestMode = request.cookies.get('guest_mode')?.value === 'true';
     const isGuestEmail = session?.user?.email === 'guest@carto.local';
 
+    console.log('[DEBUG POST] Session and mode info:', {
+      hasSession: !!session,
+      guestMode,
+      isGuestEmail,
+      sessionEmail: session?.user?.email,
+    });
+
     const body = await request.json();
     const validatedData = createListItemSchema.parse(body);
 
-    // Handle guest users (either no session or guest email)
-    if ((guestMode && !session) || isGuestEmail) {
+    // Handle ONLY truly unauthenticated guest users (no session, guest mode enabled)
+    // Note: guest@carto.local users have sessions and use the database, not the guest store
+    if (guestMode && !session) {
       const { sessionId, needsCookie } = getGuestSessionId(request);
+
+      console.log('[DEBUG GUEST] Guest session info:', {
+        sessionId,
+        needsCookie,
+        requestedListId: params.id,
+      });
+
       const list = getGuestList(sessionId, params.id);
 
       if (!list) {
+        // Debug: check all lists for this session
+        const allLists = getGuestLists(sessionId);
+        console.log('[DEBUG GUEST] List not found. All lists for this session:', {
+          sessionId,
+          listCount: allLists.length,
+          listIds: allLists.map(l => l.id),
+        });
+
         return NextResponse.json({ error: 'List not found' }, { status: 404 });
       }
 
@@ -137,12 +165,18 @@ export async function POST(
       return response;
     }
 
-    // Check if user is logged in
+    // Check if user is logged in (includes guest@carto.local users)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Database operations for logged-in users
+    console.log('[DEBUG POST] Attempting to find list with params:', {
+      listId: params.id,
+      userId: session.user.id,
+      userEmail: session.user.email,
+    });
+
     const list = await prisma.shoppingList.findFirst({
       where: {
         id: params.id,
@@ -152,8 +186,16 @@ export async function POST(
 
     if (!list) {
       console.log('[DEBUG] List not found. Params ID:', params.id, 'Session User ID:', session.user.id);
+
+      // Additional debugging: check if list exists at all
+      const anyList = await prisma.shoppingList.findUnique({
+        where: { id: params.id },
+      });
+      console.log('[DEBUG] List exists in DB (any user):', !!anyList, anyList ? `Owner: ${anyList.userId}` : 'N/A');
+
       return NextResponse.json({ error: 'List not found' }, { status: 404 });
     }
+
 
     const item = await prisma.listItem.create({
       data: {
