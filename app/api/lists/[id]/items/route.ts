@@ -139,6 +139,18 @@ export async function POST(
         return NextResponse.json({ error: 'List not found' }, { status: 404 });
       }
 
+      // Check for duplicates in guest list
+      const existingItem = list.items?.find(
+        item => item.name.toLowerCase() === validatedData.name.toLowerCase()
+      );
+
+      if (existingItem) {
+        return NextResponse.json(
+          { error: 'Item already exists in the list' },
+          { status: 400 }
+        );
+      }
+
       const item = addGuestListItem(sessionId, params.id, {
         name: validatedData.name,
         quantity: validatedData.quantity || 1,
@@ -186,16 +198,26 @@ export async function POST(
 
     if (!list) {
       console.log('[DEBUG] List not found. Params ID:', params.id, 'Session User ID:', session.user.id);
-
-      // Additional debugging: check if list exists at all
-      const anyList = await prisma.shoppingList.findUnique({
-        where: { id: params.id },
-      });
-      console.log('[DEBUG] List exists in DB (any user):', !!anyList, anyList ? `Owner: ${anyList.userId}` : 'N/A');
-
       return NextResponse.json({ error: 'List not found' }, { status: 404 });
     }
 
+    // Check for duplicates in database
+    const existingItem = await prisma.listItem.findFirst({
+      where: {
+        listId: params.id,
+        name: {
+          equals: validatedData.name,
+          mode: 'insensitive', // Case insensitive check
+        },
+      },
+    });
+
+    if (existingItem) {
+      return NextResponse.json(
+        { error: 'Item already exists in the list' },
+        { status: 400 }
+      );
+    }
 
     const item = await prisma.listItem.create({
       data: {

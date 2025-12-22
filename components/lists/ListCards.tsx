@@ -76,8 +76,8 @@ export function ListCards({ lists }: ListCardsProps) {
                         <button
                             onClick={() => handleDeleteClick(list.id, list.name)}
                             className={`transition-colors ${deletingId === list.id
-                                    ? 'text-red-600 hover:text-red-700'
-                                    : 'text-gray-400 hover:text-red-500'
+                                ? 'text-red-600 hover:text-red-700'
+                                : 'text-gray-400 hover:text-red-500'
                                 }`}
                             title={deletingId === list.id ? (confirmCount === 0 ? 'Click again to confirm' : 'Click once more to delete') : 'Delete list'}
                         >
@@ -116,18 +116,11 @@ export function ListCards({ lists }: ListCardsProps) {
                         </div>
                     )}
 
-                    <div className="flex space-x-2">
-                        <Link href={`/lists/${list.id}`} className="flex-1">
-                            <Button variant="primary" className="w-full" size="sm">
-                                View
-                            </Button>
-                        </Link>
-                        <Link href={`/lists/${list.id}/edit`} className="flex-1">
-                            <Button variant="outline" className="w-full" size="sm">
-                                Edit
-                            </Button>
-                        </Link>
-                    </div>
+                    <Link href={`/lists/${list.id}`} className="w-full">
+                        <Button variant="primary" className="w-full" size="sm">
+                            View
+                        </Button>
+                    </Link>
                 </Card>
             ))}
         </div>

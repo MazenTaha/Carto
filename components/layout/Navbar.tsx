@@ -46,6 +46,9 @@ export function Navbar() {
             {(session || isGuestMode) && (
               <>
                 <Link href="/dashboard" className="text-gray-700 hover:text-gray-900">
+                  Home
+                </Link>
+                <Link href="/dashboard" className="text-gray-700 hover:text-gray-900">
                   Dashboard
                 </Link>
                 <Link href="/lists" className="text-gray-700 hover:text-gray-900">

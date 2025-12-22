@@ -113,8 +113,8 @@ export default async function DashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
-            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-            <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="flex flex-col gap-6">
               <Link href="/lists/new">
                 <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group">
                   <svg className="w-5 h-5 transition-transform group-hover:rotate-90 duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,7 +146,7 @@ export default async function DashboardPage() {
 
           <Card>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Recent Lists</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Recent Lists</h3>
               <Link href="/lists" className="text-sm text-blue-600 hover:text-blue-700">
                 View all
               </Link>
@@ -173,15 +173,15 @@ export default async function DashboardPage() {
           </Card>
 
           <Card>
-            <h3 className="text-lg font-semibold mb-4">Statistics</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Statistics</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">Total Lists</span>
-                <span className="font-semibold">{lists.length}</span>
+                <span className="font-semibold text-gray-900">{lists.length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Active Session</span>
-                <span className="font-semibold">
+                <span className="font-semibold text-gray-900">
                   {activeSession ? 'Yes' : 'No'}
                 </span>
               </div>

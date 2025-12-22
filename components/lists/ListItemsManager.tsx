@@ -23,6 +23,15 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
   const [isLoading, setIsLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
+  // State for quantity selection modal
+  const [pendingProduct, setPendingProduct] = useState<{
+    name: string;
+    category?: string;
+    emoji?: string;
+  } | null>(null);
+  const [showQuantityModal, setShowQuantityModal] = useState(false);
+  const [quantityInput, setQuantityInput] = useState(1);
+
   const fetchItems = async () => {
     try {
       const response = await fetch(`/api/lists/${listId}/items`);
@@ -35,10 +44,7 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
     }
   };
 
-  const handleAddItem = async (productOrName: any, quantity: number = 1) => {
-    setError('');
-    setIsLoading(true);
-
+  const onProductSelect = (productOrName: any) => {
     let name = '';
     let category = '';
     let emoji = '';
@@ -50,6 +56,40 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
       category = productOrName.category;
       emoji = productOrName.emoji;
     }
+
+    // Check for duplicates
+    const isDuplicate = items.some(
+      (item) => item.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      alert(`"${name}" is already in your list!`);
+      return;
+    }
+
+    setPendingProduct({ name, category, emoji });
+    setQuantityInput(1);
+    setShowQuantityModal(true);
+  };
+
+  const confirmAddItem = async () => {
+    if (!pendingProduct) return;
+
+    await handleAddItem(pendingProduct, quantityInput);
+
+    // Reset modal state
+    setShowQuantityModal(false);
+    setPendingProduct(null);
+    setQuantityInput(1);
+    // Hide search form after successful add
+    setShowAddForm(false);
+  };
+
+  const handleAddItem = async (productDetails: any, quantity: number) => {
+    setError('');
+    setIsLoading(true);
+
+    const { name, category, emoji } = productDetails;
 
     console.log('[CLIENT DEBUG] Adding item to list:', {
       listId,
@@ -91,10 +131,6 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
 
       console.log('[CLIENT DEBUG] Item added successfully:', data);
 
-      setNewItemName('');
-      setNewItemQuantity(1);
-      setNewItemCategory('');
-      setShowAddForm(false);
       await fetchItems();
       return true;
     } catch (err: any) {
@@ -140,13 +176,6 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
 
   const handleAddClick = () => {
     setShowAddForm(true);
-  };
-
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    const success = await handleAddItem(e);
-    if (success) {
-      setShowAddForm(false);
-    }
   };
 
   if (items.length === 0 && !showAddForm) {
@@ -205,6 +234,63 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
 
   return (
     <div className="space-y-6">
+      {/* Quantity Selection Modal Overlay */}
+      {showQuantityModal && pendingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700 w-full max-w-sm transform transition-all scale-100">
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <span>{pendingProduct.emoji || '📦'}</span>
+              <span>{pendingProduct.name}</span>
+            </h3>
+
+            <div className="mb-6">
+              <label className="block text-gray-400 text-sm font-medium mb-2">
+                Select Quantity
+              </label>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setQuantityInput(Math.max(1, quantityInput - 1))}
+                  className="w-10 h-10 rounded-full bg-gray-700 text-white hover:bg-gray-600 flex items-center justify-center text-xl font-bold"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  value={quantityInput}
+                  onChange={(e) => setQuantityInput(parseInt(e.target.value) || 1)}
+                  className="flex-1 bg-gray-900 border border-gray-700 text-white text-center rounded-lg py-2 font-bold text-lg focus:ring-2 focus:ring-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <button
+                  onClick={() => setQuantityInput(quantityInput + 1)}
+                  className="w-10 h-10 rounded-full bg-gray-700 text-white hover:bg-gray-600 flex items-center justify-center text-xl font-bold"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowQuantityModal(false);
+                  setPendingProduct(null);
+                }}
+                className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmAddItem}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+              >
+                Add to List
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAddForm && (
         <div className="bg-gray-700 rounded-lg p-6 mb-6">
           {error && (
@@ -213,7 +299,7 @@ export function ListItemsManager({ listId, initialItems }: ListItemsManagerProps
             </div>
           )}
           <ProductSearch
-            onSelect={(product) => handleAddItem(product)}
+            onSelect={onProductSelect}
             onCancel={() => setShowAddForm(false)}
           />
         </div>
