@@ -4,9 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
-import { createListSchema } from '@/lib/validations';
+import { createListSchema, updateListSchema } from '@/lib/validations';
 import {
   getGuestList,
+  getGuestLists,
   updateGuestList,
   deleteGuestList,
   generateGuestSessionId,
@@ -15,12 +16,12 @@ import {
 // Helper function to get or create guest session ID
 function getGuestSessionId(request: NextRequest): { sessionId: string; needsCookie: boolean } {
   let guestSessionId = request.cookies.get('guest_session_id')?.value;
-  
+
   if (!guestSessionId) {
     guestSessionId = generateGuestSessionId();
     return { sessionId: guestSessionId, needsCookie: true };
   }
-  
+
   return { sessionId: guestSessionId, needsCookie: false };
 }
 
@@ -32,18 +33,18 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
     const guestMode = request.cookies.get('guest_mode')?.value === 'true';
-    
+
     // Handle guest users
     if (guestMode && !session) {
       const { sessionId, needsCookie } = getGuestSessionId(request);
       const list = getGuestList(sessionId, params.id);
-      
+
       if (!list) {
         return NextResponse.json({ error: 'List not found' }, { status: 404 });
       }
-      
+
       const response = NextResponse.json({ success: true, data: list });
-      
+
       // Set cookie if needed
       if (needsCookie) {
         response.cookies.set('guest_session_id', sessionId, {
@@ -53,7 +54,7 @@ export async function GET(
           maxAge: 60 * 60 * 24 * 30, // 30 days
         });
       }
-      
+
       return response;
     }
 
@@ -95,21 +96,32 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions);
     const guestMode = request.cookies.get('guest_mode')?.value === 'true';
-    
+
     const body = await request.json();
-    const validatedData = createListSchema.partial().parse(body);
+    const validatedData = updateListSchema.parse(body);
 
     // Handle guest users
     if (guestMode && !session) {
       const { sessionId, needsCookie } = getGuestSessionId(request);
+
+      // If activating this list, deactivate all others first
+      if (validatedData.isActive) {
+        const allLists = getGuestLists(sessionId);
+        allLists.forEach(list => {
+          if (list.id !== params.id) {
+            updateGuestList(sessionId, list.id, { isActive: false });
+          }
+        });
+      }
+
       const updatedList = updateGuestList(sessionId, params.id, validatedData);
-      
+
       if (!updatedList) {
         return NextResponse.json({ error: 'List not found' }, { status: 404 });
       }
-      
+
       const response = NextResponse.json({ success: true, data: updatedList });
-      
+
       // Set cookie if needed
       if (needsCookie) {
         response.cookies.set('guest_session_id', sessionId, {
@@ -119,7 +131,7 @@ export async function PUT(
           maxAge: 60 * 60 * 24 * 30, // 30 days
         });
       }
-      
+
       return response;
     }
 
@@ -138,6 +150,17 @@ export async function PUT(
 
     if (!list) {
       return NextResponse.json({ error: 'List not found' }, { status: 404 });
+    }
+
+    // If activating this list, deactivate all others first
+    if (validatedData.isActive) {
+      await prisma.shoppingList.updateMany({
+        where: {
+          userId: session.user.id,
+          id: { not: params.id },
+        },
+        data: { isActive: false },
+      });
     }
 
     const updatedList = await prisma.shoppingList.update({
@@ -171,18 +194,18 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions);
     const guestMode = request.cookies.get('guest_mode')?.value === 'true';
-    
+
     // Handle guest users
     if (guestMode && !session) {
       const { sessionId, needsCookie } = getGuestSessionId(request);
       const deleted = deleteGuestList(sessionId, params.id);
-      
+
       if (!deleted) {
         return NextResponse.json({ error: 'List not found' }, { status: 404 });
       }
-      
+
       const response = NextResponse.json({ success: true });
-      
+
       // Set cookie if needed
       if (needsCookie) {
         response.cookies.set('guest_session_id', sessionId, {
@@ -192,7 +215,7 @@ export async function DELETE(
           maxAge: 60 * 60 * 24 * 30, // 30 days
         });
       }
-      
+
       return response;
     }
 

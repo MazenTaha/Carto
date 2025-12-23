@@ -34,6 +34,13 @@ export async function GET(
     const guestMode = request.cookies.get('guest_mode')?.value === 'true';
     const isGuestEmail = session?.user?.email === 'guest@carto.local';
 
+    console.log('[DEBUG GET] Session and mode info:', {
+      hasSession: !!session,
+      guestMode,
+      isGuestEmail,
+      sessionEmail: session?.user?.email,
+    });
+
     // Handle ONLY truly unauthenticated guest users (no session, guest mode enabled)
     // Note: guest@carto.local users have sessions and use the database, not the guest store
     if (guestMode && !session) {

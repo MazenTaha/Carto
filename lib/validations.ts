@@ -19,6 +19,11 @@ export const createListSchema = z.object({
   name: z.string().min(1, 'List name is required').max(100, 'List name is too long'),
 });
 
+export const updateListSchema = z.object({
+  name: z.string().min(1, 'List name is required').max(100, 'List name is too long').optional(),
+  isActive: z.boolean().optional(),
+});
+
 export const createListItemSchema = z.object({
   name: z.string().min(1, 'Item name is required').max(200, 'Item name is too long'),
   quantity: z.number().int().positive().default(1),
