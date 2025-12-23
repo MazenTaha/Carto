@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/ui/Logo';
 
 export function Navbar() {
   const { data: session } = useSession();
@@ -40,8 +41,8 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center space-x-8">
-            <Link href="/dashboard" className="text-xl font-bold text-blue-600">
-              Carto
+            <Link href="/dashboard" className="flex items-center">
+              <Logo width={100} height={35} className="hover:opacity-80 transition-opacity" />
             </Link>
             {(session || isGuestMode) && (
               <>

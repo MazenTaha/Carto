@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { signInSchema } from '@/lib/validations';
+import { Logo } from '@/components/ui/Logo';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -94,9 +95,12 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to Carto
+        <div className="flex flex-col items-center">
+          <Link href="/dashboard">
+            <Logo width={180} height={60} className="mb-8" />
+          </Link>
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
+            Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { Logo } from '@/components/ui/Logo';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -12,7 +13,9 @@ export function Sidebar() {
     <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-gray-800">
-        <h1 className="text-2xl font-bold text-green-500">Carto</h1>
+        <Link href="/dashboard">
+          <Logo width={120} height={40} className="hover:opacity-80 transition-opacity" />
+        </Link>
       </div>
 
       {/* Login Button */}
@@ -36,11 +39,10 @@ export function Sidebar() {
           <li>
             <Link
               href="/lists"
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                pathname?.startsWith('/lists')
-                  ? 'bg-gray-800 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${pathname?.startsWith('/lists')
+                ? 'bg-gray-800 text-white'
+                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                }`}
             >
               <svg
                 className="w-5 h-5"
@@ -164,7 +166,7 @@ export function Sidebar() {
           </Link>
         </div>
         <div className="text-center">
-          <p>© 2024 Carto. All rights reserved.</p>
+          <p>© 2024 All rights reserved.</p>
         </div>
       </div>
     </aside>

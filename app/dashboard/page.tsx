@@ -78,7 +78,7 @@ export default async function DashboardPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
             {isGuestMode
-              ? 'Welcome to Carto!'
+              ? 'Welcome!'
               : `Welcome back${session?.user?.name ? `, ${session.user.name}` : ''}!`}
           </h1>
           <p className="mt-2 text-gray-600">

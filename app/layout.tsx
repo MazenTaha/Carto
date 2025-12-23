@@ -6,7 +6,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Carto - Smart Shopping Cart",
+  title: "Smart Shopping Cart",
   description: "Manage your smart shopping cart and track your shopping in real-time",
 };
 
