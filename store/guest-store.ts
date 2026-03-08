@@ -4,8 +4,17 @@
 import { ShoppingList, ListItem } from '@/types';
 import { randomBytes } from 'crypto';
 
+// Persist the store on globalThis so it survives Next.js hot reloads in dev mode
+const globalForGuestStore = globalThis as unknown as {
+  guestListsStore: Map<string, ShoppingList[]>;
+};
+
+if (!globalForGuestStore.guestListsStore) {
+  globalForGuestStore.guestListsStore = new Map<string, ShoppingList[]>();
+}
+
 // In-memory storage: Map<guestSessionId, ShoppingList[]>
-const guestListsStore = new Map<string, ShoppingList[]>();
+const guestListsStore = globalForGuestStore.guestListsStore;
 
 // Generate a unique guest session ID
 export function generateGuestSessionId(): string {
@@ -23,7 +32,7 @@ export function createGuestList(
   name: string
 ): ShoppingList {
   const lists = getGuestLists(guestSessionId);
-  
+
   // Set all other lists to inactive
   lists.forEach(list => {
     list.isActive = false;
@@ -41,7 +50,7 @@ export function createGuestList(
 
   lists.push(newList);
   guestListsStore.set(guestSessionId, lists);
-  
+
   return newList;
 }
 
@@ -62,7 +71,7 @@ export function updateGuestList(
 ): ShoppingList | null {
   const lists = getGuestLists(guestSessionId);
   const listIndex = lists.findIndex(list => list.id === listId);
-  
+
   if (listIndex === -1) {
     return null;
   }
@@ -72,7 +81,7 @@ export function updateGuestList(
     ...updates,
     updatedAt: new Date(),
   };
-  
+
   guestListsStore.set(guestSessionId, lists);
   return lists[listIndex];
 }
@@ -84,11 +93,11 @@ export function deleteGuestList(
 ): boolean {
   const lists = getGuestLists(guestSessionId);
   const filteredLists = lists.filter(list => list.id !== listId);
-  
+
   if (filteredLists.length === lists.length) {
     return false; // List not found
   }
-  
+
   guestListsStore.set(guestSessionId, filteredLists);
   return true;
 }
@@ -114,17 +123,17 @@ export function addGuestListItem(
   if (!list.items) {
     list.items = [];
   }
-  
+
   list.items.push(newItem);
   list.updatedAt = new Date();
-  
+
   const lists = getGuestLists(guestSessionId);
   const listIndex = lists.findIndex(l => l.id === listId);
   if (listIndex !== -1) {
     lists[listIndex] = list;
     guestListsStore.set(guestSessionId, lists);
   }
-  
+
   return newItem;
 }
 
@@ -149,22 +158,22 @@ export function updateGuestListItem(
     ...list.items[itemIndex],
     ...updates,
   };
-  
+
   if (updates.isCollected && !list.items[itemIndex].collectedAt) {
     list.items[itemIndex].collectedAt = new Date();
   } else if (!updates.isCollected && list.items[itemIndex].collectedAt) {
     list.items[itemIndex].collectedAt = null;
   }
-  
+
   list.updatedAt = new Date();
-  
+
   const lists = getGuestLists(guestSessionId);
   const listIndex = lists.findIndex(l => l.id === listId);
   if (listIndex !== -1) {
     lists[listIndex] = list;
     guestListsStore.set(guestSessionId, lists);
   }
-  
+
   return list.items[itemIndex];
 }
 
@@ -181,19 +190,20 @@ export function deleteGuestListItem(
 
   const initialLength = list.items.length;
   list.items = list.items.filter(item => item.id !== itemId);
-  
+
   if (list.items.length === initialLength) {
     return false; // Item not found
   }
-  
+
   list.updatedAt = new Date();
-  
+
   const lists = getGuestLists(guestSessionId);
   const listIndex = lists.findIndex(l => l.id === listId);
   if (listIndex !== -1) {
     lists[listIndex] = list;
     guestListsStore.set(guestSessionId, lists);
   }
-  
+
   return true;
 }
+

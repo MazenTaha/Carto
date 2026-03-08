@@ -1,6 +1,7 @@
 // Core TypeScript types for Carto application
 
-// User types
+// ─── User ──────────────────────────────────────────────────────────────────────
+
 export interface User {
   id: string;
   email: string;
@@ -9,7 +10,34 @@ export interface User {
   updatedAt: Date;
 }
 
-// Shopping List types
+// ─── Store ─────────────────────────────────────────────────────────────────────
+
+export interface Store {
+  id: string;
+  name: string;
+  location: string | null;
+  currency: string;
+  taxRate: number;
+  logo: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ─── Cart (Physical) ───────────────────────────────────────────────────────────
+
+export type CartStatus = 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'OFFLINE';
+
+export interface Cart {
+  id: string;
+  cartCode: string;
+  storeId: string;
+  status: CartStatus;
+  lastSeen: Date;
+  store?: Store;
+}
+
+// ─── Shopping List ─────────────────────────────────────────────────────────────
+
 export interface ShoppingList {
   id: string;
   name: string;
@@ -30,7 +58,8 @@ export interface ListItem {
   listId: string;
 }
 
-// Cart Session types
+// ─── Cart Session ──────────────────────────────────────────────────────────────
+
 export type SessionStatus = 'ACTIVE' | 'DISCONNECTED' | 'COMPLETED' | 'CHECKED_OUT';
 
 export interface CartSession {
@@ -43,10 +72,14 @@ export interface CartSession {
   endedAt: Date | null;
   qrCode: string | null;
   shoppingList?: ShoppingList;
+  cart?: Cart;
 }
 
-// Receipt types
+// ─── Receipt ───────────────────────────────────────────────────────────────────
+
 export type ReceiptStatus = 'DRAFT' | 'LOCKED' | 'PAID' | 'CANCELLED';
+export type PaymentMethod = 'CARD' | 'CASH' | 'MOBILE' | 'WALLET';
+export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
 
 export interface Receipt {
   id: string;
@@ -59,7 +92,12 @@ export interface Receipt {
   createdAt: Date;
   lockedAt: Date | null;
   paymentId: string | null;
+  storeId: string | null;
+  cartId: string | null;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
   items?: ReceiptItem[];
+  store?: Store;
 }
 
 export interface ReceiptItem {
@@ -72,7 +110,83 @@ export interface ReceiptItem {
   scannedAt: Date;
 }
 
-// DTOs for API requests/responses
+// ─── Product ───────────────────────────────────────────────────────────────────
+
+export interface Product {
+  id: string;
+  name: string;
+  category: string;
+  emoji: string | null;
+  price: number;
+  popularity: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ─── User Stats (Analytics) ────────────────────────────────────────────────────
+
+export interface UserStats {
+  id: string;
+  userId: string;
+  totalOrders: number;
+  totalSpent: number;
+  averageBasketValue: number;
+}
+
+// ─── User Favorite Product ─────────────────────────────────────────────────────
+
+export interface UserFavoriteProduct {
+  id: string;
+  userId: string;
+  productId: string;
+  purchaseCount: number;
+  lastPurchased: Date;
+  product?: Product;
+}
+
+// ─── Wishlist ──────────────────────────────────────────────────────────────────
+
+export interface Wishlist {
+  id: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  items?: WishlistItem[];
+}
+
+export interface WishlistItem {
+  id: string;
+  wishlistId: string;
+  productId: string;
+  addedAt: Date;
+  note: string | null;
+  product?: Product;
+}
+
+// ─── Notification ──────────────────────────────────────────────────────────────
+
+export type NotificationType =
+  | 'PAYMENT_SUCCESS'
+  | 'PAYMENT_FAILED'
+  | 'RECEIPT_READY'
+  | 'SESSION_STARTED'
+  | 'SESSION_ENDED'
+  | 'WISHLIST_PRICE_DROP'
+  | 'SYSTEM';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  isRead: boolean;
+  data: Record<string, any> | null;
+  createdAt: Date;
+}
+
+// ─── DTOs ──────────────────────────────────────────────────────────────────────
+
 export interface CreateListDTO {
   name: string;
 }
@@ -91,7 +205,7 @@ export interface UpdateListItemDTO {
 }
 
 export interface LinkCartDTO {
-  cartId: string;
+  cartCode: string;
   listId: string;
 }
 
@@ -100,14 +214,25 @@ export interface UpdateReceiptItemDTO {
   remove?: boolean;
 }
 
-// API Response types
+export interface AddWishlistItemDTO {
+  productId: string;
+  note?: string;
+}
+
+export interface AddFavoriteDTO {
+  productId: string;
+}
+
+// ─── API Response ──────────────────────────────────────────────────────────────
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-// Session state for real-time updates
+// ─── Session State (Zustand) ───────────────────────────────────────────────────
+
 export interface SessionState {
   session: CartSession | null;
   receipt: Receipt | null;
@@ -118,4 +243,3 @@ export interface SessionState {
   };
   isConnected: boolean;
 }
-

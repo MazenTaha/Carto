@@ -36,12 +36,13 @@ export default async function DashboardPage() {
   // Get user's lists and active session (only if not guest mode)
   let lists: any[] = [];
   let activeSession: any = null;
+  let totalListsCount = 0;
 
   if (session && session.user?.id && !isGuestMode && process.env.DATABASE_URL) {
     try {
       // Lazy import Prisma only when needed
       const { prisma } = await import('@/lib/prisma');
-      [lists, activeSession] = await Promise.all([
+      const [listsData, totalCount, activeSessionData] = await Promise.all([
         prisma.shoppingList.findMany({
           where: { userId: session.user.id },
           include: {
@@ -50,6 +51,9 @@ export default async function DashboardPage() {
           },
           orderBy: { updatedAt: 'desc' },
           take: 5,
+        }),
+        prisma.shoppingList.count({
+          where: { userId: session.user.id },
         }),
         prisma.cartSession.findFirst({
           where: {
@@ -63,11 +67,27 @@ export default async function DashboardPage() {
           },
         }),
       ]);
+      lists = listsData;
+      totalListsCount = totalCount;
+      activeSession = activeSessionData;
     } catch (error: any) {
       // Database not available, use empty arrays
       console.log('Database not available:', error?.message || 'Unknown error');
       lists = [];
+      totalListsCount = 0;
       activeSession = null;
+    }
+  } else if (isGuestMode) {
+    // For guest mode, get lists from in-memory store
+    const guestSessionId = cookieStore.get('guest_session_id')?.value;
+    if (guestSessionId) {
+      const { getGuestLists } = await import('@/store/guest-store');
+      const guestLists = getGuestLists(guestSessionId);
+      lists = guestLists.slice(0, 5).map(list => ({
+        ...list,
+        _count: { items: list.items?.length || 0 },
+      }));
+      totalListsCount = guestLists.length;
     }
   }
 
@@ -177,7 +197,7 @@ export default async function DashboardPage() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">Total Lists</span>
-                <span className="font-semibold text-gray-900">{lists.length}</span>
+                <span className="font-semibold text-gray-900">{totalListsCount}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Active Session</span>

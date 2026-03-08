@@ -14,12 +14,12 @@ import {
 // Helper function to get or create guest session ID
 function getGuestSessionId(request: NextRequest): { sessionId: string; needsCookie: boolean } {
   let guestSessionId = request.cookies.get('guest_session_id')?.value;
-  
+
   if (!guestSessionId) {
     guestSessionId = generateGuestSessionId();
     return { sessionId: guestSessionId, needsCookie: true };
   }
-  
+
   return { sessionId: guestSessionId, needsCookie: false };
 }
 
@@ -28,30 +28,31 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const guestMode = request.cookies.get('guest_mode')?.value === 'true';
-    
+
     // Check if user is a guest
     if (guestMode && !session) {
       const { sessionId, needsCookie } = getGuestSessionId(request);
       const lists = getGuestLists(sessionId);
-      
+
       // Format lists to match database structure
       const formattedLists = lists.map(list => ({
         ...list,
         _count: { items: list.items?.length || 0 },
       }));
-      
+
       const response = NextResponse.json({ success: true, data: formattedLists });
-      
+
       // Set cookie if needed
       if (needsCookie) {
         response.cookies.set('guest_session_id', sessionId, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
+          path: '/',
           maxAge: 60 * 60 * 24 * 30, // 30 days
         });
       }
-      
+
       return response;
     }
 
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const guestMode = request.cookies.get('guest_mode')?.value === 'true';
-    
+
     const body = await request.json();
     const validatedData = createListSchema.parse(body);
 
@@ -93,22 +94,23 @@ export async function POST(request: NextRequest) {
     if (guestMode && !session) {
       const { sessionId, needsCookie } = getGuestSessionId(request);
       const list = createGuestList(sessionId, validatedData.name);
-      
+
       const response = NextResponse.json(
         { success: true, data: list },
         { status: 201 }
       );
-      
+
       // Set cookie if needed
       if (needsCookie) {
         response.cookies.set('guest_session_id', sessionId, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
+          path: '/',
           maxAge: 60 * 60 * 24 * 30, // 30 days
         });
       }
-      
+
       return response;
     }
 

@@ -1,5 +1,6 @@
 // Prisma schema for Carto Smart Shopping Cart System
-// This schema defines the database structure for users, shopping lists, cart sessions, and receipts
+// This schema defines the database structure for users, shopping lists, cart sessions, receipts,
+// stores, physical carts, wishlists, user analytics, favorites, and notifications.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,7 +11,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model for authentication and user data
+// ─── USER ──────────────────────────────────────────────────────────────────────
+
 model User {
   id            String         @id @default(cuid())
   email         String         @unique
@@ -18,76 +20,128 @@ model User {
   name          String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-  
+
   // Relations
-  shoppingLists ShoppingList[]
-  cartSessions  CartSession[]
-  receipts      Receipt[]
-  
+  shoppingLists    ShoppingList[]
+  cartSessions     CartSession[]
+  receipts         Receipt[]
+  stats            UserStats?
+  favoriteProducts UserFavoriteProduct[]
+  wishlist         Wishlist?
+  notifications    Notification[]
+
   @@map("users")
 }
 
-// Shopping list model - users can create multiple lists
+// ─── STORE ─────────────────────────────────────────────────────────────────────
+
+model Store {
+  id        String   @id @default(cuid())
+  name      String
+  location  String?
+  currency  String   @default("USD")
+  taxRate   Float    @default(0.085)
+  logo      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  carts    Cart[]
+  receipts Receipt[]
+
+  @@map("stores")
+}
+
+// ─── PHYSICAL CART ─────────────────────────────────────────────────────────────
+
+model Cart {
+  id        String     @id @default(cuid())
+  cartCode  String     @unique  // Physical code printed on the cart (scanned via QR)
+  storeId   String
+  status    CartStatus @default(AVAILABLE)
+  lastSeen  DateTime   @default(now())
+
+  store    Store         @relation(fields: [storeId], references: [id])
+  sessions CartSession[]
+
+  @@index([storeId])
+  @@index([cartCode])
+  @@map("carts")
+}
+
+enum CartStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  OFFLINE
+}
+
+// ─── SHOPPING LIST ─────────────────────────────────────────────────────────────
+
 model ShoppingList {
   id          String     @id @default(cuid())
   name        String
   userId      String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  isActive    Boolean    @default(false) // Currently active list
-  
-  // Relations
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items       ListItem[]
+  isActive    Boolean    @default(false)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items        ListItem[]
   cartSessions CartSession[]
-  
+
+  @@index([userId])
   @@map("shopping_lists")
 }
 
-// Individual items in a shopping list
+// ─── LIST ITEM ─────────────────────────────────────────────────────────────────
+
 model ListItem {
-  id             String        @id @default(cuid())
-  name           String
-  quantity       Int           @default(1)
-  category       String?       // Optional category (e.g., "Produce", "Dairy")
-  isCollected    Boolean       @default(false) // Whether item has been collected
-  collectedAt    DateTime?
-  listId         String
-  
-  // Relations
-  shoppingList   ShoppingList  @relation(fields: [listId], references: [id], onDelete: Cascade)
-  
+  id          String    @id @default(cuid())
+  name        String
+  quantity    Int       @default(1)
+  category    String?
+  isCollected Boolean   @default(false)
+  collectedAt DateTime?
+  listId      String
+
+  shoppingList ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
   @@map("list_items")
 }
 
-// Cart session - represents an active shopping session linked to a physical cart
+// ─── CART SESSION ──────────────────────────────────────────────────────────────
+
 model CartSession {
-  id            String        @id @default(cuid())
-  cartId        String        @unique // Physical cart identifier
-  userId        String
-  listId        String
-  status        SessionStatus @default(ACTIVE)
-  startedAt     DateTime      @default(now())
-  endedAt       DateTime?
-  qrCode        String?       // QR code data for linking
-  
-  // Relations
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  shoppingList  ShoppingList  @relation(fields: [listId], references: [id], onDelete: Cascade)
-  receipt       Receipt?
-  
+  id        String        @id @default(cuid())
+  cartId    String        // References physical Cart
+  userId    String
+  listId    String
+  status    SessionStatus @default(ACTIVE)
+  startedAt DateTime      @default(now())
+  endedAt   DateTime?
+  qrCode    String?
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shoppingList ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  cart         Cart         @relation(fields: [cartId], references: [id])
+  receipt      Receipt?
+
+  @@index([userId])
+  @@index([listId])
+  @@index([cartId])
   @@map("cart_sessions")
 }
 
-// Session status enum
 enum SessionStatus {
-  ACTIVE      // Session is active and cart is connected
-  DISCONNECTED // Cart disconnected but session can be resumed
-  COMPLETED   // Shopping completed, ready for checkout
-  CHECKED_OUT // Payment completed
+  ACTIVE
+  DISCONNECTED
+  COMPLETED
+  CHECKED_OUT
 }
 
-// Virtual receipt - draft receipt before final checkout
+// ─── RECEIPT ───────────────────────────────────────────────────────────────────
+
 model Receipt {
   id            String        @id @default(cuid())
   sessionId     String        @unique
@@ -97,51 +151,168 @@ model Receipt {
   tax           Float         @default(0)
   total         Float         @default(0)
   createdAt     DateTime      @default(now())
-  lockedAt      DateTime?     // When receipt was locked for checkout
-  paymentId     String?       // Stripe payment intent ID
-  
-  // Relations
-  cartSession   CartSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items         ReceiptItem[]
-  
+  lockedAt      DateTime?
+  paymentId     String?
+
+  // New fields
+  storeId       String?
+  cartId        String?
+  paymentMethod PaymentMethod @default(CARD)
+  paymentStatus PaymentStatus @default(PENDING)
+
+  cartSession CartSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store       Store?       @relation(fields: [storeId], references: [id])
+  items       ReceiptItem[]
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([storeId])
   @@map("receipts")
 }
 
-// Receipt status enum
 enum ReceiptStatus {
-  DRAFT        // Receipt is being updated in real-time
-  LOCKED       // Receipt is locked for checkout
-  PAID         // Payment completed
-  CANCELLED    // Payment cancelled
+  DRAFT
+  LOCKED
+  PAID
+  CANCELLED
 }
 
-// Items in the virtual receipt
+enum PaymentMethod {
+  CARD
+  CASH
+  MOBILE
+  WALLET
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ─── RECEIPT ITEM ──────────────────────────────────────────────────────────────
+
 model ReceiptItem {
-  id            String        @id @default(cuid())
-  name          String
-  quantity      Int           @default(1)
-  price         Float
-  category      String?
-  receiptId     String
-  scannedAt     DateTime      @default(now())
-  
-  // Relations
-  receipt       Receipt       @relation(fields: [receiptId], references: [id], onDelete: Cascade)
-  
+  id        String   @id @default(cuid())
+  name      String
+  quantity  Int      @default(1)
+  price     Float
+  category  String?
+  receiptId String
+  scannedAt DateTime @default(now())
+
+  receipt Receipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@index([receiptId])
   @@map("receipt_items")
 }
 
-// Product catalog for global search
+// ─── PRODUCT CATALOG ───────────────────────────────────────────────────────────
+
 model Product {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  category    String   @default("Other")
-  emoji       String?
-  price       Float    @default(0) // Estimated price
-  popularity  Int      @default(0) // For sorting suggestions
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  name       String   @unique
+  category   String   @default("Other")
+  emoji      String?
+  price      Float    @default(0)
+  popularity Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  favoritedBy   UserFavoriteProduct[]
+  wishlistItems WishlistItem[]
 
   @@map("products")
+}
+
+// ─── USER STATS (Analytics) ────────────────────────────────────────────────────
+
+model UserStats {
+  id                 String @id @default(cuid())
+  userId             String @unique
+  totalOrders        Int    @default(0)
+  totalSpent         Float  @default(0)
+  averageBasketValue Float  @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_stats")
+}
+
+// ─── USER FAVORITE PRODUCTS ────────────────────────────────────────────────────
+
+model UserFavoriteProduct {
+  id            String   @id @default(cuid())
+  userId        String
+  productId     String
+  purchaseCount Int      @default(1)
+  lastPurchased DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("user_favorite_products")
+}
+
+// ─── WISHLIST ──────────────────────────────────────────────────────────────────
+
+model Wishlist {
+  id        String         @id @default(cuid())
+  userId    String         @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items WishlistItem[]
+
+  @@map("wishlists")
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  wishlistId String
+  productId  String
+  addedAt    DateTime @default(now())
+  note       String?
+
+  wishlist Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([wishlistId, productId])
+  @@index([wishlistId])
+  @@map("wishlist_items")
+}
+
+// ─── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  data      Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  RECEIPT_READY
+  SESSION_STARTED
+  SESSION_ENDED
+  WISHLIST_PRICE_DROP
+  SYSTEM
 }

@@ -49,37 +49,11 @@ export default function SignInPage() {
     setError('');
 
     try {
-      // First try to set guest bypass cookie
+      // Set guest bypass cookie
       const bypassResponse = await fetch('/api/auth/guest-bypass');
 
       if (bypassResponse.ok) {
-        // Try to create guest user in database (optional)
-        try {
-          const guestResponse = await fetch('/api/auth/guest', {
-            method: 'POST',
-          });
-
-          if (guestResponse.ok) {
-            const guestData = await guestResponse.json();
-            // Sign in as guest user
-            const result = await signIn('credentials', {
-              email: guestData.data.email,
-              password: guestData.data.password,
-              redirect: false,
-            });
-
-            if (!result?.error) {
-              router.push('/dashboard');
-              router.refresh();
-              return;
-            }
-          }
-        } catch (dbError) {
-          // Database not available, continue with bypass
-          console.log('Database not available, using bypass mode');
-        }
-
-        // Use bypass mode (no database required)
+        // Use bypass mode instantly
         router.push('/dashboard');
         router.refresh();
       } else {
