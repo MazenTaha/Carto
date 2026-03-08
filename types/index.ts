@@ -52,6 +52,7 @@ export interface ListItem {
   id: string;
   name: string;
   quantity: number;
+  price?: number;
   category: string | null;
   isCollected: boolean;
   collectedAt: Date | null;
@@ -194,12 +195,14 @@ export interface CreateListDTO {
 export interface CreateListItemDTO {
   name: string;
   quantity?: number;
+  price?: number;
   category?: string;
 }
 
 export interface UpdateListItemDTO {
   name?: string;
   quantity?: number;
+  price?: number;
   category?: string;
   isCollected?: boolean;
 }

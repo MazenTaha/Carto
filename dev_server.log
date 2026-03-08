@@ -1,0 +1,149 @@
+
+> carto@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+> [PWA] PWA support is disabled
+> [PWA] PWA support is disabled
+ ✓ Ready in 2.3s
+ ○ Compiling /auth/signin ...
+ ✓ Compiled /auth/signin in 6.4s (661 modules)
+ GET /auth/signin 200 in 7422ms
+ ✓ Compiled in 939ms (334 modules)
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 4.5s (559 modules)
+ ✓ Compiled /api/auth/guest-bypass in 285ms (588 modules)
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+ GET /api/auth/session 200 in 5421ms
+ GET /api/auth/guest-bypass 200 in 422ms
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+ GET /api/auth/session 200 in 65ms
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 642ms (174 modules)
+ ✓ Compiled /dashboard in 408ms (926 modules)
+ ✓ Compiled /lists/new in 496ms (932 modules)
+ ✓ Compiled /api/lists in 324ms (621 modules)
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+ POST /api/lists 201 in 403ms
+ ⨯ ./components/lists/ListItemsManager.tsx
+Error:
+  [31mx[0m Expected ',', got '{'
+     ,-[[36;1;4m/app/components/lists/ListItemsManager.tsx[0m:387:1]
+ [2m387[0m |         </div>
+ [2m388[0m |       </div>
+ [2m389[0m |
+ [2m390[0m |       {/* Centered Floating Add Button */}
+     : [31;1m      ^[0m
+ [2m391[0m |       {!showAddForm && (
+ [2m392[0m |         <button
+ [2m393[0m |           onClick={handleAddClick}
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/lists/ListItemsManager.tsx
+./app/lists/[id]/page.tsx
+ ○ Compiling /_not-found ...
+ ⨯ ./components/lists/ListItemsManager.tsx
+Error:
+  [31mx[0m Expected ',', got '{'
+     ,-[[36;1;4m/app/components/lists/ListItemsManager.tsx[0m:387:1]
+ [2m387[0m |         </div>
+ [2m388[0m |       </div>
+ [2m389[0m |
+ [2m390[0m |       {/* Centered Floating Add Button */}
+     : [31;1m      ^[0m
+ [2m391[0m |       {!showAddForm && (
+ [2m392[0m |         <button
+ [2m393[0m |           onClick={handleAddClick}
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/lists/ListItemsManager.tsx
+./app/lists/[id]/page.tsx
+ ⨯ ./components/lists/ListItemsManager.tsx
+Error:
+  [31mx[0m Expected ',', got '{'
+     ,-[[36;1;4m/app/components/lists/ListItemsManager.tsx[0m:387:1]
+ [2m387[0m |         </div>
+ [2m388[0m |       </div>
+ [2m389[0m |
+ [2m390[0m |       {/* Centered Floating Add Button */}
+     : [31;1m      ^[0m
+ [2m391[0m |       {!showAddForm && (
+ [2m392[0m |         <button
+ [2m393[0m |           onClick={handleAddClick}
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/lists/ListItemsManager.tsx
+./app/lists/[id]/page.tsx
+ GET /lists/guest_list_138861129274784c 500 in 55ms
+ ✓ Compiled /_error in 1210ms (1143 modules)
+ ✓ Compiled in 270ms (525 modules)
+ GET /auth/signin 200 in 201ms
+ ✓ Compiled /api/auth/[...nextauth] in 397ms (622 modules)
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+ GET /api/auth/session 200 in 631ms
+ GET /api/auth/session 200 in 20ms
+ ✓ Compiled /api/auth/guest-bypass in 165ms (648 modules)
+ GET /api/auth/guest-bypass 200 in 245ms
+ ✓ Compiled /api/lists in 133ms (661 modules)
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+ POST /api/lists 201 in 257ms
+ ○ Compiling /lists/[id] ...
+ ✓ Compiled /lists/[id] in 648ms (1182 modules)
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+ GET /lists/guest_list_93058660fa240273?_rsc=6apkd 200 in 48ms
+ GET /auth/signin 200 in 151ms
+ GET /api/auth/session 200 in 56ms
+ GET /api/auth/session 200 in 18ms
+ GET /api/auth/guest-bypass 200 in 22ms
+ GET /api/auth/guest-bypass 200 in 20ms
+ POST /api/lists 201 in 41ms
+ ○ Compiling /api/lists/[id]/items ...
+ ✓ Compiled /api/lists/[id]/items in 718ms (670 modules)
+[DEBUG POST START] Request received for list: guest_list_61f72783d79a89fc
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+[DEBUG POST] Session and mode info: {
+  hasSession: false,
+  guestMode: true,
+  isGuestEmail: false,
+  sessionEmail: undefined
+}
+[DEBUG GUEST] Guest session info: {
+  sessionId: 'guest_925dbea71d996386ec3c2db26bec5384',
+  needsCookie: false,
+  requestedListId: 'guest_list_61f72783d79a89fc'
+}
+ POST /api/lists/guest_list_61f72783d79a89fc/items 201 in 1454ms
+[DEBUG GET] Session and mode info: {
+  hasSession: false,
+  guestMode: true,
+  isGuestEmail: false,
+  sessionEmail: undefined
+}
+ GET /api/lists/guest_list_61f72783d79a89fc/items 200 in 44ms

@@ -99,6 +99,7 @@ model ListItem {
   id          String    @id @default(cuid())
   name        String
   quantity    Int       @default(1)
+  price       Float     @default(0)
   category    String?
   isCollected Boolean   @default(false)
   collectedAt DateTime?

@@ -29,12 +29,14 @@ export const updateListSchema = z.object({
 export const createListItemSchema = z.object({
   name: z.string().min(1, 'Item name is required').max(200, 'Item name is too long'),
   quantity: z.number().int().positive().default(1),
+  price: z.number().min(0).optional(),
   category: z.string().max(50).optional(),
 });
 
 export const updateListItemSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   quantity: z.number().int().positive().optional(),
+  price: z.number().min(0).optional(),
   category: z.string().max(50).optional(),
   isCollected: z.boolean().optional(),
 });
