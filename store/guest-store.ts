@@ -1,8 +1,36 @@
-// In-memory store for guest lists (no database required)
+// Persistent store for guest lists (no database required)
 // This allows guests to create and manage lists without authentication
 
 import { ShoppingList, ListItem } from '@/types';
 import { randomBytes } from 'crypto';
+import fs from 'fs';
+import path from 'path';
+
+const GUEST_DATA_FILE = path.join(process.cwd(), 'guest_data.json');
+
+// Helper to load data from file
+function loadStore(): Map<string, ShoppingList[]> {
+  try {
+    if (fs.existsSync(GUEST_DATA_FILE)) {
+      const data = fs.readFileSync(GUEST_DATA_FILE, 'utf8');
+      const parsed = JSON.parse(data);
+      return new Map(Object.entries(parsed));
+    }
+  } catch (error) {
+    console.error('Failed to load guest store:', error);
+  }
+  return new Map<string, ShoppingList[]>();
+}
+
+// Helper to save data to file
+function saveStore(store: Map<string, ShoppingList[]>) {
+  try {
+    const obj = Object.fromEntries(store);
+    fs.writeFileSync(GUEST_DATA_FILE, JSON.stringify(obj, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Failed to save guest store:', error);
+  }
+}
 
 // Persist the store on globalThis so it survives Next.js hot reloads in dev mode
 const globalForGuestStore = globalThis as unknown as {
@@ -10,10 +38,10 @@ const globalForGuestStore = globalThis as unknown as {
 };
 
 if (!globalForGuestStore.guestListsStore) {
-  globalForGuestStore.guestListsStore = new Map<string, ShoppingList[]>();
+  globalForGuestStore.guestListsStore = loadStore();
 }
 
-// In-memory storage: Map<guestSessionId, ShoppingList[]>
+// Storage: Map<guestSessionId, ShoppingList[]>
 const guestListsStore = globalForGuestStore.guestListsStore;
 
 // Generate a unique guest session ID
@@ -50,6 +78,7 @@ export function createGuestList(
 
   lists.push(newList);
   guestListsStore.set(guestSessionId, lists);
+  saveStore(guestListsStore);
 
   return newList;
 }
@@ -83,6 +112,7 @@ export function updateGuestList(
   };
 
   guestListsStore.set(guestSessionId, lists);
+  saveStore(guestListsStore);
   return lists[listIndex];
 }
 
@@ -99,6 +129,7 @@ export function deleteGuestList(
   }
 
   guestListsStore.set(guestSessionId, filteredLists);
+  saveStore(guestListsStore);
   return true;
 }
 
@@ -124,6 +155,9 @@ export function addGuestListItem(
     list.items = [];
   }
 
+  if (newItem.price === undefined) {
+    newItem.price = 0;
+  }
   list.items.push(newItem);
   list.updatedAt = new Date();
 
@@ -132,6 +166,7 @@ export function addGuestListItem(
   if (listIndex !== -1) {
     lists[listIndex] = list;
     guestListsStore.set(guestSessionId, lists);
+    saveStore(guestListsStore);
   }
 
   return newItem;
@@ -172,6 +207,7 @@ export function updateGuestListItem(
   if (listIndex !== -1) {
     lists[listIndex] = list;
     guestListsStore.set(guestSessionId, lists);
+    saveStore(guestListsStore);
   }
 
   return list.items[itemIndex];
@@ -202,8 +238,8 @@ export function deleteGuestListItem(
   if (listIndex !== -1) {
     lists[listIndex] = list;
     guestListsStore.set(guestSessionId, lists);
+    saveStore(guestListsStore);
   }
 
   return true;
 }
-

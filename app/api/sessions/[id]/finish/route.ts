@@ -43,6 +43,14 @@ export async function POST(
       },
     });
 
+    // Update cart status to AVAILABLE
+    if (cartSession.cartId) {
+      await prisma.cart.update({
+        where: { id: cartSession.cartId },
+        data: { status: 'AVAILABLE' }
+      });
+    }
+
     // Lock receipt if it exists
     if (cartSession.receipt) {
       const subtotal = cartSession.receipt.items.reduce(

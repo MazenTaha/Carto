@@ -29,6 +29,7 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
     name: string;
     category?: string;
     emoji?: string;
+    price?: number;
   } | null>(null);
   const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [quantityInput, setQuantityInput] = useState(1);
@@ -49,6 +50,7 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
     let name = '';
     let category = '';
     let emoji = '';
+    let price = 0;
 
     if (typeof productOrName === 'string') {
       name = productOrName;
@@ -56,6 +58,7 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
       name = productOrName.name;
       category = productOrName.category;
       emoji = productOrName.emoji;
+      price = productOrName.price || 0;
     }
 
     // Check for duplicates
@@ -68,7 +71,7 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
       return;
     }
 
-    setPendingProduct({ name, category, emoji });
+    setPendingProduct({ name, category, emoji, price });
     setQuantityInput(1);
     setShowQuantityModal(true);
   };
@@ -90,19 +93,21 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
     setError('');
     setIsLoading(true);
 
-    const { name, category, emoji } = productDetails;
+    const { name, category, emoji, price } = productDetails;
 
     console.log('[CLIENT DEBUG] Adding item to list:', {
       listId,
       productName: name,
       category,
       quantity,
+      price,
     });
 
     try {
       createListItemSchema.parse({
         name,
         quantity,
+        price,
         category: category || undefined,
       });
 
@@ -115,6 +120,7 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
         body: JSON.stringify({
           name,
           quantity,
+          price,
           category: category || undefined,
         }),
       });
@@ -324,7 +330,7 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-gray-500 font-mono text-lg">0 $</span>
+                <span className="text-gray-500 font-mono text-lg">${((item.price || 0) * item.quantity).toFixed(2)}</span>
                 <span className="text-2xl opacity-80">{item.category?.includes('fruit') ? '🍎' : '📦'}</span>
                 <button
                   onClick={(e) => {
@@ -343,27 +349,41 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
         </div>
 
         {/* Card Footer Summary */}
-        <div className="px-8 py-6 bg-gray-900/40 border-t border-gray-700/50 flex items-center justify-between">
-          <div className="flex gap-10">
-            <div>
-              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Unchecked</div>
-              <div className="text-xl font-bold text-gray-200">0.00 $</div>
+        {(() => {
+          const uncheckedTotal = items
+            .filter(item => !item.isCollected)
+            .reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+
+          const checkedTotal = items
+            .filter(item => item.isCollected)
+            .reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+
+          const totalAmount = uncheckedTotal + checkedTotal;
+
+          return (
+            <div className="px-8 py-6 bg-gray-900/40 border-t border-gray-700/50 flex items-center justify-between">
+              <div className="flex gap-10">
+                <div>
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Unchecked</div>
+                  <div className="text-xl font-bold text-gray-200">${uncheckedTotal.toFixed(2)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Checked</div>
+                  <div className="text-xl font-bold text-gray-200">${checkedTotal.toFixed(2)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Total</div>
+                  <div className="text-xl font-bold text-white">${totalAmount.toFixed(2)}</div>
+                </div>
+              </div>
+              <button className="p-2 text-gray-500 hover:text-white transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+              </button>
             </div>
-            <div>
-              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Checked</div>
-              <div className="text-xl font-bold text-gray-200">0.00 $</div>
-            </div>
-            <div>
-              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Total</div>
-              <div className="text-xl font-bold text-white">0.00 $</div>
-            </div>
-          </div>
-          <button className="p-2 text-gray-500 hover:text-white transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-            </svg>
-          </button>
-        </div>
+          );
+        })()}
       </div>
 
       {/* Centered Floating Add Button */}

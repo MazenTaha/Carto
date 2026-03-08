@@ -80,83 +80,109 @@ export function VirtualReceipt({ receipt, sessionId }: VirtualReceiptProps) {
   const total = subtotal + tax;
 
   return (
-    <Card title="Virtual Receipt" className="mt-6">
-      {isLocked && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2 rounded mb-4">
-          Receipt is locked for checkout
-        </div>
-      )}
+    <div className="bg-gray-800/40 backdrop-blur-sm rounded-[2rem] border border-gray-700/50 shadow-2xl overflow-hidden mt-8">
+      <div className="px-8 py-6 border-b border-gray-700/50 flex justify-between items-center">
+        <h3 className="text-xl font-bold text-white uppercase tracking-wider">Virtual Receipt</h3>
+        {isLocked && (
+          <span className="px-3 py-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-[10px] font-bold uppercase tracking-widest">
+            Locked for Checkout
+          </span>
+        )}
+      </div>
 
-      {items.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">No items scanned yet.</p>
-      ) : (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded border"
-              >
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900">{item.name}</div>
-                  <div className="text-sm text-gray-500">
-                    {formatCurrency(item.price)} × {item.quantity}
-                    {item.category && ` • ${item.category}`}
+      <div className="p-8">
+        {items.length === 0 ? (
+          <div className="py-12 text-center">
+            <div className="w-16 h-16 bg-gray-700/30 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-700/50">
+              <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 022 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <p className="text-gray-500 font-medium">No items scanned yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="space-y-3">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="group flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-transparent hover:border-gray-700/50 transition-all"
+                >
+                  <div className="flex-1">
+                    <div className="font-bold text-gray-200 group-hover:text-white transition-colors">
+                      {item.name}
+                    </div>
+                    <div className="text-xs text-gray-500 font-mono mt-1">
+                      {formatCurrency(item.price)} × {item.quantity}
+                      {item.category && (
+                        <span className="ml-2 px-2 py-0.5 bg-black/30 rounded text-[10px] uppercase tracking-tighter">
+                          {item.category}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="text-right">
-                    <div className="font-semibold">
+
+                  <div className="flex items-center gap-6">
+                    <div className="text-right font-bold text-white font-mono">
                       {formatCurrency(item.price * item.quantity)}
                     </div>
-                  </div>
-                  {!isLocked && (
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                        className="w-8 h-8 rounded border border-gray-300 hover:bg-gray-100"
-                        disabled={item.quantity <= 1}
-                      >
-                        -
-                      </button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <button
-                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                        className="w-8 h-8 rounded border border-gray-300 hover:bg-gray-100"
-                      >
-                        +
-                      </button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleRemoveItem(item.id)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
 
-          <div className="border-t pt-4 space-y-2">
-            <div className="flex justify-between text-gray-600">
-              <span>Subtotal</span>
-              <span>{formatCurrency(subtotal)}</span>
+                    {!isLocked && (
+                      <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-xl border border-gray-700/50">
+                        <button
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-all disabled:opacity-30"
+                          disabled={item.quantity <= 1}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                          </svg>
+                        </button>
+                        <span className="w-6 text-center font-bold text-white text-sm font-mono">{item.quantity}</span>
+                        <button
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-all"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                        <div className="w-px h-4 bg-gray-700/50 mx-1" />
+                        <button
+                          onClick={() => handleRemoveItem(item.id)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-all"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Tax</span>
-              <span>{formatCurrency(tax)}</span>
-            </div>
-            <div className="flex justify-between text-lg font-bold border-t pt-2">
-              <span>Total</span>
-              <span>{formatCurrency(total)}</span>
+
+            <div className="mt-8 pt-8 border-t border-gray-700/50 space-y-4">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500 font-bold uppercase tracking-widest">Subtotal</span>
+                <span className="text-gray-300 font-mono font-bold">{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500 font-bold uppercase tracking-widest">Estimated Tax (8.5%)</span>
+                <span className="text-gray-300 font-mono font-bold">{formatCurrency(tax)}</span>
+              </div>
+              <div className="flex justify-between items-center pt-4 border-t border-gray-700/50">
+                <span className="text-white font-black uppercase tracking-[0.2em] text-lg">Total Amount</span>
+                <span className="text-3xl font-black text-white font-mono tracking-tighter">
+                  {formatCurrency(total)}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </Card>
+        )}
+      </div>
+    </div>
   );
 }
 
