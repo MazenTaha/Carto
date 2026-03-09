@@ -138,7 +138,7 @@ export function ProductSearch({ onSelect, onCancel }: ProductSearchProps) {
                                 className="px-6 py-3 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 font-bold rounded-xl border border-blue-500/20 transition-all active:scale-95"
                                 onClick={() => onSelect({ id: 'custom', name: query, category: 'Other', emoji: '📦', price: 0 })}
                             >
-                                ADD "{query.toUpperCase()}" ANYWAY
+                                ADD &quot;{query.toUpperCase()}&quot; ANYWAY
                             </button>
                         </div>
                     )}

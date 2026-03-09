@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 import { calculateTax } from '@/lib/utils';
+import { ReceiptItem } from '@/types';
 
 // POST /api/sessions/[id]/finish - Finish shopping and lock receipt
 export async function POST(
@@ -54,7 +55,7 @@ export async function POST(
     // Lock receipt if it exists
     if (cartSession.receipt) {
       const subtotal = cartSession.receipt.items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
+        (sum: number, item: ReceiptItem) => sum + item.price * item.quantity,
         0
       );
       const tax = calculateTax(subtotal);

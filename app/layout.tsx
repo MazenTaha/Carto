@@ -3,11 +3,14 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
-  title: "Carto - Smart Shopping Cart",
-  description: "Your smart shopping companion. Create lists, scan carts, track receipts, and checkout seamlessly.",
+  title: "Carto - Smart Shopping Companion",
+  description: "Create lists, scan carts, track receipts, and checkout seamlessly with Carto.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -27,11 +30,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16a34a",
+  themeColor: "#3713ec",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -40,8 +44,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className="light">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=block" rel="stylesheet" />
+      </head>
+      <body className={`${inter.variable} font-display antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

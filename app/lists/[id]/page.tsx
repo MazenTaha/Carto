@@ -1,4 +1,4 @@
-// Individual shopping list detail page
+// Redesigned Shopping List detail page following Screen 3
 
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
@@ -6,43 +6,46 @@ import { cookies } from 'next/headers';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 import { getGuestList } from '@/store/guest-store';
-import { Sidebar } from '@/components/layout/Sidebar';
 import { ListItemsManager } from '@/components/lists/ListItemsManager';
-import { EditableListTitle } from '@/components/lists/EditableListTitle';
+import { ShoppingList } from '@/types';
 
 export default async function ListDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const session = await getServerSession(authOptions);
+  let session = null;
   const cookieStore = await cookies();
   const guestMode = cookieStore.get('guest_mode')?.value === 'true';
 
-  // Allow guests or logged-in users
+  if (!guestMode && process.env.NEXTAUTH_SECRET && process.env.DATABASE_URL) {
+    try {
+      session = await getServerSession(authOptions);
+    } catch (e) {}
+  }
+
   if (!session && !guestMode) {
     redirect('/auth/signin');
   }
 
-  let list: any = null;
+  let list: ShoppingList | null = null;
 
-  if (session) {
-    // Logged-in users: fetch from database
+  if (session && process.env.DATABASE_URL) {
     list = await prisma.shoppingList.findFirst({
       where: {
         id: params.id,
         userId: session.user.id,
       },
       include: {
-        items: true,
+        items: {
+          orderBy: { createdAt: 'asc' }
+        },
       },
-    });
+    }) as ShoppingList | null;
   } else if (guestMode) {
-    // Guests: fetch from in-memory store
     const guestSessionId = cookieStore.get('guest_session_id')?.value;
     if (guestSessionId) {
-      list = getGuestList(guestSessionId, params.id);
-      // Items are already in order from the store
+      list = getGuestList(guestSessionId, params.id) as ShoppingList | null;
     }
   }
 
@@ -50,22 +53,11 @@ export default async function ListDetailPage({
     redirect('/lists');
   }
 
-  const hasItems = (list.items || []).length > 0;
-
   return (
-    <div className="min-h-screen bg-slate-950 flex">
-      <Sidebar />
-      <main className="flex-1 ml-64 min-h-screen flex flex-col">
-        {/* Main Content Area - Centered Card Container */}
-        <div className="flex-1 w-full max-w-2xl mx-auto px-4 py-12">
-          <ListItemsManager
-            listId={list.id}
-            listName={list.name}
-            initialItems={list.items || []}
-          />
-        </div>
-      </main>
-    </div>
+    <ListItemsManager
+      listId={list.id}
+      listName={list.name}
+      initialItems={list.items || []}
+    />
   );
 }
-

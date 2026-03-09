@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { ReceiptItem } from '@/types';
 
 const addItemSchema = z.object({
   name: z.string().min(1),
@@ -80,7 +81,7 @@ export async function POST(
     });
 
     const subtotal = allItems.reduce(
-      (sum, item) => sum + item.price * item.quantity,
+      (sum: number, item: ReceiptItem) => sum + item.price * item.quantity,
       0
     );
     const tax = subtotal * 0.085; // 8.5% tax

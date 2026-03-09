@@ -27,7 +27,7 @@ export function middleware(request: NextRequest) {
       },
       {
         callbacks: {
-          authorized: ({ token }) => !!token,
+          authorized: ({ token }: { token: any }) => !!token,
         },
       }
     )(request);

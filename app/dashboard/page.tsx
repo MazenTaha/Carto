@@ -1,260 +1,171 @@
-// Dashboard page - main landing page after login
+// Dashboard page - redesigned following Screen 4
 
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { Card } from '@/components/ui/Card';
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { BottomNav } from '@/components/layout/BottomNav';
+import { ShoppingList } from '@/types';
 
 export default async function DashboardPage() {
   let session = null;
 
-  // Check for guest mode first (before any imports that might fail)
+  // Check for guest mode
   const cookieStore = await cookies();
   const guestModeCookie = cookieStore.get('guest_mode');
   const isGuestMode = guestModeCookie?.value === 'true';
 
-  // Only try to get session if not in guest mode and env vars are set
   if (!isGuestMode && process.env.NEXTAUTH_SECRET && process.env.DATABASE_URL) {
     try {
-      // Lazy import to avoid loading if not needed
       const { getServerSession } = await import('next-auth');
       const { authOptions } = await import('@/lib/auth-config');
       session = await getServerSession(authOptions);
-    } catch (error: any) {
-      // NextAuth might fail if database is not configured or secret is missing
-      // This is expected in guest mode, so we silently continue
-      console.log('Session check skipped:', error?.message || 'Unknown error');
-    }
+    } catch (error) {}
   }
 
   if (!session && !isGuestMode) {
     redirect('/auth/signin');
   }
 
-  // Get user's lists and active session (only if not guest mode)
-  let lists: any[] = [];
-  let activeSession: any = null;
-  let totalListsCount = 0;
-  let stats = { totalSpent: 0, totalOrders: 0 };
+  let stats = { totalSpent: 0, totalOrders: 0, savedLists: 0 };
+  let recentLists: ShoppingList[] = [];
+  let userName = session?.user?.name || 'Alex';
 
   if (session && session.user?.id && !isGuestMode && process.env.DATABASE_URL) {
     try {
-      // Lazy import Prisma only when needed
       const { prisma } = await import('@/lib/prisma');
-      const [listsData, totalCount, activeSessionData, userStats] = await Promise.all([
+      const [listsData, userStats] = await Promise.all([
         prisma.shoppingList.findMany({
           where: { userId: session.user.id },
-          include: {
-            items: true,
-            _count: { select: { items: true } },
-          },
           orderBy: { updatedAt: 'desc' },
-          take: 5,
-        }),
-        prisma.shoppingList.count({
-          where: { userId: session.user.id },
-        }),
-        prisma.cartSession.findFirst({
-          where: {
-            userId: session.user.id,
-            status: { in: ['ACTIVE', 'DISCONNECTED'] },
-          },
-          include: {
-            shoppingList: {
-              include: { items: true },
-            },
-          },
+          take: 3,
         }),
         prisma.userStats.findUnique({
           where: { userId: session.user.id }
         })
       ]);
-      lists = listsData;
-      totalListsCount = totalCount;
-      activeSession = activeSessionData;
+      recentLists = listsData;
+      stats.savedLists = await prisma.shoppingList.count({ where: { userId: session.user.id } });
       if (userStats) {
-        stats = {
-          totalSpent: userStats.totalSpent,
-          totalOrders: userStats.totalOrders
-        };
+        stats.totalSpent = userStats.totalSpent,
+        stats.totalOrders = userStats.totalOrders
       }
-    } catch (error: any) {
-      // Database not available, use empty arrays
-      console.log('Database not available:', error?.message || 'Unknown error');
-      lists = [];
-      totalListsCount = 0;
-      activeSession = null;
-    }
+    } catch (error) {}
   } else if (isGuestMode) {
-    // For guest mode, get lists from in-memory store
-    const guestSessionId = cookieStore.get('guest_session_id')?.value;
-    if (guestSessionId) {
-      const { getGuestLists } = await import('@/store/guest-store');
-      const guestLists = getGuestLists(guestSessionId);
-      lists = guestLists.slice(0, 5).map(list => ({
-        ...list,
-        _count: { items: list.items?.length || 0 },
-      }));
-      totalListsCount = guestLists.length;
-    }
+     const guestSessionId = cookieStore.get('guest_session_id')?.value;
+     if (guestSessionId) {
+       const { getGuestLists } = await import('@/store/guest-store');
+       recentLists = getGuestLists(guestSessionId).slice(0, 3);
+       stats.savedLists = recentLists.length;
+     }
+     userName = "Guest";
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
-      <Sidebar />
-      <main className="flex-1 ml-64 min-h-screen flex flex-col p-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white tracking-tight">
-            {isGuestMode
-              ? 'Welcome!'
-              : `Welcome back${session?.user?.name ? `, ${session.user.name}` : ''}!`}
-          </h1>
-          <p className="mt-2 text-gray-400 text-lg">
-            {isGuestMode
-              ? 'You are in guest mode. Create an account to save your data.'
-              : 'Manage your shopping lists and track your smart cart sessions'}
-          </p>
-          {isGuestMode && (
-            <div className="mt-4 bg-yellow-900/30 border border-yellow-700/50 text-yellow-200 px-4 py-3 rounded-xl backdrop-blur-sm">
-              <span className="font-bold">Guest Mode:</span> Some features may be limited without a database connection.
-            </div>
-          )}
+    <PageContainer>
+      <header className="flex items-center bg-white dark:bg-background-dark/50 p-4 sticky top-0 z-50 backdrop-blur-md border-b border-primary/10">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <span className="material-symbols-outlined">shopping_basket</span>
         </div>
+        <h2 className="ml-3 text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em] flex-1">Carto</h2>
+        <div className="flex items-center gap-2">
+          <button className="flex size-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+            <span className="material-symbols-outlined text-[24px]">notifications</span>
+          </button>
+        </div>
+      </header>
 
-        {activeSession && (
-          <div className="mb-8 p-6 rounded-2xl bg-blue-600/10 border border-blue-500/20 backdrop-blur-md flex justify-between items-center">
-            <div>
-              <h3 className="text-xl font-bold text-white">
-                Active Shopping Session
-              </h3>
-              <p className="text-blue-300 mt-1">
-                Cart ID: {activeSession.cartId} • Status: {activeSession.status}
-              </p>
+      <div className="flex-1 pb-32">
+        <section className="p-4 pt-6">
+          <div className="flex w-full items-center gap-4">
+            <div className="relative">
+              <div className="bg-slate-200 dark:bg-slate-800 rounded-full size-16 ring-4 ring-primary/20 flex items-center justify-center overflow-hidden">
+                <span className="material-symbols-outlined text-4xl text-slate-400">person</span>
+              </div>
+              <div className="absolute bottom-0 right-0 size-4 bg-green-500 border-2 border-white dark:border-background-dark rounded-full"></div>
             </div>
-            <Link href="/session">
-              <Button className="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20">
-                View Session
-              </Button>
+            <div className="flex flex-col">
+              <p className="text-slate-900 dark:text-slate-100 text-2xl font-bold leading-tight">Welcome back, {userName}!</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Ready for your next shopping trip?</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-2 gap-3 px-4 py-2">
+          <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-primary/5 flex flex-col gap-1 shadow-sm">
+            <span className="material-symbols-outlined text-primary text-xl">receipt_long</span>
+            <p className="text-2xl font-bold mt-1">{stats.totalOrders}</p>
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Total Orders</p>
+          </div>
+          <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-primary/5 flex flex-col gap-1 shadow-sm">
+            <span className="material-symbols-outlined text-primary text-xl">favorite</span>
+            <p className="text-2xl font-bold mt-1">{stats.savedLists}</p>
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Saved Lists</p>
+          </div>
+        </section>
+
+        <section className="px-4 py-4">
+          <h3 className="text-slate-900 dark:text-slate-100 text-lg font-bold mb-3">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <Link href="/lists/new" className="relative h-28 rounded-xl overflow-hidden group cursor-pointer">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80"></div>
+              <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '12px 12px'}}></div>
+              <div className="relative h-full flex flex-col justify-between p-4 text-white">
+                <span className="material-symbols-outlined text-2xl">add_circle</span>
+                <p className="font-bold leading-tight">Create New List</p>
+              </div>
+            </Link>
+            <Link href="/session/start" className="relative h-28 rounded-xl overflow-hidden group cursor-pointer border border-primary/20 bg-white dark:bg-slate-800">
+              <div className="h-full flex flex-col justify-between p-4">
+                <span className="material-symbols-outlined text-primary text-2xl">qr_code_scanner</span>
+                <p className="font-bold text-slate-800 dark:text-slate-100 leading-tight">Scan QR Code</p>
+              </div>
             </Link>
           </div>
-        )}
+        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div className="bg-gray-800/40 backdrop-blur-sm rounded-3xl border border-gray-700/50 shadow-2xl p-6">
-            <h3 className="text-xl font-bold text-white mb-6">Quick Actions</h3>
-            <div className="flex flex-col gap-4">
-              <Link href="/lists/new">
-                <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-4 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-600/20 flex items-center justify-center gap-3 group">
-                  <svg className="w-6 h-6 transition-transform group-hover:rotate-90 duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Create New List
-                </button>
-              </Link>
-              <Link href="/lists">
-                <button className="w-full bg-gray-700/50 hover:bg-gray-700 text-white font-bold py-4 px-4 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] border border-gray-600/50 flex items-center justify-center gap-3 group">
-                  <svg className="w-6 h-6 transition-transform group-hover:translate-x-1 duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  View All Lists
-                </button>
-              </Link>
-              {!activeSession && (
-                <Link href="/session/start">
-                  <button className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-4 px-4 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-3 group">
-                    <svg className="w-6 h-6 transition-transform group-hover:scale-110 duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    Start Shopping
-                  </button>
-                </Link>
-              )}
+        <section className="px-4 py-2">
+          <Link href="/session/start" className="bg-slate-900 dark:bg-primary p-6 rounded-2xl flex items-center justify-between shadow-lg shadow-primary/20 transition-transform active:scale-95">
+            <div className="flex flex-col gap-1">
+              <h4 className="text-white text-xl font-bold">Start Shopping</h4>
+              <p className="text-white/70 text-sm">Activate your smart cart now</p>
             </div>
+            <div className="size-14 rounded-full bg-white flex items-center justify-center text-primary">
+              <span className="material-symbols-outlined text-3xl font-bold">play_arrow</span>
+            </div>
+          </Link>
+        </section>
+
+        <section className="py-4">
+          <div className="flex items-center justify-between px-4 mb-3">
+            <h3 className="text-slate-900 dark:text-slate-100 text-lg font-bold">Recent Lists</h3>
+            <Link href="/lists" className="text-primary text-sm font-semibold">View All</Link>
           </div>
-
-          <div className="bg-gray-800/40 backdrop-blur-sm rounded-3xl border border-gray-700/50 shadow-2xl p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">Recent Lists</h3>
-              <Link href="/lists" className="text-sm font-bold text-blue-400 hover:text-blue-300 transition-colors">
-                View all
-              </Link>
-            </div>
-            {lists.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 opacity-50">
-                <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <p className="text-gray-400 text-sm">No lists yet.</p>
+          <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
+            {recentLists.length === 0 ? (
+              <div className="min-w-[200px] bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                <p className="text-slate-400 text-sm">No recent lists</p>
               </div>
             ) : (
-              <ul className="space-y-3">
-                {lists.map((list) => (
-                  <li key={list.id}>
-                    <Link
-                      href={`/lists/${list.id}`}
-                      className="group block p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-gray-600/50 transition-all"
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-gray-100 group-hover:text-white text-lg">{list.name}</span>
-                        <span className="text-xs font-mono text-gray-500 bg-black/30 px-2 py-1 rounded-md">
-                          {list._count.items} items
-                        </span>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        {list.isActive && (
-                          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                        )}
-                        <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">
-                          {list.isActive ? 'Active Session' : 'Shopping List'}
-                        </span>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              recentLists.map((list) => (
+                <Link key={list.id} href={`/lists/${list.id}`} className="min-w-[200px] bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition-transform active:scale-95">
+                  <div className="flex -space-x-2 mb-4">
+                    <div className="size-8 rounded-full border-2 border-white dark:border-slate-700 bg-primary/10 flex items-center justify-center text-primary text-xs">
+                      <span className="material-symbols-outlined text-xs">list</span>
+                    </div>
+                  </div>
+                  <p className="font-bold text-slate-800 dark:text-slate-100 truncate">{list.name}</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {list.items?.length || 0} items • Updated 2h ago
+                  </p>
+                </Link>
+              ))
             )}
           </div>
+        </section>
+      </div>
 
-          <div className="bg-gray-800/40 backdrop-blur-sm rounded-3xl border border-gray-700/50 shadow-2xl p-6">
-            <h3 className="text-xl font-bold text-white mb-6">Your Stats</h3>
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Total Lists</div>
-                  <div className="text-3xl font-bold text-white">{totalListsCount}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Orders</div>
-                  <div className="text-3xl font-bold text-emerald-500">{stats.totalOrders}</div>
-                </div>
-              </div>
-              <div className="h-px w-full bg-gray-700/50" />
-              <div>
-                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Total Spent</div>
-                <div className="text-4xl font-black text-white font-mono tracking-tighter">
-                  ${stats.totalSpent.toFixed(2)}
-                </div>
-              </div>
-              <div className="h-px w-full bg-gray-700/50" />
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-xs mb-2">
-                    <span className="text-gray-400 font-bold uppercase tracking-wider">Active Cart</span>
-                    <span className={activeSession ? "text-blue-400 font-bold" : "text-gray-600 font-bold"}>
-                      {activeSession ? 'CONNECTED' : 'OFFLINE'}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-900 rounded-full h-1.5 overflow-hidden">
-                    <div className={`h-full rounded-full transition-all duration-500 ${activeSession ? 'bg-blue-500 w-full animate-pulse' : 'bg-gray-800 w-0'}`} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+      <BottomNav />
+    </PageContainer>
   );
 }

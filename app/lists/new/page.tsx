@@ -1,13 +1,12 @@
-// Create new shopping list page
+// Redesigned Create new shopping list page following unified UI
 
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { Header } from '@/components/layout/Header';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { createListSchema } from '@/lib/validations';
 
 export default function NewListPage() {
@@ -45,23 +44,22 @@ export default function NewListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
-      <Sidebar />
-      <main className="flex-1 ml-64 min-h-screen flex items-center justify-center p-8">
-        <div className="bg-gray-800/40 backdrop-blur-sm rounded-[2.5rem] border border-gray-700/50 shadow-2xl p-12 max-w-xl w-full">
+    <PageContainer>
+      <Header title="New List" showBack />
+
+      <main className="flex-1 p-6 pb-32">
+        <div className="max-w-md mx-auto">
           <div className="mb-10 text-center">
-            <div className="w-20 h-20 bg-blue-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
-              <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-primary/20">
+              <span className="material-symbols-outlined text-4xl text-primary">add_shopping_cart</span>
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">New Shopping List</h1>
-            <p className="text-gray-400 mt-2">Give your list a name to get started</p>
+            <h1 className="text-3xl font-bold tracking-tight">Create List</h1>
+            <p className="text-slate-500 mt-2">Give your list a name to get started</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
                 List Name
               </label>
               <input
@@ -69,49 +67,48 @@ export default function NewListPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Weekly Groceries"
-                className="w-full bg-gray-900/50 border border-gray-700 text-white rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-lg placeholder:text-gray-600"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-lg placeholder:text-slate-400 shadow-sm"
                 required
                 autoFocus
+                name="name"
               />
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-2">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-medium">
                 {error}
               </div>
             )}
 
-            <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="flex-1 py-4 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold rounded-2xl transition-all"
-                disabled={isLoading}
-              >
-                Cancel
-              </button>
+            <div className="flex flex-col gap-3 pt-4">
               <button
                 type="submit"
-                className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl shadow-xl shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    CREATING...
+                    <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                    Creating...
                   </span>
                 ) : (
-                  'CREATE LIST'
+                  'Create List'
                 )}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="w-full py-4 bg-transparent border-2 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-2xl transition-all"
+                disabled={isLoading}
+              >
+                Cancel
               </button>
             </div>
           </form>
         </div>
       </main>
-    </div>
+
+      <BottomNav />
+    </PageContainer>
   );
 }
-
