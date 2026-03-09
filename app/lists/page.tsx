@@ -1,91 +1,127 @@
-import { getServerSession } from 'next-auth';
+// Redesigned Shopping Lists page following Screen 1
+
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { authOptions } from '@/lib/auth-config';
-import { prisma } from '@/lib/prisma';
-import { getGuestLists } from '@/store/guest-store';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { Card } from '@/components/ui/Card';
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import { ListCards } from '@/components/lists/ListCards';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { BottomNav } from '@/components/layout/BottomNav';
+import { formatDistanceToNow } from 'date-fns';
+import { ShoppingList } from '@/types';
 
 export default async function ListsPage() {
-  const session = await getServerSession(authOptions);
+  let session = null;
   const cookieStore = await cookies();
-  const guestMode = cookieStore.get('guest_mode')?.value === 'true';
+  const guestModeCookie = cookieStore.get('guest_mode');
+  const isGuestMode = guestModeCookie?.value === 'true';
 
-  // Allow guests or logged-in users
-  if (!session && !guestMode) {
+  if (!isGuestMode && process.env.NEXTAUTH_SECRET && process.env.DATABASE_URL) {
+    try {
+      const { getServerSession } = await import('next-auth');
+      const { authOptions } = await import('@/lib/auth-config');
+      session = await getServerSession(authOptions);
+    } catch (error) {}
+  }
+
+  if (!session && !isGuestMode) {
     redirect('/auth/signin');
   }
 
-  // Fetch lists based on user type
   let lists: any[] = [];
-
-  if (session) {
-    // Logged-in users: fetch from database
-    lists = await prisma.shoppingList.findMany({
-      where: { userId: session.user.id },
-      include: {
-        items: true,
-        _count: { select: { items: true } },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
-  } else if (guestMode) {
-    // Guests: fetch from in-memory store
+  if (session && session.user?.id && !isGuestMode && process.env.DATABASE_URL) {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      lists = await prisma.shoppingList.findMany({
+        where: { userId: session.user.id },
+        include: { _count: { select: { items: true } } },
+        orderBy: { updatedAt: 'desc' },
+      });
+    } catch (error) {}
+  } else if (isGuestMode) {
     const guestSessionId = cookieStore.get('guest_session_id')?.value;
     if (guestSessionId) {
-      const guestLists = getGuestLists(guestSessionId);
-      lists = guestLists.map(list => ({
-        ...list,
-        _count: { items: list.items?.length || 0 },
+      const { getGuestLists } = await import('@/store/guest-store');
+      lists = getGuestLists(guestSessionId).map(l => ({
+        ...l,
+        _count: { items: l.items?.length || 0 }
       }));
     }
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
-      <Sidebar />
-      <main className="flex-1 ml-64 min-h-screen flex flex-col p-8">
-        <div className="flex justify-between items-center mb-12">
-          <div>
-            <h1 className="text-4xl font-bold text-white tracking-tight">My Shopping Lists</h1>
-            <p className="text-gray-400 mt-2">Manage and organize your shopping trips</p>
+    <PageContainer maxWidth="2xl">
+      <header className="sticky top-0 z-10 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-primary/10">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary text-white p-2 rounded-lg flex items-center justify-center">
+            <span className="material-symbols-outlined">shopping_cart</span>
           </div>
-          <Link href="/lists/new">
-            <Button className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-blue-600/20 flex items-center gap-2 group transition-all hover:scale-105 active:scale-95">
-              <svg className="w-5 h-5 transition-transform group-hover:rotate-90 duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create New List
-            </Button>
-          </Link>
+          <h1 className="text-xl font-bold tracking-tight">Carto</h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <button className="p-2 text-slate-600 dark:text-slate-400 hover:bg-primary/5 rounded-full transition-colors">
+            <span className="material-symbols-outlined">search</span>
+          </button>
+          <button className="p-2 text-slate-600 dark:text-slate-400 hover:bg-primary/5 rounded-full transition-colors">
+            <span className="material-symbols-outlined">more_vert</span>
+          </button>
+        </div>
+      </header>
+
+      <main className="max-w-2xl mx-auto px-4 py-6 flex-1 pb-32">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">My Lists</h2>
+          <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
+            {lists.length} Active
+          </span>
         </div>
 
-        {lists.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="bg-gray-800/40 backdrop-blur-sm rounded-3xl border border-gray-700/50 shadow-2xl p-12 text-center max-w-md w-full">
-              <div className="w-20 h-20 bg-gray-700/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
+        <div className="space-y-4">
+          {lists.length === 0 ? (
+            <div className="py-20 text-center flex flex-col items-center gap-4">
+              <div className="size-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
+                <span className="material-symbols-outlined text-4xl">list_alt</span>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-3">No lists found</h2>
-              <p className="text-gray-400 mb-8">You haven't created any shopping lists yet. Start by creating your first one!</p>
-              <Link href="/lists/new">
-                <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-xl shadow-blue-600/20">
-                  Create Your First List
-                </Button>
-              </Link>
+              <p className="text-slate-500 font-medium">No shopping lists yet</p>
+              <Link href="/lists/new" className="text-primary font-bold hover:underline">Create your first list</Link>
             </div>
-          </div>
-        ) : (
-          <ListCards lists={lists} />
-        )}
+          ) : (
+            lists.map((list) => (
+              <Link
+                key={list.id}
+                href={`/lists/${list.id}`}
+                className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-primary/5 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="size-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                    <span className="material-symbols-outlined">local_grocery_store</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{list.name}</h3>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-sm text-slate-500 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs">format_list_bulleted</span>
+                        {list._count?.items || 0} items
+                      </span>
+                      <span className="text-sm text-slate-500 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs">schedule</span>
+                        {formatDistanceToNow(new Date(list.updatedAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-slate-400 group-hover:text-primary transition-colors">
+                  <span className="material-symbols-outlined">chevron_right</span>
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
       </main>
-    </div>
+
+      <Link href="/lists/new" className="fixed bottom-24 right-6 size-14 bg-primary text-white rounded-full shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-20">
+        <span className="material-symbols-outlined text-3xl">add</span>
+      </Link>
+
+      <BottomNav />
+    </PageContainer>
   );
 }
-

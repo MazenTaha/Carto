@@ -2,12 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { signUpSchema } from '@/lib/validations';
-import { Logo } from '@/components/ui/Logo';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -16,6 +13,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,9 +21,7 @@ export default function SignUpPage() {
     setIsLoading(true);
 
     try {
-      // Validate input
       signUpSchema.parse({ email, password, name });
-
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,12 +29,8 @@ export default function SignUpPage() {
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to create account');
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create account');
-      }
-
-      // Auto sign in after successful signup
       router.push('/auth/signin?registered=true');
     } catch (err: any) {
       setError(err.message || 'An error occurred');
@@ -50,149 +42,126 @@ export default function SignUpPage() {
   const handleSkip = async () => {
     setIsLoading(true);
     setError('');
-
     try {
-      // Set guest bypass cookie
       const bypassResponse = await fetch('/api/auth/guest-bypass');
-
       if (bypassResponse.ok) {
-        // Use bypass mode instantly
         router.push('/dashboard');
         router.refresh();
       } else {
         throw new Error('Failed to enable guest mode');
       }
     } catch (err: any) {
-      console.error('Skip error:', err);
       setError(err.message || 'An error occurred');
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-600/10 blur-[120px] rounded-full" />
+    <PageContainer className="flex flex-col items-center justify-center p-0">
+      <div className="flex w-full items-center bg-transparent p-4 pb-2 justify-between">
+        <Link href="/auth/signin" className="text-slate-900 dark:text-slate-100 flex size-12 shrink-0 items-center cursor-pointer">
+          <span className="material-symbols-outlined text-2xl">arrow_back</span>
+        </Link>
+        <div className="flex-1 flex justify-center pr-12">
+          <div className="flex items-center gap-2">
+            <div className="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+              <span className="material-symbols-outlined text-xl">shopping_cart</span>
+            </div>
+            <h2 className="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em]">Carto</h2>
+          </div>
+        </div>
       </div>
 
-      <div className="max-w-md w-full space-y-8 relative z-10 bg-gray-800/40 backdrop-blur-xl p-10 rounded-[2.5rem] border border-gray-700/50 shadow-2xl">
-        <div className="flex flex-col items-center">
-          <Link href="/dashboard" className="transition-transform hover:scale-105 active:scale-95">
-            <Logo width={180} height={60} className="mb-8" />
-          </Link>
-          <h2 className="text-center text-3xl font-bold text-white tracking-tight">
-            Create your account
-          </h2>
-          <p className="mt-3 text-center text-sm text-gray-400">
-            Or{' '}
-            <Link href="/auth/signin" className="font-bold text-blue-400 hover:text-blue-300 transition-colors">
-              sign in to your existing account
-            </Link>
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Name (optional)</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoComplete="name"
-                className="w-full bg-gray-900/50 border border-gray-700 text-white rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder:text-gray-600"
-                placeholder="John Doe"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Email address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                className="w-full bg-gray-900/50 border border-gray-700 text-white rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder:text-gray-600"
-                placeholder="you@example.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="new-password"
-                minLength={8}
-                className="w-full bg-gray-900/50 border border-gray-700 text-white rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder:text-gray-600"
-                placeholder="••••••••"
-              />
-              <p className="text-[10px] text-gray-500 px-1 pt-1 font-medium">
-                At least 8 characters with letters and numbers
-              </p>
-            </div>
+      <div className="w-full px-6 pt-12 pb-8">
+        <h1 className="text-slate-900 dark:text-slate-100 tracking-tight text-[32px] font-bold leading-tight text-left">Create Account</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-2 text-base">Join Carto and simplify your shopping experience.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4 px-6">
+        <label className="flex flex-col w-full">
+          <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal pb-2">Full Name</p>
+          <div className="relative flex items-center">
+            <span className="material-symbols-outlined absolute left-4 text-slate-400">person</span>
+            <input
+              className="flex w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 h-14 placeholder:text-slate-400 pl-11 pr-4 text-base font-normal leading-normal transition-all"
+              placeholder="Alex Johnson"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
+        </label>
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-2">
-              {error}
-            </div>
-          )}
+        <label className="flex flex-col w-full">
+          <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal pb-2">Email Address</p>
+          <div className="relative flex items-center">
+            <span className="material-symbols-outlined absolute left-4 text-slate-400">mail</span>
+            <input
+              className="flex w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 h-14 placeholder:text-slate-400 pl-11 pr-4 text-base font-normal leading-normal transition-all"
+              placeholder="name@example.com"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+        </label>
 
+        <label className="flex flex-col w-full">
+          <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal pb-2">Password</p>
+          <div className="relative flex items-center">
+            <span className="material-symbols-outlined absolute left-4 text-slate-400">lock</span>
+            <input
+              className="flex w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 h-14 placeholder:text-slate-400 pl-11 pr-12 text-base font-normal leading-normal transition-all"
+              placeholder="Create a password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="absolute right-4 text-slate-400 cursor-pointer flex items-center justify-center"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              <span className="material-symbols-outlined text-xl">
+                {showPassword ? "visibility_off" : "visibility"}
+              </span>
+            </button>
+          </div>
+        </label>
+
+        {error && (
+          <p className="text-red-500 text-sm mt-1">{error}</p>
+        )}
+
+        <div className="flex flex-col gap-3 pt-4">
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
             disabled={isLoading}
+            className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 px-5 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 active:scale-[0.98] transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
           >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                CREATING ACCOUNT...
-              </span>
-            ) : (
-              'CREATE ACCOUNT'
-            )}
+            <span className="truncate">{isLoading ? "Creating..." : "Sign Up"}</span>
           </button>
-        </form>
-
-        <div className="mt-8">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-700" />
-            </div>
-            <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-widest">
-              <span className="px-4 bg-transparent text-gray-500 backdrop-blur-xl">Or</span>
-            </div>
-          </div>
-
           <button
             type="button"
-            className="w-full mt-6 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-bold py-4 rounded-2xl border border-gray-700 transition-all flex items-center justify-center gap-3 group disabled:opacity-50"
             onClick={handleSkip}
             disabled={isLoading}
+            className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 px-5 border-2 border-slate-200 dark:border-slate-800 bg-transparent text-slate-700 dark:text-slate-300 text-base font-semibold leading-normal hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all disabled:opacity-50"
           >
-            {isLoading ? (
-              <svg className="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            ) : (
-              <>
-                CONTINUE AS GUEST
-                <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </>
-            )}
+            <span className="truncate">Continue as Guest</span>
           </button>
         </div>
+      </form>
+
+      <div className="w-full mt-auto px-6 py-10 text-center">
+        <p className="text-slate-500 dark:text-slate-400 text-sm">
+          Already have an account?
+          <Link className="text-primary font-bold ml-1 hover:underline" href="/auth/signin">Sign In</Link>
+        </p>
       </div>
-    </div>
+
+      <div className="fixed bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-20"></div>
+    </PageContainer>
   );
 }
-

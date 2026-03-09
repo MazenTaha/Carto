@@ -6,15 +6,25 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        primary: "#3713ec",
+        "background-light": "#f6f6f8",
+        "background-dark": "#131022",
+      },
+      fontFamily: {
+        display: ["var(--font-inter)", "Inter", "sans-serif"],
+      },
+      borderRadius: {
+        DEFAULT: "0.25rem",
+        lg: "0.5rem",
+        xl: "0.75rem",
+        full: "9999px",
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/forms")],
 };
 export default config;
-
