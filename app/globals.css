@@ -19,6 +19,15 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer components {
   .glass {
     @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/20 dark:border-slate-800/20;
@@ -41,6 +50,21 @@
 }
 
 @layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.04);
+    border-radius: 999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.14);
+    border-radius: 999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.22);
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

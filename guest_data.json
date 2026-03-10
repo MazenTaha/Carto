@@ -42,5 +42,16 @@
         }
       ]
     }
+  ],
+  "guest_ceacaabacaa96a111cf0c8c9f6adaec2": [
+    {
+      "id": "guest_list_074595ac04557e6f",
+      "name": "mazen",
+      "userId": "guest_ceacaabacaa96a111cf0c8c9f6adaec2",
+      "createdAt": "2026-03-09T06:12:30.508Z",
+      "updatedAt": "2026-03-09T06:13:46.142Z",
+      "isActive": true,
+      "items": []
+    }
   ]
 }

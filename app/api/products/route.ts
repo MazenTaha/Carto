@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { LOCAL_PRODUCTS } from '@/lib/product-dataset';
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
@@ -9,6 +10,32 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
 
     try {
+        // Guest/dev fallback: no database configured
+        if (!process.env.DATABASE_URL) {
+            const q = query.trim().toLowerCase();
+            const filtered = LOCAL_PRODUCTS
+                .filter((p) => {
+                    if (category && p.category.toLowerCase() !== category.toLowerCase()) return false;
+                    if (!q) return true;
+                    return (
+                        p.name.toLowerCase().includes(q) ||
+                        p.category.toLowerCase().includes(q)
+                    );
+                })
+                .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
+                .slice(0, limit)
+                .map((p, idx) => ({
+                    id: `local_${idx}_${p.name.replace(/\s+/g, '_')}`,
+                    name: p.name,
+                    category: p.category,
+                    emoji: p.emoji ?? null,
+                    price: p.price ?? 0,
+                    popularity: p.popularity ?? 0,
+                }));
+
+            return NextResponse.json({ success: true, data: filtered });
+        }
+
         // If no query, return popular products (optionally filtered by category)
         if (!query.trim()) {
             const where: any = {};
@@ -25,54 +52,25 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ success: true, data: products });
         }
 
-        // Try trigram similarity search first, fall back to ILIKE if pg_trgm is not available
-        try {
-            // Enable pg_trgm extension (idempotent)
-            await prisma.$executeRawUnsafe(`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
+        // Standard search (safe + fast). If you want trigram similarity, enable it via migrations.
+        const where: any = {
+            OR: [
+                { name: { contains: query, mode: 'insensitive' as const } },
+                { category: { contains: query, mode: 'insensitive' as const } },
+            ],
+        };
 
-            // Build category filter clause
-            const categoryFilter = category
-                ? `AND category ILIKE '%' || $3 || '%'`
-                : '';
-
-            const queryParams = category
-                ? [query, limit, category]
-                : [query, limit];
-
-            const products = await prisma.$queryRawUnsafe(
-                `SELECT *, similarity(name, $1) AS sim
-                 FROM products
-                 WHERE (similarity(name, $1) > 0.1
-                        OR name ILIKE '%' || $1 || '%'
-                        OR category ILIKE '%' || $1 || '%')
-                 ${category ? `AND category ILIKE '%' || $3 || '%'` : ''}
-                 ORDER BY sim DESC, popularity DESC
-                 LIMIT $2`,
-                ...queryParams
-            );
-
-            return NextResponse.json({ success: true, data: products });
-        } catch {
-            // Fallback: pg_trgm not available, use standard ILIKE search
-            const where: any = {
-                OR: [
-                    { name: { contains: query, mode: 'insensitive' as const } },
-                    { category: { contains: query, mode: 'insensitive' as const } },
-                ],
-            };
-
-            if (category) {
-                where.AND = { category: { equals: category, mode: 'insensitive' } };
-            }
-
-            const products = await prisma.product.findMany({
-                where,
-                orderBy: { popularity: 'desc' },
-                take: limit,
-            });
-
-            return NextResponse.json({ success: true, data: products });
+        if (category) {
+            where.AND = { category: { equals: category, mode: 'insensitive' } };
         }
+
+        const products = await prisma.product.findMany({
+            where,
+            orderBy: { popularity: 'desc' },
+            take: limit,
+        });
+
+        return NextResponse.json({ success: true, data: products });
     } catch (error: any) {
         console.error('Product search error:', error);
         return NextResponse.json(

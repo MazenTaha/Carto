@@ -10,7 +10,7 @@ export function Sidebar() {
   const { data: session } = useSession();
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white flex flex-col">
+    <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-gray-900 text-white flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-gray-800">
         <Link href="/dashboard">
