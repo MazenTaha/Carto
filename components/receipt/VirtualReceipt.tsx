@@ -1,10 +1,11 @@
-// Redesigned Virtual Receipt component following Screen 7
-
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Receipt, ReceiptItem } from '@/types';
-import { formatCurrency, calculateTax } from '@/lib/utils';
+import { Badge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ReceiptPanel } from '@/components/ui/ReceiptPanel';
+import { calculateTax, formatCurrency } from '@/lib/utils';
 
 interface VirtualReceiptProps {
   receipt: Receipt;
@@ -13,7 +14,7 @@ interface VirtualReceiptProps {
 
 export function VirtualReceipt({ receipt, sessionId }: VirtualReceiptProps) {
   const [items, setItems] = useState<ReceiptItem[]>(receipt.items || []);
-  const [isLocked, setIsLocked] = useState(receipt.status === 'LOCKED');
+  const [status, setStatus] = useState(receipt.status);
 
   const fetchReceipt = useCallback(async () => {
     try {
@@ -21,7 +22,7 @@ export function VirtualReceipt({ receipt, sessionId }: VirtualReceiptProps) {
       const data = await response.json();
       if (data.success) {
         setItems(data.data.items || []);
-        setIsLocked(data.data.status === 'LOCKED');
+        setStatus(data.data.status);
       }
     } catch (err) {}
   }, [receipt.id]);
@@ -36,66 +37,68 @@ export function VirtualReceipt({ receipt, sessionId }: VirtualReceiptProps) {
   const total = subtotal + tax;
 
   return (
-    <div className="flex flex-col bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-xl border border-slate-100 dark:border-slate-800 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex p-6 bg-white dark:bg-slate-900 border-b border-slate-50 dark:border-slate-800/50">
-        <div className="flex w-full flex-col gap-4 items-center">
-          <div className="flex gap-4 flex-col items-center">
-            <div className="bg-primary/10 rounded-xl min-h-24 w-24 flex items-center justify-center">
-              <span className="material-symbols-outlined text-4xl text-primary">storefront</span>
-            </div>
-            <div className="flex flex-col items-center justify-center">
-              <p className="text-slate-900 dark:text-slate-100 text-2xl font-bold leading-tight tracking-tight text-center">Carto Supermarket</p>
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal text-center mt-1">
-                Receipt #CR-{receipt.id.slice(-6).toUpperCase()} | {new Date().toLocaleDateString()}
-              </p>
-            </div>
-          </div>
+    <ReceiptPanel className="mt-8">
+      <div className="p-5 text-center md:p-6">
+        <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <span className="material-symbols-outlined text-3xl">receipt_long</span>
+        </div>
+        <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Virtual Receipt</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Receipt #{receipt.id.slice(-6).toUpperCase()} · Session {sessionId.slice(-6).toUpperCase()}
+        </p>
+        <div className="mt-4 flex justify-center">
+          <Badge variant={status === 'PAID' ? 'success' : status === 'LOCKED' ? 'warning' : 'default'}>
+            {status === 'PAID' ? 'Paid' : status === 'LOCKED' ? 'Ready for checkout' : 'Live updating'}
+          </Badge>
         </div>
       </div>
 
-      <div className="flex flex-col">
-        <div className="flex items-center justify-between px-6 pb-2 pt-6">
-          <h3 className="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight">Items Scanned</h3>
-          <span className="text-primary text-sm font-semibold">{items.length} Items</span>
+      <div className="border-y border-dashed border-slate-200 px-5 py-4 dark:border-slate-800 md:px-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black uppercase tracking-[0.16em] text-slate-500">Scanned items</h3>
+          <span className="text-sm font-bold text-primary">{items.length} lines</span>
         </div>
-        <div className="space-y-1 mt-2">
-          {items.map((item) => (
-            <div key={item.id} className="flex items-center gap-4 bg-white dark:bg-slate-900 px-6 min-h-[80px] py-3 justify-between border-b border-slate-50 dark:border-slate-800/50">
-              <div className="flex items-center gap-4">
-                <div className="bg-slate-100 dark:bg-slate-800 rounded-lg size-14 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-slate-400">shopping_bag</span>
-                </div>
-                <div className="flex flex-col justify-center">
-                  <p className="text-slate-900 dark:text-slate-100 text-base font-semibold leading-normal line-clamp-1">{item.name}</p>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">
+
+        {items.length === 0 ? (
+          <EmptyState
+            className="mt-4 border-slate-200 bg-slate-50 shadow-none dark:border-slate-800 dark:bg-slate-950"
+            icon="barcode_scanner"
+            title="No receipt items yet"
+            description="Items scanned by the cart will appear here while the session is active."
+          />
+        ) : (
+          <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+            {items.map((item) => (
+              <div key={item.id} className="grid grid-cols-[1fr_auto] gap-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-slate-950 dark:text-slate-100">{item.name}</p>
+                  <p className="mt-1 text-xs text-slate-500">
                     {item.quantity} x {formatCurrency(item.price)}
                   </p>
                 </div>
-              </div>
-              <div className="shrink-0">
-                <p className="text-slate-900 dark:text-slate-100 text-base font-bold leading-normal">
+                <p className="text-sm font-black text-slate-950 dark:text-slate-100">
                   {formatCurrency(item.price * item.quantity)}
                 </p>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="p-6 mt-4 space-y-3 bg-slate-50 dark:bg-slate-900/50 rounded-t-3xl border-t border-slate-100 dark:border-slate-800">
-        <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
-          <span className="text-sm">Subtotal</span>
-          <span className="text-base font-medium text-slate-900 dark:text-slate-100">{formatCurrency(subtotal)}</span>
+      <div className="space-y-3 bg-slate-50 p-5 dark:bg-slate-950/50 md:p-6">
+        <div className="flex justify-between text-sm">
+          <span className="text-slate-500">Subtotal</span>
+          <span className="font-bold text-slate-950 dark:text-slate-100">{formatCurrency(subtotal)}</span>
         </div>
-        <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
-          <span className="text-sm">Tax (8%)</span>
-          <span className="text-base font-medium text-slate-900 dark:text-slate-100">{formatCurrency(tax)}</span>
+        <div className="flex justify-between text-sm">
+          <span className="text-slate-500">Estimated tax</span>
+          <span className="font-bold text-slate-950 dark:text-slate-100">{formatCurrency(tax)}</span>
         </div>
-        <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex justify-between items-center">
-          <span className="text-lg font-bold text-slate-900 dark:text-slate-100">Grand Total</span>
-          <span className="text-2xl font-bold text-primary">{formatCurrency(total)}</span>
+        <div className="flex items-end justify-between border-t border-slate-200 pt-4 dark:border-slate-800">
+          <span className="text-base font-black text-slate-950 dark:text-slate-100">Total</span>
+          <span className="text-3xl font-black text-primary">{formatCurrency(total)}</span>
         </div>
       </div>
-    </div>
+    </ReceiptPanel>
   );
 }

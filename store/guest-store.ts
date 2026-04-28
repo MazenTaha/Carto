@@ -61,18 +61,12 @@ export function createGuestList(
 ): ShoppingList {
   const lists = getGuestLists(guestSessionId);
 
-  // Set all other lists to inactive
-  lists.forEach(list => {
-    list.isActive = false;
-  });
-
   const newList: ShoppingList = {
     id: `guest_list_${randomBytes(8).toString('hex')}`,
     name,
     userId: guestSessionId,
     createdAt: new Date(),
     updatedAt: new Date(),
-    isActive: true,
     items: [],
   };
 

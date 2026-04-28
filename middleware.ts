@@ -43,6 +43,7 @@ export const config = {
     '/lists/:path*',
     '/session/:path*',
     '/checkout/:path*',
+    '/profile/:path*',
   ],
 };
 

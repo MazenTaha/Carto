@@ -1,20 +1,52 @@
 'use client';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }
-interface HeaderProps { title?: string; showBack?: boolean; onBack?: () => void; rightElement?: React.ReactNode; sticky?: boolean; className?: string; }
+
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { Logo } from '@/components/ui/Logo';
+
+interface HeaderProps {
+  title?: string;
+  showBack?: boolean;
+  onBack?: () => void;
+  rightElement?: React.ReactNode;
+  sticky?: boolean;
+  className?: string;
+  showLogo?: boolean;
+}
+
 export function Header({ title, showBack = false, onBack, rightElement, sticky = true, className }: HeaderProps) {
   return (
-    <header className={cn("flex items-center bg-white/80 dark:bg-background-dark/80 backdrop-blur-md p-4 z-40 border-b border-primary/10", sticky && "sticky top-0", className)}>
-      <div className="flex size-10 shrink-0 items-center justify-center">
+    <header
+      className={cn(
+        'z-40 -mx-4 flex items-center gap-3 border-b border-slate-200/70 bg-white/85 px-4 py-3 backdrop-blur-xl dark:border-slate-800 dark:bg-background-dark/85 sm:mx-0 sm:rounded-b-2xl sm:px-5',
+        sticky && 'sticky top-0',
+        className
+      )}
+    >
+      <div className="flex min-w-10 shrink-0 items-center">
         {showBack && (
-          <button onClick={onBack || (() => window.history.back())} className="text-slate-900 dark:text-slate-100 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer p-2">
+          <button
+            type="button"
+            onClick={onBack || (() => window.history.back())}
+            className="flex size-10 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 active:scale-95 dark:text-slate-100 dark:hover:bg-slate-800"
+            aria-label="Go back"
+          >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
         )}
       </div>
-      {title && <h2 className="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">{title}</h2>}
-      <div className="flex size-10 items-center justify-center">{rightElement}</div>
+      <div className="flex min-w-0 flex-1 items-center justify-center">
+        {title ? (
+          <h2 className="truncate text-center text-base font-bold leading-tight text-slate-950 dark:text-slate-100 sm:text-lg">
+            {title}
+          </h2>
+        ) : (
+          <Link href="/dashboard" aria-label="Go to Carto home" className="flex items-center">
+            <Logo width={92} height={34} />
+          </Link>
+        )}
+      </div>
+      <div className="flex min-w-10 items-center justify-end">{rightElement}</div>
     </header>
   );
 }

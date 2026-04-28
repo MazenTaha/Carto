@@ -247,4 +247,3 @@ This project demonstrates:
 - Multi-store support
 - Social features (shared lists)
 - AI-powered shopping suggestions
-

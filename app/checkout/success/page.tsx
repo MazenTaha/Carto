@@ -1,13 +1,10 @@
-// Checkout success page
-
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { authOptions } from '@/lib/auth-config';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { Card } from '@/components/ui/Card';
-import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
 import { cookies } from 'next/headers';
+import Link from 'next/link';
+import { authOptions } from '@/lib/auth-config';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { Logo } from '@/components/ui/Logo';
 
 export default async function CheckoutSuccessPage() {
   const session = await getServerSession(authOptions);
@@ -19,57 +16,33 @@ export default async function CheckoutSuccessPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
-      <Sidebar />
-      <main className="flex-1 ml-64 min-h-screen flex items-center justify-center p-8">
-        <div className="bg-gray-800/40 backdrop-blur-sm rounded-[2.5rem] border border-gray-700/50 shadow-2xl p-12 max-w-lg w-full text-center">
-          <div className="mb-8">
-            <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border-4 border-emerald-500/20 relative">
-              <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping opacity-20" />
-              <svg
-                className="w-12 h-12 text-emerald-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
+    <PageContainer>
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <section className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-soft dark:border-slate-800 dark:bg-slate-900 md:p-10">
+          <Link href="/dashboard" aria-label="Go to Carto home" className="mx-auto mb-8 flex w-fit justify-center">
+            <Logo width={128} height={46} />
+          </Link>
+
+          <div className="relative mx-auto flex size-24 items-center justify-center rounded-full bg-primary/10 text-primary ring-8 ring-primary/5">
+            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-20" />
+            <span className="material-symbols-outlined text-5xl">check_circle</span>
           </div>
 
-          <h1 className="text-4xl font-black text-white tracking-tight mb-4">
-            Order Confirmed!
-          </h1>
-          <p className="text-gray-400 text-lg mb-10 leading-relaxed">
-            Payment successful. Your smart cart has been unlocked and your digital receipt is now available in your history.
+          <h1 className="mt-8 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">Order Confirmed</h1>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
+            Payment successful. Your final receipt is now available in History with the rest of your completed transactions.
           </p>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Link href="/dashboard">
-              <button className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl shadow-xl shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                DASHBOARD
-              </button>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            <Link href="/history" className="inline-flex h-14 items-center justify-center rounded-2xl bg-primary px-5 text-base font-black text-white shadow-glow transition active:scale-[0.98]">
+              View Receipt
             </Link>
-            <Link href="/lists">
-              <button className="w-full py-4 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-bold rounded-2xl border border-gray-700/50 transition-all">
-                MY LISTS
-              </button>
+            <Link href="/dashboard" className="inline-flex h-14 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-base font-black text-slate-700 transition hover:border-primary/30 hover:text-primary dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+              Dashboard
             </Link>
           </div>
-
-          <div className="mt-8 pt-8 border-t border-gray-700/50">
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-              Receipt ID: #R-{Math.random().toString(36).substring(2, 9).toUpperCase()}
-            </p>
-          </div>
-        </div>
+        </section>
       </main>
-    </div>
+    </PageContainer>
   );
 }
-

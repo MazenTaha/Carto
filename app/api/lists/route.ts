@@ -120,17 +120,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Database operations for logged-in users
-    // Set all other lists to inactive
-    await prisma.shoppingList.updateMany({
-      where: { userId: session.user.id },
-      data: { isActive: false },
-    });
-
     const list = await prisma.shoppingList.create({
       data: {
         name: validatedData.name,
         userId: session.user.id,
-        isActive: true,
       },
       include: {
         items: true,

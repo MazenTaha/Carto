@@ -30,7 +30,9 @@ export async function GET(
             );
         }
 
-        return NextResponse.json({ success: true, data: cart });
+        const safeCart = { ...cart, pairingCode: undefined };
+
+        return NextResponse.json({ success: true, data: safeCart });
     } catch (error) {
         console.error('Error looking up cart:', error);
         return NextResponse.json(

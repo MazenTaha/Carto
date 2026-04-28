@@ -4,18 +4,30 @@
 
 @layer base {
   :root {
-    --background: #f6f6f8;
-    --foreground: #0f172a;
+    --background: #f6f8f6;
+    --foreground: #111827;
   }
 
   .dark {
-    --background: #131022;
+    --background: #0f172a;
     --foreground: #f8fafc;
   }
 
   body {
     @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-slate-950;
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background-light dark:focus-visible:ring-offset-background-dark;
   }
 }
 
@@ -30,7 +42,19 @@
 
 @layer components {
   .glass {
-    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/20 dark:border-slate-800/20;
+    @apply bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-white/70 dark:border-slate-800/70;
+  }
+
+  .card-surface {
+    @apply rounded-2xl border border-slate-200/70 bg-white shadow-card dark:border-slate-800 dark:bg-slate-900;
+  }
+
+  .receipt-edge {
+    background-image:
+      radial-gradient(circle at 0 12px, transparent 12px, white 13px),
+      radial-gradient(circle at 100% 12px, transparent 12px, white 13px);
+    background-size: 100% 28px;
+    background-repeat: repeat-y;
   }
 
   .material-symbols-outlined {
@@ -54,15 +78,15 @@
     width: 10px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.04);
+    background: rgba(15,23,42,0.04);
     border-radius: 999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.14);
+    background: rgba(5,150,105,0.35);
     border-radius: 999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.22);
+    background: rgba(5,150,105,0.55);
   }
 
   .no-scrollbar::-webkit-scrollbar {

@@ -104,16 +104,6 @@ export async function PUT(
     if (guestMode && !session) {
       const { sessionId, needsCookie } = getGuestSessionId(request);
 
-      // If activating this list, deactivate all others first
-      if (validatedData.isActive) {
-        const allLists = getGuestLists(sessionId);
-        allLists.forEach(list => {
-          if (list.id !== params.id) {
-            updateGuestList(sessionId, list.id, { isActive: false });
-          }
-        });
-      }
-
       const updatedList = updateGuestList(sessionId, params.id, validatedData);
 
       if (!updatedList) {
@@ -150,17 +140,6 @@ export async function PUT(
 
     if (!list) {
       return NextResponse.json({ error: 'List not found' }, { status: 404 });
-    }
-
-    // If activating this list, deactivate all others first
-    if (validatedData.isActive) {
-      await prisma.shoppingList.updateMany({
-        where: {
-          userId: session.user.id,
-          id: { not: params.id },
-        },
-        data: { isActive: false },
-      });
     }
 
     const updatedList = await prisma.shoppingList.update({

@@ -1,9 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }
+import { cn } from '@/lib/utils';
+
 export function BottomNav() {
   const pathname = usePathname();
   const navItems = [
@@ -17,14 +16,24 @@ export function BottomNav() {
     return pathname?.startsWith(href);
   };
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-4 pb-8 pt-2 z-50">
-      <div className="flex items-center justify-between max-w-lg mx-auto">
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200/80 bg-white/90 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90 md:hidden">
+      <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
         {navItems.map((item) => {
           const active = isActive(item.href);
           return (
-            <Link key={item.href} href={item.href} className={cn("flex flex-col items-center gap-1 transition-colors", active ? "text-primary" : "text-slate-400 dark:text-slate-500")}>
-              <span className={cn("material-symbols-outlined", active && "fill-1")}>{item.icon}</span>
-              <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-xs font-bold transition-all',
+                active
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              )}
+              aria-current={active ? 'page' : undefined}
+            >
+              <span className={cn('material-symbols-outlined text-[23px]', active && 'fill-1')}>{item.icon}</span>
+              <span className="text-[11px] leading-none">{item.label}</span>
             </Link>
           );
         })}

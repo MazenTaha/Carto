@@ -2,16 +2,36 @@
 
 'use client';
 
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { QrScanner } from '@/components/carto/QrScanner';
+import { cartQrPayloadSchema } from '@/lib/validations';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import type { z } from 'zod';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+type CartQrPayload = z.infer<typeof cartQrPayloadSchema>;
+
+function parseCartQr(raw: string): { cart?: CartQrPayload; error?: string } {
+  try {
+    const parsed = JSON.parse(raw.trim());
+    const result = cartQrPayloadSchema.safeParse(parsed);
+
+    if (!result.success) {
+      return { error: result.error.errors[0]?.message || 'QR code is missing required cart details.' };
+    }
+
+    return { cart: result.data };
+  } catch {
+    return { error: 'This QR code is not valid Carto JSON. Please scan the cart QR code or use manual entry.' };
+  }
 }
 
 function StartSessionContent() {
@@ -19,30 +39,33 @@ function StartSessionContent() {
   const searchParams = useSearchParams();
   const listId = searchParams.get('listId');
   
-  const [cartCode, setCartCode] = useState<string>('');
+  const [manualCartId, setManualCartId] = useState<string>('');
+  const [manualPairingCode, setManualPairingCode] = useState<string>('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [detectedId, setDetectedId] = useState<string | null>(null);
-
-  // Mock detection after 2 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDetectedId('#8829-XJ');
-      setCartCode('8829-XJ');
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+  const [scannedCart, setScannedCart] = useState<CartQrPayload | null>(null);
 
   const handleLink = useCallback(async () => {
-    const codeToUse = cartCode.trim() || detectedId?.replace('#', '');
-
-    if (!codeToUse) {
-      setError('Please enter or scan a cart code');
+    if (!listId) {
+      setError('List ID is missing');
       return;
     }
 
-    if (!listId) {
-      setError('List ID is missing');
+    const payload = scannedCart
+      ? { ...scannedCart, listId }
+      : {
+          cartId: manualCartId.trim(),
+          pairingCode: manualPairingCode.trim(),
+          listId,
+        };
+
+    if (!payload.cartId) {
+      setError('Please scan a cart QR code or enter a cart ID.');
+      return;
+    }
+
+    if (!payload.pairingCode) {
+      setError('Please enter the cart pairing code.');
       return;
     }
 
@@ -53,7 +76,7 @@ function StartSessionContent() {
       const response = await fetch('/api/cart/link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cartCode: codeToUse, listId }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -68,14 +91,15 @@ function StartSessionContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [cartCode, detectedId, listId, router]);
+  }, [listId, manualCartId, manualPairingCode, router, scannedCart]);
 
   if (!listId) {
     return (
       <PageContainer className="flex items-center justify-center p-8">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">No list selected</h2>
-          <button onClick={() => router.push('/lists')} className="bg-primary text-white px-6 py-3 rounded-xl font-bold">
+          <p className="mb-6 text-slate-500">Select the list you want to activate before scanning the cart QR code.</p>
+          <button onClick={() => router.push('/lists?activate=1')} className="bg-primary text-white px-6 py-3 rounded-xl font-bold">
             Select a List
           </button>
         </div>
@@ -89,52 +113,70 @@ function StartSessionContent() {
 
       <div className="flex-1 flex flex-col items-center px-6 pt-8 gap-6 overflow-y-auto pb-24">
         <div className="text-center space-y-2">
-          <h3 className="text-slate-900 dark:text-slate-100 tracking-tight text-2xl font-bold leading-tight">Scan the QR code</h3>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">Align the QR code on your cart within the frame</p>
+          <p className="text-primary text-xs font-bold uppercase tracking-[0.2em]">List selected</p>
+          <h3 className="text-slate-900 dark:text-slate-100 tracking-tight text-2xl font-bold leading-tight">Scan the cart QR code</h3>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
+            Point your camera at the QR code on the physical cart. Carto will immediately link this active list to that cart.
+          </p>
         </div>
 
-        {/* Scanner Viewfinder */}
-        <div className="relative w-full max-w-sm aspect-square bg-slate-200 dark:bg-slate-800 rounded-xl overflow-hidden border-4 border-white dark:border-slate-700 shadow-xl">
-          {/* Mock Camera View */}
-          <div className="absolute inset-0 bg-slate-300 dark:bg-slate-700 flex items-center justify-center">
-             <span className="material-symbols-outlined text-6xl text-slate-400">photo_camera</span>
-          </div>
+        <QrScanner
+          onDetected={(raw) => {
+            setError('');
+            const result = parseCartQr(raw);
 
-          {/* Viewfinder Overlay */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative w-64 h-64 border-2 border-primary rounded-xl flex items-center justify-center">
-              {/* Corner Accents */}
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg -mt-1 -ml-1"></div>
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg -mt-1 -mr-1"></div>
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg -mb-1 -ml-1"></div>
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg -mb-1 -mr-1"></div>
+            if (result.error || !result.cart) {
+              setScannedCart(null);
+              setError(result.error || 'Invalid cart QR code.');
+              return;
+            }
 
-              {/* Scanning Line */}
-              <div className="w-full h-0.5 bg-primary/50 shadow-[0_0_15px_rgba(55,19,236,0.8)] absolute top-1/2 -translate-y-1/2 animate-bounce"></div>
-            </div>
-          </div>
-        </div>
+            setScannedCart(result.cart);
+            setManualCartId(result.cart.cartId);
+            setManualPairingCode(result.cart.pairingCode);
+          }}
+        />
 
-        {/* Detection Status Card */}
         <div className="w-full max-w-sm">
-          <div className="flex flex-col items-stretch gap-4 rounded-xl border border-primary/20 bg-white dark:bg-slate-900 p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <p className="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Cart ID Detected</p>
-                <div className="flex items-center gap-2">
-                  <span className={cn("size-2 rounded-full", detectedId ? "bg-green-500" : "bg-yellow-500")}></span>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm font-normal">
-                    {detectedId ? `ID: ${detectedId}` : "Searching..."}
-                  </p>
+          <div className="rounded-xl border border-primary/20 bg-white dark:bg-slate-900 p-5 shadow-sm">
+            <p className="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Cart connection</p>
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center gap-2">
+                <span className={cn("size-2 rounded-full", scannedCart ? "bg-green-500" : "bg-yellow-500")}></span>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-normal">
+                  {scannedCart ? `Detected: ${scannedCart.cartId}` : "Waiting for cart QR"}
+                </p>
+              </div>
+              {scannedCart && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScannedCart(null);
+                    setManualCartId('');
+                    setManualPairingCode('');
+                  }}
+                  className="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-9 px-4 bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/20"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            {scannedCart && (
+              <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-950">
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-500">Bluetooth</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{scannedCart.bluetoothName}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-500">Pairing code</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{scannedCart.pairingCode}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-500">QR session</span>
+                  <span className="max-w-[12rem] truncate font-semibold text-slate-900 dark:text-slate-100">{scannedCart.sessionId}</span>
                 </div>
               </div>
-              <button
-                onClick={() => setDetectedId(null)}
-                className="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-9 px-4 bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/20"
-              >
-                Change
-              </button>
-            </div>
+            )}
           </div>
         </div>
 
@@ -147,11 +189,33 @@ function StartSessionContent() {
           >
             {isLoading ? "Connecting..." : "Connect to Cart"}
           </button>
+          <label className="mt-4 block text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+            Manual cart ID
+            <input
+              value={manualCartId}
+              onChange={(event) => {
+                setManualCartId(event.target.value);
+                setScannedCart(null);
+              }}
+              placeholder="cart-01"
+              className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-base normal-case tracking-normal text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+            />
+          </label>
+          <label className="mt-3 block text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+            Pairing code
+            <input
+              value={manualPairingCode}
+              onChange={(event) => {
+                setManualPairingCode(event.target.value);
+                setScannedCart(null);
+              }}
+              inputMode="numeric"
+              placeholder="739214"
+              className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-base normal-case tracking-normal text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+            />
+          </label>
           <p className="text-center text-slate-400 text-xs mt-4">
-            Manual Entry? <span className="text-primary font-medium cursor-pointer underline" onClick={() => {
-              const code = prompt("Enter Cart ID:");
-              if (code) setCartCode(code);
-            }}>Enter Cart ID</span>
+            The cart will show the selected list after the link succeeds.
           </p>
           {error && <p className="text-red-500 text-xs text-center mt-2">{error}</p>}
         </div>

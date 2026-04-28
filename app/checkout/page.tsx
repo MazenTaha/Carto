@@ -1,25 +1,23 @@
-// Redesigned Checkout page following Screen 8
-
 'use client';
 
-import { useState, useEffect, Suspense, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Header } from '@/components/layout/Header';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { ReceiptPanel } from '@/components/ui/ReceiptPanel';
 import { Receipt } from '@/types';
 import { formatCurrency } from '@/lib/utils';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '@/lib/utils';
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get('sessionId');
-  
+
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -45,6 +43,9 @@ function CheckoutContent() {
   useEffect(() => {
     if (sessionId) {
       fetchReceipt();
+    } else {
+      setIsLoading(false);
+      setError('Missing session ID');
     }
   }, [sessionId, fetchReceipt]);
 
@@ -79,143 +80,159 @@ function CheckoutContent() {
 
   if (isLoading) {
     return (
-      <PageContainer className="flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-slate-400 font-bold uppercase text-sm">Initializing checkout...</p>
-        </div>
+      <PageContainer>
+        <LoadingState label="Preparing checkout" />
       </PageContainer>
     );
   }
 
   if (!receipt) {
     return (
-      <PageContainer className="flex items-center justify-center p-8 text-center">
-         <h2 className="text-2xl font-bold mb-4">Checkout not ready</h2>
-         <button onClick={() => router.push('/dashboard')} className="bg-primary text-white px-6 py-3 rounded-xl font-bold">
-            Back to Dashboard
-         </button>
+      <PageContainer>
+        <main className="flex min-h-screen items-center justify-center p-4">
+          <EmptyState
+            icon="receipt_long"
+            title="Checkout is not ready"
+            description={error || 'Finish an active shopping session before opening checkout.'}
+            actionLabel="Back to dashboard"
+            actionHref="/dashboard"
+            className="max-w-md"
+          />
+        </main>
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer className="bg-white dark:bg-slate-900">
-      <Header title="Checkout" showBack={true} />
+    <PageContainer maxWidth="lg">
+      <Header title="Checkout" showBack />
 
-      <div className="flex-1 overflow-y-auto pb-10">
-        <div className="p-6">
-          <h2 className="text-xl font-bold mb-4">Order Summary</h2>
-          <div className="space-y-3 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
-            <div className="flex justify-between items-center">
-              <p className="text-slate-500 dark:text-slate-400 text-sm">Shopping Session Items</p>
-              <p className="font-medium">{formatCurrency(receipt.subtotal)}</p>
-            </div>
-            <div className="flex justify-between items-center">
-              <p className="text-slate-500 dark:text-slate-400 text-sm">Platform Fee</p>
-              <p className="font-medium">$0.00</p>
-            </div>
-            <div className="flex justify-between items-center">
-              <p className="text-slate-500 dark:text-slate-400 text-sm">Estimated Tax</p>
-              <p className="font-medium">{formatCurrency(receipt.tax)}</p>
-            </div>
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-              <p className="text-base font-bold">Total Amount</p>
-              <p className="text-xl font-bold text-primary">{formatCurrency(receipt.total)}</p>
-            </div>
+      <main className="grid flex-1 gap-6 pb-32 pt-6 lg:grid-cols-[1fr_380px] md:pb-10">
+        <section className="space-y-6">
+          <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-soft md:p-6">
+            <Badge className="bg-white/10 text-white ring-white/15">Final step</Badge>
+            <h1 className="mt-4 text-3xl font-black tracking-tight">Review and pay</h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">
+              Confirm the virtual receipt from your smart cart session. This demo payment will finalize the transaction and move it to history.
+            </p>
           </div>
-        </div>
 
-        <div className="p-6">
-          <h2 className="text-xl font-bold mb-4">Payment Method</h2>
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <button className="flex items-center justify-center gap-2 py-3 px-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-              <div className="w-6 h-6 bg-black rounded-md flex items-center justify-center">
-                <span className="text-white text-[10px] font-bold">Pay</span>
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900 md:p-6">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Payment Method</h2>
+                <p className="mt-1 text-sm text-slate-500">Choose how to complete this demo checkout.</p>
               </div>
-              <span className="text-sm font-semibold">Apple Pay</span>
-            </button>
-            <button className="flex items-center justify-center gap-2 py-3 px-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
-              </svg>
-              <span className="text-sm font-semibold">Google Pay</span>
-            </button>
-          </div>
+              <span className="material-symbols-outlined text-primary">lock</span>
+            </div>
 
-          <div className="relative flex py-5 items-center">
-            <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
-            <span className="flex-shrink mx-4 text-slate-400 text-xs uppercase tracking-widest font-medium">Or pay with card</span>
-            <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
-          </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 font-bold transition hover:border-primary/30 hover:bg-white dark:border-slate-800 dark:bg-slate-950" type="button">
+                <span className="rounded bg-slate-950 px-1.5 py-1 text-[10px] font-black text-white">Pay</span>
+                Apple Pay
+              </button>
+              <button className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 font-bold transition hover:border-primary/30 hover:bg-white dark:border-slate-800 dark:bg-slate-950" type="button">
+                <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
+                Google Pay
+              </button>
+            </div>
 
-          <div className="mb-6">
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Saved Card</label>
-            <div className="relative group cursor-pointer" onClick={() => setPaymentMethod('saved')}>
-              <div className={cn(
-                "flex items-center justify-between p-4 border-2 rounded-xl cursor-pointer transition-all",
-                paymentMethod === 'saved' ? "border-primary bg-primary/5 dark:bg-primary/10" : "border-slate-200 dark:border-slate-700"
-              )}>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-8 bg-slate-200 dark:bg-slate-700 rounded flex items-center justify-center overflow-hidden">
-                    <span className="text-[10px] font-bold">VISA</span>
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm">Visa ending in 4242</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Expires 12/26</p>
-                  </div>
-                </div>
-                <div className={cn(
-                  "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                  paymentMethod === 'saved' ? "border-primary" : "border-slate-300 dark:border-slate-600"
-                )}>
-                  {paymentMethod === 'saved' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
-                </div>
+            <div className="my-6 flex items-center gap-4">
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">or card</span>
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { id: 'saved' as const, title: 'Visa ending in 4242', helper: 'Expires 12/26', icon: 'credit_card' },
+                { id: 'new' as const, title: 'Add new payment method', helper: 'Use another card for this transaction', icon: 'add_card' },
+              ].map((method) => (
+                <button
+                  key={method.id}
+                  type="button"
+                  onClick={() => setPaymentMethod(method.id)}
+                  className={cn(
+                    'flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition',
+                    paymentMethod === method.id
+                      ? 'border-primary bg-primary/5 ring-4 ring-primary/10'
+                      : 'border-slate-200 bg-white hover:border-primary/30 dark:border-slate-800 dark:bg-slate-950'
+                  )}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 dark:bg-slate-800">
+                      <span className="material-symbols-outlined">{method.icon}</span>
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-black text-slate-950 dark:text-slate-100">{method.title}</span>
+                      <span className="text-sm text-slate-500">{method.helper}</span>
+                    </span>
+                  </span>
+                  <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-full border-2', paymentMethod === method.id ? 'border-primary' : 'border-slate-300')}>
+                    {paymentMethod === method.id && <span className="size-2.5 rounded-full bg-primary" />}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {error && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+              {error}
+            </div>
+          )}
+        </section>
+
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <ReceiptPanel>
+            <div className="p-5 md:p-6">
+              <Badge variant="success">Receipt summary</Badge>
+              <h2 className="mt-4 text-2xl font-black text-slate-950 dark:text-slate-100">Carto checkout</h2>
+              <p className="mt-1 text-sm text-slate-500">Receipt #{receipt.id.slice(-6).toUpperCase()}</p>
+            </div>
+
+            <div className="space-y-4 border-y border-dashed border-slate-200 p-5 dark:border-slate-800 md:p-6">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Shopping session items</span>
+                <span className="font-bold">{formatCurrency(receipt.subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Platform fee</span>
+                <span className="font-bold">$0.00</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Estimated tax</span>
+                <span className="font-bold">{formatCurrency(receipt.tax)}</span>
               </div>
             </div>
-          </div>
 
-          <div className="mb-6">
-            <div className="relative group cursor-pointer" onClick={() => setPaymentMethod('new')}>
-              <div className={cn(
-                "flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all",
-                paymentMethod === 'new' ? "border-primary bg-primary/5" : "border-slate-200 dark:border-slate-700"
-              )}>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-8 bg-slate-100 dark:bg-slate-800 rounded flex items-center justify-center">
-                    <span className="material-symbols-outlined text-slate-400">add_card</span>
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm text-slate-600 dark:text-slate-300">Add new payment method</p>
-                  </div>
-                </div>
-                <div className={cn(
-                  "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                  paymentMethod === 'new' ? "border-primary" : "border-slate-300 dark:border-slate-600"
-                )}>
-                  {paymentMethod === 'new' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
-                </div>
+            <div className="bg-slate-50 p-5 dark:bg-slate-950/50 md:p-6">
+              <div className="flex items-end justify-between">
+                <span className="text-base font-black text-slate-950 dark:text-slate-100">Total Amount</span>
+                <span className="text-3xl font-black text-primary">{formatCurrency(receipt.total)}</span>
               </div>
+              <div className="mt-5 flex items-center justify-center gap-2 text-xs font-bold text-slate-400">
+                <span className="material-symbols-outlined text-sm">encrypted</span>
+                Secure demo checkout
+              </div>
+              <Button size="lg" className="mt-4 w-full" onClick={handlePayment} disabled={isProcessing}>
+                {isProcessing ? 'Processing...' : `Confirm and Pay ${formatCurrency(receipt.total)}`}
+              </Button>
             </div>
-          </div>
-        </div>
-      </div>
+          </ReceiptPanel>
+        </aside>
+      </main>
 
-      <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 mt-auto shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center justify-center gap-2 mb-4 text-slate-400">
-          <span className="material-symbols-outlined text-sm">lock</span>
-          <span className="text-xs font-medium">Secure SSL Encrypted Payment</span>
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white p-4 shadow-[0_-14px_30px_rgba(15,23,42,0.1)] dark:border-slate-800 dark:bg-slate-950 lg:hidden">
+        <div className="mx-auto flex max-w-lg items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Total</p>
+            <p className="text-2xl font-black text-slate-950 dark:text-slate-100">{formatCurrency(receipt.total)}</p>
+          </div>
+          <Button onClick={handlePayment} disabled={isProcessing}>
+            {isProcessing ? 'Processing' : 'Pay'}
+          </Button>
         </div>
-        <button
-          onClick={handlePayment}
-          disabled={isProcessing}
-          className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          {isProcessing ? "Processing..." : `Confirm and Pay ${formatCurrency(receipt.total)}`}
-        </button>
       </div>
     </PageContainer>
   );
@@ -224,11 +241,8 @@ function CheckoutContent() {
 export default function CheckoutPage() {
   return (
     <Suspense fallback={
-      <PageContainer className="flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-slate-400 font-bold uppercase text-sm">Loading checkout...</p>
-        </div>
+      <PageContainer>
+        <LoadingState label="Loading checkout" />
       </PageContainer>
     }>
       <CheckoutContent />

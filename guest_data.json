@@ -49,8 +49,65 @@
       "name": "mazen",
       "userId": "guest_ceacaabacaa96a111cf0c8c9f6adaec2",
       "createdAt": "2026-03-09T06:12:30.508Z",
-      "updatedAt": "2026-03-09T06:13:46.142Z",
+      "updatedAt": "2026-03-11T23:47:52.052Z",
       "isActive": true,
+      "items": [
+        {
+          "id": "guest_item_ab284c39c0189bd2",
+          "listId": "guest_list_074595ac04557e6f",
+          "collectedAt": null,
+          "name": "milk chocolate bar",
+          "quantity": 3,
+          "category": "Sweets & Desserts",
+          "isCollected": false,
+          "price": 0
+        },
+        {
+          "id": "guest_item_c93837bb3b48fea6",
+          "listId": "guest_list_074595ac04557e6f",
+          "collectedAt": null,
+          "name": "sushi rice",
+          "quantity": 2,
+          "category": "Asian Grains & Noodles",
+          "isCollected": false,
+          "price": 0
+        }
+      ]
+    }
+  ],
+  "guest_0938a7d633a429425da787a5381b342d": [
+    {
+      "id": "guest_list_676ce13a41bdb50c",
+      "name": "Mazen",
+      "userId": "guest_0938a7d633a429425da787a5381b342d",
+      "createdAt": "2026-04-28T13:32:09.069Z",
+      "updatedAt": "2026-04-28T13:32:09.069Z",
+      "items": []
+    },
+    {
+      "id": "guest_list_7c1d53ec985ed254",
+      "name": "mmmm",
+      "userId": "guest_0938a7d633a429425da787a5381b342d",
+      "createdAt": "2026-04-28T13:41:59.429Z",
+      "updatedAt": "2026-04-28T13:41:59.429Z",
+      "items": []
+    }
+  ],
+  "guest_fb21a5e6d11a3ffe3468c8c9cf679b11": [
+    {
+      "id": "guest_list_92ae00fd7140a942",
+      "name": "Bolbol",
+      "userId": "guest_fb21a5e6d11a3ffe3468c8c9cf679b11",
+      "createdAt": "2026-04-28T19:08:58.884Z",
+      "updatedAt": "2026-04-28T20:08:52.217Z",
+      "items": []
+    },
+    {
+      "id": "guest_list_d386e50c17c4c4df",
+      "name": "Meow",
+      "userId": "guest_fb21a5e6d11a3ffe3468c8c9cf679b11",
+      "createdAt": "2026-04-28T20:06:25.685Z",
+      "updatedAt": "2026-04-28T20:06:25.685Z",
       "items": []
     }
   ]

@@ -19,7 +19,7 @@ export function Logo({
     return (
         <div className={`flex items-center ${className}`}>
             <Image
-                src="/images/logo.png"
+                src="/images/carto-logo.png"
                 alt="Carto Logo"
                 width={width}
                 height={height}

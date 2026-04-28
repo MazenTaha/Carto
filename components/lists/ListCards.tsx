@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation';
 interface ShoppingList {
     id: string;
     name: string;
-    isActive: boolean;
     _count: {
         items: number;
     };
@@ -68,43 +67,8 @@ export function ListCards({ lists }: ListCardsProps) {
         setConfirmCount(0);
     };
 
-    const handleActivateList = async (listId: string) => {
-        setLoadingId(listId);
-
-        // Optimistic update
-        const previousLists = [...localLists];
-        setLocalLists(localLists.map(l => ({
-            ...l,
-            isActive: l.id === listId
-        })));
-
-        try {
-            console.log('Activating list:', listId);
-            const response = await fetch(`/api/lists/${listId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ isActive: true }),
-            });
-
-            const data = await response.json().catch(() => ({}));
-            console.log('Activation response:', response.status, data);
-
-            if (response.ok) {
-                router.refresh();
-                router.push(`/session/start?listId=${listId}`);
-            } else {
-                setLocalLists(previousLists); // Rollback
-                alert(`Failed to activate list: ${data.error || response.statusText}`);
-            }
-        } catch (error) {
-            setLocalLists(previousLists); // Rollback
-            console.error('Error activating list:', error);
-            alert('Failed to activate list. Please check your connection.');
-        } finally {
-            setLoadingId(null);
-        }
+    const handleLinkToCarto = (listId: string) => {
+        router.push(`/session/start?listId=${listId}`);
     };
 
     return (
@@ -123,12 +87,6 @@ export function ListCards({ lists }: ListCardsProps) {
                                 <span className="text-xs font-mono text-gray-500 bg-black/40 px-3 py-1 rounded-full border border-gray-700/50">
                                     {list._count.items} ITEMS
                                 </span>
-                                {list.isActive && (
-                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-pulse" />
-                                        Active
-                                    </span>
-                                )}
                             </div>
                         </div>
                         <button
@@ -181,21 +139,11 @@ export function ListCards({ lists }: ListCardsProps) {
 
                     <div className="mt-auto space-y-4 relative z-10">
                         <Button
-                            onClick={() => handleActivateList(list.id)}
-                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-2xl shadow-xl shadow-emerald-600/20 border-0 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            onClick={() => handleLinkToCarto(list.id)}
+                            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-2xl shadow-xl shadow-primary/20 border-0 transition-all hover:scale-[1.02] active:scale-[0.98]"
                             disabled={loadingId !== null}
                         >
-                            {loadingId === list.id ? (
-                                <span className="flex items-center justify-center gap-3">
-                                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                    </svg>
-                                    ACTIVATING...
-                                </span>
-                            ) : (
-                                'START SHOPPING'
-                            )}
+                            LINK TO CARTO
                         </Button>
                         <Link href={`/lists/${list.id}`} className="block">
                             <button className="w-full py-4 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-bold rounded-2xl border border-gray-700/50 transition-all">

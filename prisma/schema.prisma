@@ -14,12 +14,12 @@ datasource db {
 // ─── USER ──────────────────────────────────────────────────────────────────────
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  password      String
-  name          String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   shoppingLists    ShoppingList[]
@@ -54,11 +54,16 @@ model Store {
 // ─── PHYSICAL CART ─────────────────────────────────────────────────────────────
 
 model Cart {
-  id        String     @id @default(cuid())
-  cartCode  String     @unique  // Physical code printed on the cart (scanned via QR)
-  storeId   String
-  status    CartStatus @default(AVAILABLE)
-  lastSeen  DateTime   @default(now())
+  id            String     @id @default(cuid())
+  cartCode      String     @unique // Physical code printed on the cart (scanned via QR)
+  bluetoothName String?
+  pairingCode   String?
+  qrSessionId   String?
+  storeId       String
+  status        CartStatus @default(AVAILABLE)
+  lastSeen      DateTime   @default(now())
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @default(now()) @updatedAt
 
   store    Store         @relation(fields: [storeId], references: [id])
   sessions CartSession[]
@@ -78,12 +83,11 @@ enum CartStatus {
 // ─── SHOPPING LIST ─────────────────────────────────────────────────────────────
 
 model ShoppingList {
-  id          String     @id @default(cuid())
-  name        String
-  userId      String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  isActive    Boolean    @default(false)
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   items        ListItem[]
@@ -114,14 +118,15 @@ model ListItem {
 // ─── CART SESSION ──────────────────────────────────────────────────────────────
 
 model CartSession {
-  id        String        @id @default(cuid())
-  cartId    String        // References physical Cart
-  userId    String
-  listId    String
-  status    SessionStatus @default(ACTIVE)
-  startedAt DateTime      @default(now())
-  endedAt   DateTime?
-  qrCode    String?
+  id                String        @id @default(cuid())
+  cartId            String // References physical Cart
+  userId            String
+  listId            String
+  status            SessionStatus @default(ACTIVE)
+  startedAt         DateTime      @default(now())
+  endedAt           DateTime?
+  qrCode            String?
+  externalSessionId String?
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   shoppingList ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
@@ -131,6 +136,7 @@ model CartSession {
   @@index([userId])
   @@index([listId])
   @@index([cartId])
+  @@index([externalSessionId])
   @@map("cart_sessions")
 }
 
@@ -144,16 +150,16 @@ enum SessionStatus {
 // ─── RECEIPT ───────────────────────────────────────────────────────────────────
 
 model Receipt {
-  id            String        @id @default(cuid())
-  sessionId     String        @unique
-  userId        String
-  status        ReceiptStatus @default(DRAFT)
-  subtotal      Float         @default(0)
-  tax           Float         @default(0)
-  total         Float         @default(0)
-  createdAt     DateTime      @default(now())
-  lockedAt      DateTime?
-  paymentId     String?
+  id        String        @id @default(cuid())
+  sessionId String        @unique
+  userId    String
+  status    ReceiptStatus @default(DRAFT)
+  subtotal  Float         @default(0)
+  tax       Float         @default(0)
+  total     Float         @default(0)
+  createdAt DateTime      @default(now())
+  lockedAt  DateTime?
+  paymentId String?
 
   // New fields
   storeId       String?
@@ -161,9 +167,9 @@ model Receipt {
   paymentMethod PaymentMethod @default(CARD)
   paymentStatus PaymentStatus @default(PENDING)
 
-  cartSession CartSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  store       Store?       @relation(fields: [storeId], references: [id])
+  cartSession CartSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store       Store?        @relation(fields: [storeId], references: [id])
   items       ReceiptItem[]
 
   @@index([sessionId])
@@ -263,10 +269,10 @@ model UserFavoriteProduct {
 // ─── WISHLIST ──────────────────────────────────────────────────────────────────
 
 model Wishlist {
-  id        String         @id @default(cuid())
-  userId    String         @unique
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   items WishlistItem[]

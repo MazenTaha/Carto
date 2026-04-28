@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signInSchema } from '@/lib/validations';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { Logo } from '@/components/ui/Logo';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -59,18 +60,15 @@ export default function SignInPage() {
   };
 
   return (
-    <PageContainer className="flex flex-col items-center justify-center p-0">
+    <PageContainer className="max-w-md bg-white px-0 dark:bg-slate-950">
       <div className="flex w-full items-center bg-transparent p-4 pb-2 justify-between">
         <Link href="/" className="text-slate-900 dark:text-slate-100 flex size-12 shrink-0 items-center cursor-pointer">
           <span className="material-symbols-outlined text-2xl">close</span>
         </Link>
         <div className="flex-1 flex justify-center pr-12">
-          <div className="flex items-center gap-2">
-            <div className="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
-              <span className="material-symbols-outlined text-xl">shopping_cart</span>
-            </div>
-            <h2 className="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em]">Carto</h2>
-          </div>
+          <Link href="/" aria-label="Go to home" className="flex items-center">
+            <Logo width={92} height={34} className="hover:opacity-80 transition-opacity" />
+          </Link>
         </div>
       </div>
 

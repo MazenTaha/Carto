@@ -30,9 +30,14 @@ export type CartStatus = 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'OFFLINE';
 export interface Cart {
   id: string;
   cartCode: string;
+  bluetoothName: string | null;
+  pairingCode?: string | null;
+  qrSessionId: string | null;
   storeId: string;
   status: CartStatus;
   lastSeen: Date;
+  createdAt: Date;
+  updatedAt: Date;
   store?: Store;
 }
 
@@ -44,7 +49,6 @@ export interface ShoppingList {
   userId: string;
   createdAt: Date;
   updatedAt: Date;
-  isActive: boolean;
   items?: ListItem[];
 }
 
@@ -72,6 +76,7 @@ export interface CartSession {
   startedAt: Date;
   endedAt: Date | null;
   qrCode: string | null;
+  externalSessionId: string | null;
   shoppingList?: ShoppingList;
   cart?: Cart;
 }
@@ -208,7 +213,11 @@ export interface UpdateListItemDTO {
 }
 
 export interface LinkCartDTO {
-  cartCode: string;
+  cartId?: string;
+  cartCode?: string;
+  bluetoothName?: string;
+  pairingCode?: string;
+  sessionId?: string;
   listId: string;
 }
 

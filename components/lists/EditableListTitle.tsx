@@ -68,12 +68,12 @@ export function EditableListTitle({
           onChange={(e) => setName(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          className="text-3xl font-semibold text-white bg-transparent border-b-2 border-green-500 focus:outline-none pb-2 w-full"
+          className="w-full border-b-2 border-primary bg-transparent pb-2 text-3xl font-black text-slate-950 outline-none dark:text-slate-100"
         />
       ) : (
         <h1
           onClick={() => setIsEditing(true)}
-          className="text-3xl font-semibold text-white border-b-2 border-transparent hover:border-gray-600 pb-2 inline-block min-w-[200px] cursor-text"
+          className="inline-block min-w-[200px] cursor-text border-b-2 border-transparent pb-2 text-3xl font-black text-slate-950 hover:border-primary/40 dark:text-slate-100"
         >
           {name}
         </h1>
