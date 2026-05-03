@@ -6,7 +6,7 @@ export type ProductSeed = {
   popularity?: number;
 };
 
-// Local fallback dataset used when DATABASE_URL is not configured (guest mode).
+// Local fallback dataset used when DATABASE_URL is not configured.
 // Keep this reasonably sized to avoid huge bundles; the DB-backed search is the long-term path.
 export const LOCAL_PRODUCTS: ProductSeed[] = [
   { name: 'milk', category: 'Dairy & Eggs', emoji: '🥛', popularity: 98 },

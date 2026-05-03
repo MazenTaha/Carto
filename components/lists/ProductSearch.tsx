@@ -14,7 +14,7 @@ interface Product {
 }
 
 interface ProductSearchProps {
-  onSelect: (product: Product) => void;
+  onSelect: (product: Product) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -23,31 +23,50 @@ export function ProductSearch({ onSelect, onCancel }: ProductSearchProps) {
   const [results, setResults] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showPopular, setShowPopular] = useState(true);
+  const [selectingProductId, setSelectingProductId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(query, 300);
 
   useEffect(() => {
     inputRef.current?.focus();
-    fetchProducts('');
   }, []);
 
   useEffect(() => {
-    fetchProducts(debouncedQuery);
-  }, [debouncedQuery]);
-
-  const fetchProducts = async (search: string) => {
+    const controller = new AbortController();
+    const search = debouncedQuery.trim();
     setIsLoading(true);
-    try {
-      const res = await fetch(`/api/products?q=${encodeURIComponent(search)}&limit=20`);
+
+    async function fetchProducts() {
+      try {
+      const res = await fetch(`/api/products?q=${encodeURIComponent(search)}&limit=20`, {
+        signal: controller.signal,
+      });
       if (res.ok) {
         const data = await res.json();
         setResults(data.data);
         setShowPopular(!search);
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') return;
       console.error('Failed to fetch products', error);
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+      }
+    }
+    }
+
+    void fetchProducts();
+    return () => controller.abort();
+  }, [debouncedQuery]);
+
+  const handleSelectProduct = async (product: Product) => {
+    if (selectingProductId) return;
+    setSelectingProductId(product.id);
+    try {
+      await onSelect(product);
+    } finally {
+      setSelectingProductId(null);
     }
   };
 
@@ -104,8 +123,9 @@ export function ProductSearch({ onSelect, onCancel }: ProductSearchProps) {
               <button
                 key={product.id}
                 type="button"
-                onClick={() => onSelect(product)}
-                className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-primary/40 hover:bg-primary/5 dark:border-slate-800 dark:bg-slate-900"
+                onClick={() => handleSelectProduct(product)}
+                disabled={selectingProductId !== null}
+                className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-primary/40 hover:bg-primary/5 disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-xl text-primary">
@@ -117,7 +137,9 @@ export function ProductSearch({ onSelect, onCancel }: ProductSearchProps) {
                   </div>
                 </div>
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition group-hover:bg-primary group-hover:text-white dark:bg-slate-800">
-                  <span className="material-symbols-outlined text-[20px]">add</span>
+                  <span className={`material-symbols-outlined text-[20px] ${selectingProductId === product.id ? 'animate-spin' : ''}`}>
+                    {selectingProductId === product.id ? 'progress_activity' : 'add'}
+                  </span>
                 </span>
               </button>
             ))
@@ -128,7 +150,7 @@ export function ProductSearch({ onSelect, onCancel }: ProductSearchProps) {
               </div>
               <p className="font-bold text-slate-700 dark:text-slate-200">No matching products found.</p>
               {query.trim() && (
-                <Button className="mt-5" variant="outline" onClick={() => onSelect({ id: 'custom', name: query, category: 'Other', emoji: null, price: 0 })}>
+                <Button className="mt-5" variant="outline" onClick={() => handleSelectProduct({ id: 'custom', name: query, category: 'Other', emoji: null, price: 0 })} disabled={selectingProductId !== null}>
                   Add &quot;{query}&quot; anyway
                 </Button>
               )}

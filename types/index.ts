@@ -4,8 +4,10 @@
 
 export interface User {
   id: string;
-  email: string;
+  email: string | null;
+  phoneNumber?: string | null;
   name: string | null;
+  image?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +34,8 @@ export interface Cart {
   cartCode: string;
   bluetoothName: string | null;
   pairingCode?: string | null;
+  deviceSecret?: string | null;
+  pairingExpiresAt?: Date | null;
   qrSessionId: string | null;
   storeId: string;
   status: CartStatus;
@@ -46,9 +50,12 @@ export interface Cart {
 export interface ShoppingList {
   id: string;
   name: string;
-  userId: string;
+  userId: string | null;
+  guestSessionId?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date | null;
+  permanentDeleteAt?: Date | null;
   items?: ListItem[];
 }
 
@@ -70,7 +77,8 @@ export type SessionStatus = 'ACTIVE' | 'DISCONNECTED' | 'COMPLETED' | 'CHECKED_O
 export interface CartSession {
   id: string;
   cartId: string;
-  userId: string;
+  userId: string | null;
+  guestSessionId?: string | null;
   listId: string;
   status: SessionStatus;
   startedAt: Date;
@@ -90,7 +98,8 @@ export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 
 export interface Receipt {
   id: string;
   sessionId: string;
-  userId: string;
+  userId: string | null;
+  guestSessionId?: string | null;
   status: ReceiptStatus;
   subtotal: number;
   tax: number;
@@ -213,11 +222,8 @@ export interface UpdateListItemDTO {
 }
 
 export interface LinkCartDTO {
-  cartId?: string;
-  cartCode?: string;
-  bluetoothName?: string;
-  pairingCode?: string;
-  sessionId?: string;
+  cartCode: string;
+  pairingCode: string;
   listId: string;
 }
 

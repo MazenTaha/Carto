@@ -1,60 +1,71 @@
-// Guest authentication API route - creates a temporary guest session
-// Note: This route requires a database. For guest mode without database, use /api/auth/guest-bypass
-
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  clearLegacyGuestCookies,
+  createGuestSession,
+  setGuestSessionCookie,
+} from '@/lib/guest-session';
 
-// POST /api/auth/guest - Create or get guest user
-export async function POST(request: NextRequest) {
-  // If database is not configured, return error
+async function startGuestSession(redirectTo = '/dashboard') {
   if (!process.env.DATABASE_URL) {
-    return NextResponse.json(
-      {
-        error: 'Database is not configured. Guest mode bypass is available without database.',
-        useBypass: true
-      },
-      { status: 503 }
-    );
+    return {
+      error: NextResponse.json(
+        { error: 'Database is required for guest mode.' },
+        { status: 503 }
+      ),
+    };
   }
 
+  const guestSession = await createGuestSession();
+
+  return { guestSession, redirectTo };
+}
+
+export async function POST(request: NextRequest) {
   try {
-    // Lazy import to avoid loading if database is not configured
-    const { prisma } = await import('@/lib/prisma');
-    const { hashPassword } = await import('@/lib/auth');
+    const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/dashboard';
+    const result = await startGuestSession(redirectTo);
 
-    // Check if guest user already exists
-    const guestEmail = 'guest@carto.local';
-    let guestUser = await prisma.user.findUnique({
-      where: { email: guestEmail },
-    });
-
-    // Create guest user if it doesn't exist
-    if (!guestUser) {
-      const hashedPassword = await hashPassword('guest123');
-      guestUser = await prisma.user.create({
-        data: {
-          email: guestEmail,
-          password: hashedPassword,
-          name: 'Guest User',
-        },
-      });
+    if (result.error) {
+      return result.error;
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
-        email: guestUser.email,
-        password: 'guest123', // Return password for sign-in
+        guestSessionId: result.guestSession.id,
+        redirectTo: result.redirectTo,
       },
     });
-  } catch (error: any) {
-    console.error('Error creating guest user:', error);
+
+    setGuestSessionCookie(response, result.guestSession.id);
+    clearLegacyGuestCookies(response);
+
+    return response;
+  } catch (error) {
+    console.error('Guest session creation error:', error);
     return NextResponse.json(
-      {
-        error: 'Failed to create guest session',
-        details: error.message
-      },
+      { error: 'Failed to start guest session' },
       { status: 500 }
     );
   }
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/dashboard';
+    const result = await startGuestSession(redirectTo);
+
+    if (result.error) {
+      return result.error;
+    }
+
+    const response = NextResponse.redirect(new URL(result.redirectTo, request.url));
+    setGuestSessionCookie(response, result.guestSession.id);
+    clearLegacyGuestCookies(response);
+
+    return response;
+  } catch (error) {
+    console.error('Guest session creation error:', error);
+    return NextResponse.redirect(new URL('/auth/signin', request.url));
+  }
+}

@@ -24,33 +24,40 @@ function CheckoutContent() {
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'saved' | 'new'>('saved');
 
-  const fetchReceipt = useCallback(async () => {
+  const fetchReceipt = useCallback(async (signal?: AbortSignal) => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId}`);
+      const response = await fetch(`/api/sessions/${sessionId}`, { signal });
       const data = await response.json();
       if (data.success && data.data.receipt) {
         setReceipt(data.data.receipt);
       } else {
         setError('Receipt not found');
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       setError('Failed to load receipt');
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+      }
     }
   }, [sessionId]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     if (sessionId) {
-      fetchReceipt();
+      void fetchReceipt(controller.signal);
     } else {
       setIsLoading(false);
       setError('Missing session ID');
     }
+
+    return () => controller.abort();
   }, [sessionId, fetchReceipt]);
 
   const handlePayment = async () => {
-    if (!receipt || !sessionId) return;
+    if (!receipt || !sessionId || isProcessing) return;
     setIsProcessing(true);
     setError('');
     try {
@@ -223,7 +230,7 @@ function CheckoutContent() {
         </aside>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white p-4 shadow-[0_-14px_30px_rgba(15,23,42,0.1)] dark:border-slate-800 dark:bg-slate-950 lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white p-4 shadow-[0_-14px_30px_rgba(114,47,55,0.12)] dark:border-slate-800 dark:bg-slate-950 lg:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Total</p>

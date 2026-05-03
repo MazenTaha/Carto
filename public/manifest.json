@@ -5,8 +5,8 @@
     "start_url": "/dashboard",
     "display": "standalone",
     "orientation": "portrait",
-    "theme_color": "#16a34a",
-    "background_color": "#0f172a",
+    "theme_color": "#722F37",
+    "background_color": "#FFFFFF",
     "categories": [
         "shopping",
         "utilities",

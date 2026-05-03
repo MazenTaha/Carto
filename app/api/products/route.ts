@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
 
     try {
-        // Guest/dev fallback: no database configured
+        // Local fallback when the product database is not configured.
         if (!process.env.DATABASE_URL) {
             const q = query.trim().toLowerCase();
             const filtered = LOCAL_PRODUCTS
@@ -47,6 +47,14 @@ export async function GET(request: NextRequest) {
                 where,
                 orderBy: { popularity: 'desc' },
                 take: limit,
+                select: {
+                    id: true,
+                    name: true,
+                    category: true,
+                    emoji: true,
+                    price: true,
+                    popularity: true,
+                },
             });
 
             return NextResponse.json({ success: true, data: products });
@@ -68,6 +76,14 @@ export async function GET(request: NextRequest) {
             where,
             orderBy: { popularity: 'desc' },
             take: limit,
+            select: {
+                id: true,
+                name: true,
+                category: true,
+                emoji: true,
+                price: true,
+                popularity: true,
+            },
         });
 
         return NextResponse.json({ success: true, data: products });

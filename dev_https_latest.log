@@ -1,0 +1,17 @@
+
+> carto@0.1.0 dev:https
+> next dev --experimental-https -H 0.0.0.0
+
+   Attempting to generate self signed certificate. This may prompt for your password
+   CA Root certificate created in C:\Users\LOQ\AppData\Local\mkcert
+   Certificates created in C:\Users\LOQ\Downloads\CartoMAIN\certificates
+  ▲ Next.js 14.2.35
+  - Local:        https://localhost:3000
+  - Network:      http://0.0.0.0:3000
+  - Environments: .env
+
+ ✓ Starting...
+> [PWA] PWA support is disabled
+> [PWA] PWA support is disabled
+ ✓ Ready in 2.9s
+[?25h

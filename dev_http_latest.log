@@ -1,0 +1,33 @@
+
+> carto@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env
+
+ ✓ Starting...
+> [PWA] PWA support is disabled
+> [PWA] PWA support is disabled
+ ✓ Ready in 2.6s
+ ○ Compiling / ...
+ ✓ Compiled / in 8.8s (844 modules)
+ GET / 307 in 5456ms
+ ✓ Compiled in 931ms (305 modules)
+ ○ Compiling /auth/signin ...
+ ✓ Compiled /auth/signin in 14.8s (892 modules)
+ GET /auth/signin 200 in 15165ms
+ GET /auth/signin 200 in 58ms
+ ✓ Compiled /api/auth/[...nextauth] in 96ms (571 modules)
+ ✓ Compiled /api/auth/guest-bypass in 164ms (600 modules)
+ GET /api/auth/guest-bypass 200 in 210ms
+ GET /api/auth/session 200 in 514ms
+ GET /api/auth/session 200 in 519ms
+ ✓ Compiled /middleware in 146ms (174 modules)
+ ✓ Compiled /dashboard in 219ms (943 modules)
+ ✓ Compiled /lists/new in 165ms (951 modules)
+ ✓ Compiled /api/lists in 240ms (623 modules)
+ POST /api/lists 201 in 450ms
+ ✓ Compiled /lists/[id] in 356ms (972 modules)
+ ○ Compiling /session/start ...
+ ✓ Compiled /session/start in 1179ms (1430 modules)

@@ -17,39 +17,81 @@ interface ListItemsManagerProps {
   listId: string;
   listName: string;
   initialItems: ListItem[];
+  isLockedForActiveSession?: boolean;
 }
 
-export function ListItemsManager({ listId, listName, initialItems }: ListItemsManagerProps) {
+const activeSessionLockMessage = 'This list is active on a cart. Finish the session before editing it.';
+
+export function ListItemsManager({
+  listId,
+  listName,
+  initialItems,
+  isLockedForActiveSession = false,
+}: ListItemsManagerProps) {
   const router = useRouter();
   const [items, setItems] = useState<ListItem[]>(initialItems);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
+  const [pendingItemIds, setPendingItemIds] = useState<Set<string>>(new Set());
   const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
 
-  const fetchItems = async () => {
+  const markItemPending = (itemId: string) => {
+    setPendingItemIds((current) => new Set(current).add(itemId));
+  };
+
+  const clearItemPending = (itemId: string) => {
+    setPendingItemIds((current) => {
+      const next = new Set(current);
+      next.delete(itemId);
+      return next;
+    });
+  };
+
+  const readErrorMessage = async (response: Response, fallback: string) => {
     try {
-      const response = await fetch(`/api/lists/${listId}/items`);
       const data = await response.json();
-      if (data.success) {
-        setItems(data.data);
-      }
-    } catch (err) {
-      setError('Could not refresh list items.');
+      return data.error || fallback;
+    } catch {
+      return fallback;
     }
   };
 
   const handleAddItem = async (name: string, category?: string | null) => {
-    if (!name.trim()) return;
+    const trimmedName = name.trim();
+    if (!trimmedName || isLoading) return false;
+    if (isLockedForActiveSession) {
+      setError(activeSessionLockMessage);
+      return false;
+    }
+
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticItem: ListItem = {
+      id: optimisticId,
+      name: trimmedName,
+      quantity: 1,
+      price: 0,
+      category: category || null,
+      isCollected: false,
+      collectedAt: null,
+      listId,
+    };
+
     setIsLoading(true);
+    markItemPending(optimisticId);
     setError('');
+    setNotice('');
+    setSearchTerm('');
+    setItems((current) => [...current, optimisticItem]);
 
     try {
       const response = await fetch(`/api/lists/${listId}/items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
+          name: trimmedName,
           quantity: 1,
           price: 0,
           category: category || undefined,
@@ -57,60 +99,139 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add item');
+        throw new Error(await readErrorMessage(response, 'Failed to add item'));
       }
 
-      setSearchTerm('');
-      await fetchItems();
+      const data = await response.json();
+      if (data.success && data.data) {
+        setItems((current) => current.map((item) => (item.id === optimisticId ? data.data : item)));
+        setNotice('Item added.');
+      }
+      return true;
     } catch (err: any) {
+      setItems((current) => current.filter((item) => item.id !== optimisticId));
+      setSearchTerm(trimmedName);
       setError(err.message || 'Failed to add item.');
+      return false;
     } finally {
+      clearItemPending(optimisticId);
       setIsLoading(false);
     }
   };
 
   const handleUpdateQuantity = async (item: ListItem, delta: number) => {
+    if (pendingItemIds.has(item.id)) return;
+    if (isLockedForActiveSession) {
+      setError(activeSessionLockMessage);
+      return;
+    }
     const newQuantity = Math.max(1, item.quantity + delta);
     if (newQuantity === item.quantity) return;
 
+    const previousItem = item;
+    const optimisticItem = { ...item, quantity: newQuantity };
+    markItemPending(item.id);
+    setError('');
+    setNotice('');
+    setItems((current) => current.map((entry) => (entry.id === item.id ? optimisticItem : entry)));
+
     try {
-      await fetch(`/api/lists/${listId}/items/${item.id}`, {
+      const response = await fetch(`/api/lists/${listId}/items/${item.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity: newQuantity }),
       });
-      fetchItems();
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response, 'Could not update quantity.'));
+      }
+      const data = await response.json();
+      if (data.success && data.data) {
+        setItems((current) => current.map((entry) => (entry.id === item.id ? data.data : entry)));
+      }
     } catch (err) {
+      setItems((current) => current.map((entry) => (entry.id === item.id ? previousItem : entry)));
       setError('Could not update quantity.');
+    } finally {
+      clearItemPending(item.id);
     }
   };
 
   const handleToggleCollected = async (item: ListItem) => {
+    if (pendingItemIds.has(item.id)) return;
+    if (isLockedForActiveSession) {
+      setError(activeSessionLockMessage);
+      return;
+    }
+    const nextCollected = !item.isCollected;
+    const previousItem = item;
+    const optimisticItem = {
+      ...item,
+      isCollected: nextCollected,
+      collectedAt: nextCollected ? new Date() : null,
+    };
+    markItemPending(item.id);
+    setError('');
+    setNotice('');
+    setItems((current) => current.map((entry) => (entry.id === item.id ? optimisticItem : entry)));
+
     try {
-      await fetch(`/api/lists/${listId}/items/${item.id}`, {
+      const response = await fetch(`/api/lists/${listId}/items/${item.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isCollected: !item.isCollected }),
+        body: JSON.stringify({ isCollected: nextCollected }),
       });
-      fetchItems();
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response, 'Could not update item status.'));
+      }
+      const data = await response.json();
+      if (data.success && data.data) {
+        setItems((current) => current.map((entry) => (entry.id === item.id ? data.data : entry)));
+      }
     } catch (err) {
+      setItems((current) => current.map((entry) => (entry.id === item.id ? previousItem : entry)));
       setError('Could not update item status.');
+    } finally {
+      clearItemPending(item.id);
     }
   };
 
-  const handleDeleteItem = async (itemId: string) => {
+  const handleDeleteItem = async (item: ListItem) => {
+    if (pendingItemIds.has(item.id)) return;
+    if (isLockedForActiveSession) {
+      setError(activeSessionLockMessage);
+      return;
+    }
+    markItemPending(item.id);
+    setError('');
+    setNotice('');
+    setItems((current) => current.filter((entry) => entry.id !== item.id));
+
     try {
-      await fetch(`/api/lists/${listId}/items/${itemId}`, {
+      const response = await fetch(`/api/lists/${listId}/items/${item.id}`, {
         method: 'DELETE',
       });
-      fetchItems();
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response, 'Could not delete item.'));
+      }
+      setNotice('Item deleted.');
     } catch (err) {
+      setItems((current) => {
+        if (current.some((entry) => entry.id === item.id)) return current;
+        return [...current, item];
+      });
       setError('Could not delete item.');
+    } finally {
+      clearItemPending(item.id);
     }
   };
 
-  const notCollected = items.filter((item) => !item.isCollected);
-  const collected = items.filter((item) => item.isCollected);
+  const { notCollected, collected } = useMemo(
+    () => ({
+      notCollected: items.filter((item) => !item.isCollected),
+      collected: items.filter((item) => item.isCollected),
+    }),
+    [items]
+  );
   const progress = items.length > 0 ? Math.round((collected.length / items.length) * 100) : 0;
   const estimatedTotal = useMemo(
     () => items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0),
@@ -118,10 +239,14 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
   );
 
   const renderItem = (item: ListItem, isCollected: boolean) => (
+    (() => {
+      const isPending = pendingItemIds.has(item.id);
+      return (
     <article
       key={item.id}
       className={cn(
         'flex items-center gap-3 rounded-2xl border bg-white p-3 shadow-sm transition dark:bg-slate-900 sm:p-4',
+        isPending && 'opacity-70',
         isCollected
           ? 'border-slate-100 opacity-70 dark:border-slate-800'
           : 'border-slate-200 hover:border-primary/30 hover:shadow-card dark:border-slate-800'
@@ -130,8 +255,9 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
       <button
         type="button"
         onClick={() => handleToggleCollected(item)}
+        disabled={isPending || isLockedForActiveSession}
         className={cn(
-          'flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition',
+          'flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition active:scale-90 disabled:active:scale-100',
           isCollected
             ? 'border-primary bg-primary text-white'
             : 'border-slate-300 bg-white text-transparent hover:border-primary dark:border-slate-700 dark:bg-slate-950'
@@ -157,7 +283,8 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
             <button
               type="button"
               onClick={() => handleUpdateQuantity(item, -1)}
-              className="flex size-8 items-center justify-center rounded-full text-primary transition hover:bg-white dark:hover:bg-slate-700"
+              disabled={isPending || isLockedForActiveSession || item.quantity <= 1}
+              className="flex size-8 items-center justify-center rounded-full text-primary transition active:scale-90 hover:bg-white disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-slate-700"
               aria-label={`Decrease ${item.name} quantity`}
             >
               <span className="material-symbols-outlined text-[18px]">remove</span>
@@ -166,7 +293,8 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
             <button
               type="button"
               onClick={() => handleUpdateQuantity(item, 1)}
-              className="flex size-8 items-center justify-center rounded-full text-primary transition hover:bg-white dark:hover:bg-slate-700"
+              disabled={isPending || isLockedForActiveSession}
+              className="flex size-8 items-center justify-center rounded-full text-primary transition active:scale-90 hover:bg-white disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-slate-700"
               aria-label={`Increase ${item.name} quantity`}
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
@@ -174,8 +302,9 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
           </div>
           <button
             type="button"
-            onClick={() => handleDeleteItem(item.id)}
-            className="flex size-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
+            onClick={() => handleDeleteItem(item)}
+            disabled={isPending || isLockedForActiveSession}
+            className="flex size-10 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-red-500/10"
             aria-label={`Delete ${item.name}`}
           >
             <span className="material-symbols-outlined text-[20px]">delete</span>
@@ -185,6 +314,8 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
         <Badge variant="success">{item.quantity} collected</Badge>
       )}
     </article>
+      );
+    })()
   );
 
   return (
@@ -192,10 +323,20 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
       <Header
         title={listName}
         showBack
+        showLogo
         rightElement={
-          <Button size="sm" onClick={() => router.push(`/session/start?listId=${listId}`)}>
-            <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
-            <span className="hidden sm:inline">Activate</span>
+          <Button
+            size="sm"
+            onClick={() => {
+              setIsActivating(true);
+              router.push(`/session/start?listId=${listId}`);
+            }}
+            disabled={isActivating}
+          >
+            <span className={cn('material-symbols-outlined text-[18px]', isActivating && 'animate-spin')}>
+              {isActivating ? 'progress_activity' : 'qr_code_scanner'}
+            </span>
+            <span className="hidden sm:inline">{isActivating ? 'Opening' : 'Activate'}</span>
           </Button>
         }
       />
@@ -203,10 +344,14 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
       <main className="flex-1 pb-28 pt-6 md:pb-10">
         <section className="grid gap-4 lg:grid-cols-[1fr_320px]">
           <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-soft md:p-6">
-            <Badge className="bg-white/10 text-white ring-white/15">Shopping list</Badge>
+            <Badge className="bg-white/10 text-white ring-white/15">
+              {isLockedForActiveSession ? 'Active on cart' : 'Shopping list'}
+            </Badge>
             <h1 className="mt-4 text-3xl font-black tracking-tight">{listName}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">
-              Keep the list ready, then activate it to link with the QR code on a cart.
+              {isLockedForActiveSession
+                ? 'This list is currently assigned to a cart. Finish the session before changing it.'
+                : 'Keep the list ready, then activate it to link with the QR code on a cart.'}
             </p>
             <div className="mt-5">
               <ProgressBar value={progress} label="Collection progress" />
@@ -236,8 +381,11 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
           <div className="flex items-stretch gap-2">
             <button
               type="button"
-              onClick={() => setIsProductSearchOpen(true)}
-              className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-primary shadow-sm transition hover:bg-primary hover:text-white dark:border-slate-800 dark:bg-slate-900"
+              onClick={() => {
+                if (!isLockedForActiveSession) setIsProductSearchOpen(true);
+              }}
+              disabled={isLockedForActiveSession}
+              className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-primary shadow-sm transition hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-800 dark:bg-slate-900"
               aria-label="Open product search"
             >
               <span className="material-symbols-outlined">search</span>
@@ -249,13 +397,29 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
               placeholder="Quick add item and press Enter"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              onKeyDown={(event) => event.key === 'Enter' && handleAddItem(searchTerm)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                void handleAddItem(searchTerm);
+              }}
+              disabled={isLoading || isLockedForActiveSession}
             />
-            <Button size="icon" onClick={() => handleAddItem(searchTerm)} disabled={isLoading || !searchTerm.trim()} aria-label="Add item">
-              <span className="material-symbols-outlined">add</span>
+            <Button
+              size="icon"
+              onClick={() => handleAddItem(searchTerm)}
+              disabled={isLoading || isLockedForActiveSession || !searchTerm.trim()}
+              aria-label="Add item"
+            >
+              <span className={cn('material-symbols-outlined', isLoading && 'animate-spin')}>{isLoading ? 'progress_activity' : 'add'}</span>
             </Button>
           </div>
+          {isLockedForActiveSession && (
+            <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
+              {activeSessionLockMessage}
+            </p>
+          )}
           {error && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-300">{error}</p>}
+          {notice && !error && <p className="mt-2 rounded-xl bg-primary/10 px-3 py-2 text-sm font-bold text-primary">{notice}</p>}
         </section>
 
         {items.length === 0 ? (
@@ -263,12 +427,18 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
             className="mt-6"
             icon="add_shopping_cart"
             title="This list is empty"
-            description="Add products from search or quick add. Once this list has items, activate it to link with a cart."
+            description={
+              isLockedForActiveSession
+                ? 'This list is active on a cart, so edits are paused until the session is finished.'
+                : 'Add products from search or quick add. Once this list has items, activate it to link with a cart.'
+            }
             action={
-              <Button onClick={() => setIsProductSearchOpen(true)}>
-                <span className="material-symbols-outlined">search</span>
-                Browse products
-              </Button>
+              isLockedForActiveSession ? undefined : (
+                <Button onClick={() => setIsProductSearchOpen(true)}>
+                  <span className="material-symbols-outlined">search</span>
+                  Browse products
+                </Button>
+              )
             }
           />
         ) : (
@@ -278,7 +448,9 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
                 <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-600 dark:text-slate-300">
                   Not collected ({notCollected.length})
                 </h2>
-                <Badge variant="warning">Ready for cart</Badge>
+                <Badge variant={isLockedForActiveSession ? 'default' : 'warning'}>
+                  {isLockedForActiveSession ? 'Live on cart' : 'Ready for cart'}
+                </Badge>
               </div>
               <div className="space-y-3">
                 {notCollected.length > 0 ? (
@@ -312,7 +484,7 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
         )}
       </main>
 
-      {isProductSearchOpen && (
+      {isProductSearchOpen && !isLockedForActiveSession && (
         <div className="fixed inset-0 z-50">
           <button
             type="button"
@@ -324,8 +496,8 @@ export function ListItemsManager({ listId, listName, initialItems }: ListItemsMa
             <ProductSearch
               onCancel={() => setIsProductSearchOpen(false)}
               onSelect={async (product) => {
-                await handleAddItem(product.name, product.category);
                 setIsProductSearchOpen(false);
+                await handleAddItem(product.name, product.category);
               }}
             />
           </div>

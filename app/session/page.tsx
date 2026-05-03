@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Header } from '@/components/layout/Header';
@@ -19,15 +19,34 @@ function SessionContent() {
   const router = useRouter();
   const sessionId = searchParams.get('sessionId');
 
-  const { session, receipt, progress, isConnected, setSession, setReceipt, updateProgress, setConnected } = useSessionStore();
+  const session = useSessionStore((state) => state.session);
+  const receipt = useSessionStore((state) => state.receipt);
+  const progress = useSessionStore((state) => state.progress);
+  const isConnected = useSessionStore((state) => state.isConnected);
+  const setSession = useSessionStore((state) => state.setSession);
+  const setReceipt = useSessionStore((state) => state.setReceipt);
+  const updateProgress = useSessionStore((state) => state.updateProgress);
+  const setConnected = useSessionStore((state) => state.setConnected);
   const [isLoading, setIsLoading] = useState(true);
   const [isFinishing, setIsFinishing] = useState(false);
+  const sessionRequestInFlightRef = useRef(false);
+  const activeRequestInFlightRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const fetchSession = useCallback(async () => {
+    if (!sessionId || sessionRequestInFlightRef.current) return;
+    sessionRequestInFlightRef.current = true;
+
     try {
       const response = await fetch(`/api/sessions/${sessionId}`);
       const data = await response.json();
-      if (data.success) {
+      if (data.success && isMountedRef.current) {
         setSession(data.data.session);
         setReceipt(data.data.receipt);
         setConnected(data.data.session.status === 'ACTIVE');
@@ -38,15 +57,21 @@ function SessionContent() {
       }
     } catch (err) {
     } finally {
-      setIsLoading(false);
+      sessionRequestInFlightRef.current = false;
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [sessionId, setSession, setReceipt, setConnected, updateProgress]);
 
   const fetchActiveSession = useCallback(async () => {
+    if (activeRequestInFlightRef.current) return;
+    activeRequestInFlightRef.current = true;
+
     try {
       const response = await fetch('/api/sessions/active');
       const data = await response.json();
-      if (data.success && data.data) {
+      if (data.success && data.data && isMountedRef.current) {
         setSession(data.data.session);
         setReceipt(data.data.receipt);
         setConnected(data.data.session.status === 'ACTIVE');
@@ -57,7 +82,10 @@ function SessionContent() {
       }
     } catch (err) {
     } finally {
-      setIsLoading(false);
+      activeRequestInFlightRef.current = false;
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [setSession, setReceipt, setConnected, updateProgress]);
 
@@ -74,7 +102,7 @@ function SessionContent() {
   }, [sessionId, fetchSession, fetchActiveSession]);
 
   const handleFinishShopping = async () => {
-    if (!session) return;
+    if (!session || isFinishing) return;
     setIsFinishing(true);
     try {
       const response = await fetch(`/api/sessions/${session.id}/finish`, { method: 'POST' });
@@ -164,6 +192,32 @@ function SessionContent() {
             </div>
           </section>
 
+          {session.cart && (
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Linked physical cart</p>
+                  <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-slate-100">{session.cart.cartCode}</h2>
+                </div>
+                <Badge variant={session.cart.status === 'IN_USE' ? 'success' : 'warning'}>{session.cart.status.replace('_', ' ')}</Badge>
+              </div>
+              <div className="grid gap-3 text-sm sm:grid-cols-3">
+                <div>
+                  <p className="font-bold text-slate-500">Bluetooth</p>
+                  <p className="mt-1 truncate font-black text-slate-900 dark:text-slate-100">{session.cart.bluetoothName || 'Not provided'}</p>
+                </div>
+                <div>
+                  <p className="font-bold text-slate-500">QR session</p>
+                  <p className="mt-1 truncate font-black text-slate-900 dark:text-slate-100">{session.externalSessionId || session.cart.qrSessionId || 'Not provided'}</p>
+                </div>
+                <div>
+                  <p className="font-bold text-slate-500">Store</p>
+                  <p className="mt-1 truncate font-black text-slate-900 dark:text-slate-100">{session.cart.store?.name || 'Carto Store'}</p>
+                </div>
+              </div>
+            </section>
+          )}
+
           <section>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-600 dark:text-slate-300">
@@ -215,11 +269,11 @@ function SessionContent() {
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          {receipt && <VirtualReceipt receipt={receipt} sessionId={session.id} />}
+          {receipt && <VirtualReceipt receipt={receipt} sessionId={session.id} poll={false} />}
         </aside>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white p-4 shadow-[0_-14px_30px_rgba(15,23,42,0.1)] dark:border-slate-800 dark:bg-slate-950 md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white p-4 shadow-[0_-14px_30px_rgba(114,47,55,0.12)] dark:border-slate-800 dark:bg-slate-950 md:hidden">
         <div className="mx-auto max-w-lg">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-bold text-slate-500">Estimated total</span>

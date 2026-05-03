@@ -9,9 +9,9 @@ const globalForPrisma = globalThis as unknown as {
 let prismaInstance: any = null;
 
 function getPrisma() {
-  // Don't initialize if DATABASE_URL is not set (guest mode)
+  // Don't initialize if DATABASE_URL is not set.
   if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is not configured. Database features are disabled in guest mode.');
+    throw new Error('DATABASE_URL is not configured. Database features are disabled.');
   }
 
   if (globalForPrisma.prisma) {

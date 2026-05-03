@@ -19,15 +19,15 @@ export function Sidebar() {
   const { data: session } = useSession();
 
   return (
-    <aside className="hidden min-h-screen w-72 shrink-0 border-r border-slate-200/80 bg-white/80 p-4 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/80 md:flex md:flex-col">
-      <Link href="/dashboard" aria-label="Go to Carto home" className="mb-6 flex items-center rounded-2xl p-2 transition hover:bg-slate-100 dark:hover:bg-slate-900">
+    <aside className="hidden min-h-screen w-72 shrink-0 border-r border-warm-border/45 bg-white/82 p-4 backdrop-blur-xl dark:border-warm-border/45 dark:bg-white/82 md:flex md:flex-col">
+      <Link href="/dashboard" aria-label="Go to Carto home" className="mb-6 flex items-center rounded-2xl p-2 transition hover:bg-primary/10 dark:hover:bg-primary/10">
         <Logo width={118} height={42} />
       </Link>
 
       <div className="mb-5 rounded-2xl border border-primary/15 bg-primary/10 p-4">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Retail mode</p>
-        <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
-          {session?.user?.name || session?.user?.email || 'Guest shopper'}
+        <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-900">
+          {session?.user?.name || session?.user?.email || 'Signed in'}
         </p>
       </div>
 
@@ -45,7 +45,7 @@ export function Sidebar() {
                 'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition',
                 active
                   ? 'bg-primary text-white shadow-glow'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
+                  : 'text-slate-600 hover:bg-primary/10 hover:text-primary dark:text-slate-600 dark:hover:bg-primary/10 dark:hover:text-primary'
               )}
               aria-current={active ? 'page' : undefined}
             >
@@ -58,7 +58,7 @@ export function Sidebar() {
 
       <Link
         href="/lists?activate=1"
-        className="mt-5 flex items-center justify-between rounded-3xl bg-slate-950 p-4 text-white shadow-soft transition active:scale-[0.98] dark:bg-primary"
+        className="mt-5 flex items-center justify-between rounded-3xl bg-primary p-4 text-white shadow-soft transition active:scale-[0.98] dark:bg-primary"
       >
         <span>
           <span className="block text-sm font-black">Start shopping</span>

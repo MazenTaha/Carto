@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, Suspense, useCallback } from 'react';
+import { useState, Suspense, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Header } from '@/components/layout/Header';
@@ -39,36 +39,34 @@ function StartSessionContent() {
   const searchParams = useSearchParams();
   const listId = searchParams.get('listId');
   
-  const [manualCartId, setManualCartId] = useState<string>('');
+  const [manualCartCode, setManualCartCode] = useState<string>('');
   const [manualPairingCode, setManualPairingCode] = useState<string>('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [scannedCart, setScannedCart] = useState<CartQrPayload | null>(null);
+  const linkInFlightRef = useRef(false);
 
-  const handleLink = useCallback(async () => {
+  const linkCart = useCallback(async (cartCode: string, pairingCode: string) => {
     if (!listId) {
       setError('List ID is missing');
       return;
     }
 
-    const payload = scannedCart
-      ? { ...scannedCart, listId }
-      : {
-          cartId: manualCartId.trim(),
-          pairingCode: manualPairingCode.trim(),
-          listId,
-        };
-
-    if (!payload.cartId) {
-      setError('Please scan a cart QR code or enter a cart ID.');
+    if (!cartCode.trim()) {
+      setError('Please scan a cart QR code or enter a cart code.');
       return;
     }
 
-    if (!payload.pairingCode) {
+    if (!pairingCode.trim()) {
       setError('Please enter the cart pairing code.');
       return;
     }
 
+    if (linkInFlightRef.current) {
+      return;
+    }
+
+    linkInFlightRef.current = true;
     setIsLoading(true);
     setError('');
 
@@ -76,7 +74,11 @@ function StartSessionContent() {
       const response = await fetch('/api/cart/link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          listId,
+          cartCode: cartCode.trim(),
+          pairingCode: pairingCode.trim(),
+        }),
       });
 
       const data = await response.json();
@@ -85,13 +87,28 @@ function StartSessionContent() {
         throw new Error(data.error || 'Failed to link cart');
       }
 
-      router.push(`/session?sessionId=${data.data.id}`);
+      router.push(`/session?sessionId=${data.data.sessionId || data.data.id}`);
     } catch (err: any) {
       setError(err.message || 'An error occurred');
     } finally {
+      linkInFlightRef.current = false;
       setIsLoading(false);
     }
-  }, [listId, manualCartId, manualPairingCode, router, scannedCart]);
+  }, [listId, router]);
+
+  const handleLink = useCallback(async () => {
+    const payload = scannedCart
+      ? {
+          cartCode: scannedCart.cartCode,
+          pairingCode: scannedCart.pairingCode,
+        }
+      : {
+          cartCode: manualCartCode,
+          pairingCode: manualPairingCode,
+        };
+
+    await linkCart(payload.cartCode, payload.pairingCode);
+  }, [linkCart, manualCartCode, manualPairingCode, scannedCart]);
 
   if (!listId) {
     return (
@@ -132,8 +149,9 @@ function StartSessionContent() {
             }
 
             setScannedCart(result.cart);
-            setManualCartId(result.cart.cartId);
+            setManualCartCode(result.cart.cartCode);
             setManualPairingCode(result.cart.pairingCode);
+            void linkCart(result.cart.cartCode, result.cart.pairingCode);
           }}
         />
 
@@ -142,9 +160,9 @@ function StartSessionContent() {
             <p className="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Cart connection</p>
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-2">
-                <span className={cn("size-2 rounded-full", scannedCart ? "bg-green-500" : "bg-yellow-500")}></span>
+                <span className={cn("size-2 rounded-full", scannedCart ? "bg-primary" : "bg-surface-muted")}></span>
                 <p className="text-slate-500 dark:text-slate-400 text-sm font-normal">
-                  {scannedCart ? `Detected: ${scannedCart.cartId}` : "Waiting for cart QR"}
+                  {scannedCart ? `Detected: ${scannedCart.cartCode}` : "Waiting for cart QR"}
                 </p>
               </div>
               {scannedCart && (
@@ -152,7 +170,7 @@ function StartSessionContent() {
                   type="button"
                   onClick={() => {
                     setScannedCart(null);
-                    setManualCartId('');
+                    setManualCartCode('');
                     setManualPairingCode('');
                   }}
                   className="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-9 px-4 bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/20"
@@ -164,16 +182,8 @@ function StartSessionContent() {
             {scannedCart && (
               <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-950">
                 <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">Bluetooth</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{scannedCart.bluetoothName}</span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">Pairing code</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{scannedCart.pairingCode}</span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">QR session</span>
-                  <span className="max-w-[12rem] truncate font-semibold text-slate-900 dark:text-slate-100">{scannedCart.sessionId}</span>
+                  <span className="text-slate-500">Cart code</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{scannedCart.cartCode}</span>
                 </div>
               </div>
             )}
@@ -185,19 +195,19 @@ function StartSessionContent() {
           <button
             onClick={handleLink}
             disabled={isLoading}
-            className="w-full flex cursor-pointer items-center justify-center rounded-xl h-14 bg-primary text-white text-base font-bold shadow-lg shadow-primary/30 active:scale-95 transition-transform disabled:opacity-50"
+            className="w-full flex cursor-pointer touch-manipulation items-center justify-center rounded-xl h-14 bg-primary text-white text-base font-bold shadow-lg shadow-primary/30 active:scale-[0.97] transition-transform duration-150 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
           >
             {isLoading ? "Connecting..." : "Connect to Cart"}
           </button>
           <label className="mt-4 block text-left text-xs font-bold uppercase tracking-wider text-slate-500">
-            Manual cart ID
+            Manual cart code
             <input
-              value={manualCartId}
+              value={manualCartCode}
               onChange={(event) => {
-                setManualCartId(event.target.value);
+                setManualCartCode(event.target.value);
                 setScannedCart(null);
               }}
-              placeholder="cart-01"
+              placeholder="CART-001"
               className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-base normal-case tracking-normal text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
             />
           </label>

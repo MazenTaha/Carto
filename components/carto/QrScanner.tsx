@@ -112,7 +112,7 @@ export function QrScanner({
     }
 
     if (!window.isSecureContext) {
-      setError('Camera access requires HTTPS on phones. If you opened Carto from a local network HTTP address, use HTTPS, localhost on the device, or a secure tunnel.');
+      setError('Camera access requires HTTPS on phones. Run Carto with HTTPS or use a secure tunnel, then reopen this page.');
       return;
     }
 
@@ -187,7 +187,7 @@ export function QrScanner({
             <div className="absolute -bottom-1 -right-1 h-10 w-10 rounded-br-2xl border-b-4 border-r-4 border-primary"></div>
 
             {isScanning && (
-              <div className="absolute top-1/2 h-0.5 w-full -translate-y-1/2 animate-bounce bg-primary/70 shadow-[0_0_18px_rgba(5,150,105,0.8)]"></div>
+              <div className="absolute top-1/2 h-0.5 w-full -translate-y-1/2 animate-bounce bg-primary/70 shadow-[0_0_18px_rgba(114,47,55,0.75)]"></div>
             )}
           </div>
         </div>

@@ -10,10 +10,10 @@ interface BadgeProps {
 export function Badge({ children, variant = 'default', className }: BadgeProps) {
   const variants = {
     default: 'bg-primary/10 text-primary ring-primary/15',
-    success: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20',
-    warning: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/20',
-    danger: 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-500/20',
-    muted: 'bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700',
+    success: 'bg-primary/10 text-primary ring-primary/20 dark:bg-primary/10 dark:text-primary dark:ring-primary/20',
+    warning: 'bg-surface-muted/65 text-slate-900 ring-warm-border/45 dark:bg-surface-muted/65 dark:text-slate-900 dark:ring-warm-border/45',
+    danger: 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-50 dark:text-red-700 dark:ring-red-200',
+    muted: 'bg-primary-soft text-warm-muted ring-warm-border/35 dark:bg-primary-soft dark:text-warm-muted dark:ring-warm-border/35',
   };
 
   return (

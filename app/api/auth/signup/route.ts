@@ -8,29 +8,25 @@ import { signUpSchema } from '@/lib/validations';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
-    // Validate input
     const validatedData = signUpSchema.parse(body);
+    const email = validatedData.email;
 
-    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: validatedData.email },
+      where: { email },
     });
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'User with this email already exists' },
+        { error: 'Unable to create account with these details' },
         { status: 400 }
       );
     }
 
-    // Hash password
     const hashedPassword = await hashPassword(validatedData.password);
 
-    // Create user
     const user = await prisma.user.create({
       data: {
-        email: validatedData.email,
+        email,
         password: hashedPassword,
         name: validatedData.name || null,
       },
@@ -49,14 +45,14 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     if (error.name === 'ZodError') {
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: error.errors[0]?.message || 'Invalid signup details' },
         { status: 400 }
       );
     }
 
     console.error('Signup error:', error);
     return NextResponse.json(
-      { error: 'Failed to create account' },
+      { error: 'Unable to create account with these details' },
       { status: 500 }
     );
   }

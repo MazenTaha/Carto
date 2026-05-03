@@ -1,55 +1,54 @@
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { formatDistanceToNow } from 'date-fns';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Logo } from '@/components/ui/Logo';
 import { Badge } from '@/components/ui/Badge';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { ListsOverview, type ListOverviewItem } from '@/components/lists/ListsOverview';
+import { purgeExpiredShoppingLists } from '@/lib/list-retention';
+import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+
+function serializeList(list: any): ListOverviewItem {
+  return {
+    id: list.id,
+    name: list.name,
+    updatedAt: list.updatedAt ? new Date(list.updatedAt).toISOString() : null,
+    deletedAt: list.deletedAt ? new Date(list.deletedAt).toISOString() : null,
+    permanentDeleteAt: list.permanentDeleteAt ? new Date(list.permanentDeleteAt).toISOString() : null,
+    _count: list._count,
+  };
+}
 
 export default async function ListsPage({
   searchParams,
 }: {
   searchParams?: { activate?: string };
 }) {
-  let session = null;
+  const owner = process.env.DATABASE_URL ? await requireUserOrGuest() : null;
   const isActivationFlow = searchParams?.activate === '1';
-  const cookieStore = await cookies();
-  const guestModeCookie = cookieStore.get('guest_mode');
-  const isGuestMode = guestModeCookie?.value === 'true';
 
-  if (!isGuestMode && process.env.NEXTAUTH_SECRET && process.env.DATABASE_URL) {
-    try {
-      const { getServerSession } = await import('next-auth');
-      const { authOptions } = await import('@/lib/auth-config');
-      session = await getServerSession(authOptions);
-    } catch (error) {}
-  }
-
-  if (!session && !isGuestMode) {
+  if (!owner) {
     redirect('/auth/signin');
   }
 
   let lists: any[] = [];
-  if (session && session.user?.id && !isGuestMode && process.env.DATABASE_URL) {
+  let deletedLists: any[] = [];
+  if (process.env.DATABASE_URL) {
     try {
       const { prisma } = await import('@/lib/prisma');
+      const ownerFilter = ownerWhere(owner);
+      await purgeExpiredShoppingLists(prisma, ownerFilter);
       lists = await prisma.shoppingList.findMany({
-        where: { userId: session.user.id },
+        where: { ...ownerFilter, deletedAt: null },
         include: { _count: { select: { items: true } } },
         orderBy: { updatedAt: 'desc' },
       });
+      deletedLists = await prisma.shoppingList.findMany({
+        where: { ...ownerFilter, deletedAt: { not: null } },
+        include: { _count: { select: { items: true } } },
+        orderBy: { deletedAt: 'desc' },
+      });
     } catch (error) {}
-  } else if (isGuestMode) {
-    const guestSessionId = cookieStore.get('guest_session_id')?.value;
-    if (guestSessionId) {
-      const { getGuestLists } = await import('@/store/guest-store');
-      lists = getGuestLists(guestSessionId).map((list) => ({
-        ...list,
-        _count: { items: list.items?.length || 0 },
-      }));
-    }
   }
 
   return (
@@ -109,55 +108,11 @@ export default async function ListsPage({
           </section>
         )}
 
-        {lists.length === 0 ? (
-          <EmptyState
-            icon="format_list_bulleted_add"
-            title="No shopping lists yet"
-            description="Create a list first. When you are ready to shop, activate it and scan the QR code on your cart."
-            actionLabel="Create your first list"
-            actionHref="/lists/new"
-          />
-        ) : (
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {lists.map((list) => {
-              const count = list._count?.items || 0;
-              const href = isActivationFlow ? `/session/start?listId=${list.id}` : `/lists/${list.id}`;
-              const updatedAt = list.updatedAt ? formatDistanceToNow(new Date(list.updatedAt), { addSuffix: true }) : 'recently';
-
-              return (
-                <Link
-                  key={list.id}
-                  href={href}
-                  className="group flex min-h-52 flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft dark:border-slate-800 dark:bg-slate-900"
-                >
-                  <div>
-                    <div className="mb-5 flex items-start justify-between gap-4">
-                      <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <span className="material-symbols-outlined text-[28px]">local_grocery_store</span>
-                      </div>
-                      <Badge variant={isActivationFlow ? 'success' : 'muted'}>
-                        {isActivationFlow ? 'Tap to activate' : `${count} items`}
-                      </Badge>
-                    </div>
-                    <h2 className="line-clamp-2 text-xl font-black text-slate-950 group-hover:text-primary dark:text-slate-100">
-                      {list.name}
-                    </h2>
-                    <p className="mt-2 text-sm text-slate-500">Updated {updatedAt}</p>
-                  </div>
-
-                  <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
-                    <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
-                      {isActivationFlow ? 'Open QR scanner' : 'Manage list'}
-                    </span>
-                    <span className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition group-hover:bg-primary group-hover:text-white dark:bg-slate-800">
-                      <span className="material-symbols-outlined">arrow_forward</span>
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </section>
-        )}
+        <ListsOverview
+          lists={lists.map(serializeList)}
+          deletedLists={deletedLists.map(serializeList)}
+          isActivationFlow={isActivationFlow}
+        />
       </main>
 
       <Link href="/lists/new" className="fixed bottom-24 right-5 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-glow transition hover:scale-105 active:scale-95 md:hidden" aria-label="Create new list">

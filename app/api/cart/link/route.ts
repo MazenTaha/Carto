@@ -1,11 +1,10 @@
-// Cart linking API route - links a physical cart to a user's shopping list
+// Cart linking API route - assigns a selected shopping list to a physical cart.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import type { Prisma } from '@prisma/client';
-import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 import { linkCartSchema } from '@/lib/validations';
+import { ownerCreateData, ownerWhere, requireUserOrGuest, RequestOwner } from '@/lib/guest-session';
 
 class ApiError extends Error {
   status: number;
@@ -16,109 +15,100 @@ class ApiError extends Error {
   }
 }
 
+function sessionBelongsToOwner(
+  cartSession: { userId: string | null; guestSessionId: string | null },
+  owner: RequestOwner
+) {
+  return owner.type === 'user'
+    ? cartSession.userId === owner.userId
+    : cartSession.guestSessionId === owner.guestSessionId;
+}
+
 // POST /api/cart/link - Link a cart to a shopping list
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const owner = await requireUserOrGuest();
 
-    if (!session) {
+    if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
     const validatedData = linkCartSchema.parse(body);
-    const userId = session.user.id;
-    const publicCartId = validatedData.cartId || validatedData.cartCode;
-    const isLegacyCartCodeOnly = !validatedData.cartId && Boolean(validatedData.cartCode) && !validatedData.pairingCode;
-
-    if (!publicCartId) {
-      return NextResponse.json({ error: 'Cart ID is required' }, { status: 400 });
-    }
-
-    if (!validatedData.pairingCode && !isLegacyCartCodeOnly) {
-      return NextResponse.json({ error: 'Pairing code is required' }, { status: 400 });
-    }
+    const ownerFilter = ownerWhere(owner);
+    const ownerData = ownerCreateData(owner);
 
     const sessionData = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Verify list ownership before trusting any QR data.
       const list = await tx.shoppingList.findFirst({
         where: {
           id: validatedData.listId,
-          userId,
+          ...ownerFilter,
+          deletedAt: null,
         },
+        select: { id: true },
       });
 
       if (!list) {
         throw new ApiError('List not found or you do not have access to it.', 403);
       }
 
-      let cart = await tx.cart.findUnique({
-        where: { cartCode: publicCartId },
+      const cart = await tx.cart.findUnique({
+        where: { cartCode: validatedData.cartCode },
         include: { store: true },
       });
 
       if (!cart) {
-        if (!validatedData.pairingCode) {
-          throw new ApiError('Cart not found. Please scan a valid Carto QR code.', 404);
-        }
+        throw new ApiError('Cart not found. Please scan a valid Carto QR code.', 404);
+      }
 
-        const store = await tx.store.findFirst({
-          orderBy: { createdAt: 'asc' },
-        }) || await tx.store.create({
-          data: {
-            name: 'Carto Store',
-            location: 'Dynamic cart registration',
-          },
-        });
+      if (!cart.pairingCode || cart.pairingCode !== validatedData.pairingCode) {
+        throw new ApiError('Cart pairing failed. Please scan the latest cart QR code.', 403);
+      }
 
-        cart = await tx.cart.create({
-          data: {
-            cartCode: publicCartId,
-            bluetoothName: validatedData.bluetoothName || `Carto-${publicCartId}`,
-            pairingCode: validatedData.pairingCode,
-            qrSessionId: validatedData.sessionId,
-            storeId: store.id,
-            status: 'AVAILABLE',
-            lastSeen: new Date(),
-          },
-          include: { store: true },
-        });
-      } else {
-        if (cart.status === 'MAINTENANCE' || cart.status === 'OFFLINE') {
-          throw new ApiError(`Cart is currently ${cart.status.toLowerCase()}. Please try another cart.`, 400);
-        }
+      if (cart.pairingExpiresAt && cart.pairingExpiresAt.getTime() < Date.now()) {
+        throw new ApiError('Cart pairing code expired. Please refresh the cart QR code.', 410);
+      }
 
-        if (cart.pairingCode && validatedData.pairingCode && cart.pairingCode !== validatedData.pairingCode) {
-          throw new ApiError('Pairing code does not match this cart.', 400);
-        }
-
-        if (cart.pairingCode && !validatedData.pairingCode && !isLegacyCartCodeOnly) {
-          throw new ApiError('Pairing code is required for this cart.', 400);
-        }
-
-        cart = await tx.cart.update({
-          where: { id: cart.id },
-          data: {
-            bluetoothName: validatedData.bluetoothName || cart.bluetoothName,
-            pairingCode: cart.pairingCode || validatedData.pairingCode,
-            qrSessionId: validatedData.sessionId || cart.qrSessionId,
-            lastSeen: new Date(),
-          },
-          include: { store: true },
-        });
+      if (cart.status === 'MAINTENANCE' || cart.status === 'OFFLINE') {
+        throw new ApiError(`Cart is currently ${cart.status.toLowerCase()}. Please try another cart.`, 400);
       }
 
       const existingCartSession = await tx.cartSession.findFirst({
-        where: { cartId: cart.id, status: { in: ['ACTIVE', 'DISCONNECTED'] } },
+        where: { cartId: cart.id, status: 'ACTIVE' },
+        select: {
+          id: true,
+          listId: true,
+          userId: true,
+          guestSessionId: true,
+        },
       });
 
-      if (existingCartSession && existingCartSession.userId !== userId) {
-        throw new ApiError('Cart is already linked to another active session.', 409);
+      if (existingCartSession) {
+        if (sessionBelongsToOwner(existingCartSession, owner) && existingCartSession.listId === list.id) {
+          if (cart.status !== 'IN_USE') {
+            await tx.cart.update({
+              where: { id: cart.id },
+              data: { status: 'IN_USE', lastSeen: new Date() },
+            });
+          }
+
+          return {
+            id: existingCartSession.id,
+            cartCode: cart.cartCode,
+            reused: true,
+          };
+        }
+
+        throw new ApiError('Cart is already in use.', 409);
       }
 
-      const existingUserSessions = await tx.cartSession.findMany({
+      if (cart.status === 'IN_USE') {
+        throw new ApiError('Cart is already in use.', 409);
+      }
+
+      const previousOwnerSessions = await tx.cartSession.findMany({
         where: {
-          userId,
+          ...ownerFilter,
           status: { in: ['ACTIVE', 'DISCONNECTED'] },
         },
         select: {
@@ -127,10 +117,10 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      if (existingUserSessions.length > 0) {
+      if (previousOwnerSessions.length > 0) {
         await tx.cartSession.updateMany({
           where: {
-            id: { in: existingUserSessions.map((activeSession) => activeSession.id) },
+            id: { in: previousOwnerSessions.map((activeSession) => activeSession.id) },
           },
           data: {
             status: 'COMPLETED',
@@ -139,7 +129,7 @@ export async function POST(request: NextRequest) {
         });
 
         const previousCartIds = Array.from(
-          new Set(existingUserSessions.map((activeSession) => activeSession.cartId).filter((cartId) => cartId !== cart.id))
+          new Set(previousOwnerSessions.map((activeSession) => activeSession.cartId).filter((cartId) => cartId !== cart.id))
         );
 
         if (previousCartIds.length > 0) {
@@ -156,22 +146,21 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      await tx.cart.update({
-        where: { id: cart.id },
-        data: { status: 'IN_USE', lastSeen: new Date() },
-      });
-
       const createdSession = await tx.cartSession.create({
         data: {
           cartId: cart.id,
-          userId,
-          listId: validatedData.listId,
+          ...ownerData,
+          listId: list.id,
           status: 'ACTIVE',
-          qrCode: publicCartId,
-          externalSessionId: validatedData.sessionId,
+          startedAt: new Date(),
+          qrCode: JSON.stringify({
+            type: 'cart_pairing',
+            cartCode: cart.cartCode,
+            pairingCode: validatedData.pairingCode,
+          }),
           receipt: {
             create: {
-              userId,
+              ...ownerData,
               storeId: cart.storeId,
               cartId: cart.id,
               status: 'DRAFT',
@@ -183,38 +172,47 @@ export async function POST(request: NextRequest) {
             },
           },
         },
-        include: {
-          shoppingList: {
-            include: { items: true },
-          },
-          receipt: {
-            include: { items: true },
-          },
-          cart: {
-            include: { store: true },
-          },
+        select: {
+          id: true,
         },
       });
 
-      await tx.notification.create({
-        data: {
-          userId,
-          type: 'SESSION_STARTED',
-          title: 'Shopping Session Started',
-          message: `You started a shopping session at ${cart.store?.name || 'the store'}.`,
-          data: { sessionId: createdSession.id, storeId: cart.storeId, cartCode: publicCartId },
-        },
+      await tx.cart.update({
+        where: { id: cart.id },
+        data: { status: 'IN_USE', lastSeen: new Date() },
       });
 
-      return createdSession;
+      if (owner.type === 'user') {
+        await tx.notification.create({
+          data: {
+            userId: owner.userId,
+            type: 'SESSION_STARTED',
+            title: 'Shopping Session Started',
+            message: `You started a shopping session at ${cart.store?.name || 'the store'}.`,
+            data: { sessionId: createdSession.id, storeId: cart.storeId, cartCode: cart.cartCode },
+          },
+        });
+      }
+
+      return {
+        id: createdSession.id,
+        cartCode: cart.cartCode,
+        reused: false,
+      };
     });
 
-    const safeSessionData = {
-      ...sessionData,
-      cart: sessionData.cart ? { ...sessionData.cart, pairingCode: undefined } : sessionData.cart,
-    };
-
-    return NextResponse.json({ success: true, data: safeSessionData }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          id: sessionData.id,
+          sessionId: sessionData.id,
+          cartCode: sessionData.cartCode,
+          message: sessionData.reused ? 'Cart is already linked to this list' : 'Cart linked successfully',
+        },
+      },
+      { status: sessionData.reused ? 200 : 201 }
+    );
   } catch (error: any) {
     if (error.name === 'ZodError') {
       return NextResponse.json(

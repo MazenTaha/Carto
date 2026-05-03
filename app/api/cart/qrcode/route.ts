@@ -1,47 +1,75 @@
-// QR code generation API route
+// QR code generation API route for physical Carto cart pairing payloads.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-config';
 import QRCode from 'qrcode';
+import { randomInt } from 'crypto';
+import { prisma } from '@/lib/prisma';
+import { cartQrPayloadSchema } from '@/lib/validations';
 
-// GET /api/cart/qrcode?listId=xxx - Generate QR code for cart linking
+export const dynamic = 'force-dynamic';
+
+const PAIRING_TTL_MINUTES = 10;
+
+function createPairingCode() {
+  return String(randomInt(100000, 1000000));
+}
+
+function getPairingExpiresAt() {
+  return new Date(Date.now() + PAIRING_TTL_MINUTES * 60 * 1000);
+}
+
+// GET /api/cart/qrcode?cartCode=CART-001
+// Optional for demos: &pairingCode=123456
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
-    const listId = searchParams.get('listId');
+    const cartCode = searchParams.get('cartCode')?.trim() || searchParams.get('cartId')?.trim();
+    const requestedPairingCode = searchParams.get('pairingCode')?.trim();
 
-    if (!listId) {
-      return NextResponse.json({ error: 'List ID is required' }, { status: 400 });
+    if (!cartCode) {
+      return NextResponse.json({ error: 'Cart code is required' }, { status: 400 });
     }
 
-    // Verify list ownership
-    const { prisma } = await import('@/lib/prisma');
-    const list = await prisma.shoppingList.findFirst({
-      where: {
-        id: listId,
-        userId: session.user.id,
+    const cart = await prisma.cart.findUnique({
+      where: { cartCode },
+      select: {
+        id: true,
+        cartCode: true,
+        status: true,
       },
     });
 
-    if (!list) {
-      return NextResponse.json({ error: 'List not found' }, { status: 404 });
+    if (!cart) {
+      return NextResponse.json({ error: 'Cart not found' }, { status: 404 });
     }
 
-    // Generate QR code data (contains listId and userId for verification)
-    const qrData = JSON.stringify({
-      listId,
-      userId: session.user.id,
-      timestamp: Date.now(),
+    if (cart.status === 'MAINTENANCE' || cart.status === 'OFFLINE') {
+      return NextResponse.json(
+        { error: `Cart is currently ${cart.status.toLowerCase()}.` },
+        { status: 400 }
+      );
+    }
+
+    const pairingCode = requestedPairingCode || createPairingCode();
+    const pairingExpiresAt = getPairingExpiresAt();
+
+    await prisma.cart.update({
+      where: { id: cart.id },
+      data: {
+        pairingCode,
+        pairingExpiresAt,
+        qrSessionId: null,
+        lastSeen: new Date(),
+      },
     });
 
-    // Generate QR code as data URL (for image display)
+    const payload = cartQrPayloadSchema.parse({
+      type: 'cart_pairing',
+      cartCode: cart.cartCode,
+      pairingCode,
+    });
+
+    const qrData = JSON.stringify(payload);
     const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
       width: 300,
       margin: 2,
@@ -51,16 +79,23 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         qrCode: qrCodeDataUrl,
-        qrData: qrData, // Raw data for QRCodeSVG component
-        listId,
+        qrData,
+        payload,
+        pairingExpiresAt,
       },
     });
-  } catch (error) {
-    console.error('Error generating QR code:', error);
+  } catch (error: any) {
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: error.errors[0]?.message || 'Invalid QR payload' },
+        { status: 400 }
+      );
+    }
+
+    console.error('Error generating cart QR code:', error);
     return NextResponse.json(
-      { error: 'Failed to generate QR code' },
+      { error: 'Failed to generate cart QR code' },
       { status: 500 }
     );
   }
 }
-

@@ -1,18 +1,42 @@
 // Zod validation schemas
 
 import { z } from 'zod';
+import { normalizeEgyptianMobileNumber } from './phone';
 
 // ─── Authentication ────────────────────────────────────────────────────────────
 
 export const signUpSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+  email: z.string().trim().toLowerCase().email('Invalid email address'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Za-z]/, 'Password must include a letter')
+    .regex(/[0-9]/, 'Password must include a number'),
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').optional(),
 });
 
 export const signInSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().trim().toLowerCase().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
+});
+
+export const phoneAuthVerifySchema = z.object({
+  idToken: z.string().min(20, 'Firebase ID token is required'),
+});
+
+export const egyptianPhoneInputSchema = z.object({
+  phoneNumber: z.string().transform((value, ctx) => {
+    const normalized = normalizeEgyptianMobileNumber(value);
+
+    if (!normalized) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Enter a valid Egyptian mobile number',
+      });
+      return z.NEVER;
+    }
+
+    return normalized;
+  }),
 });
 
 // ─── Shopping Lists ────────────────────────────────────────────────────────────
@@ -43,37 +67,15 @@ export const updateListItemSchema = z.object({
 // ─── Cart Linking ──────────────────────────────────────────────────────────────
 
 export const linkCartSchema = z.object({
-  cartId: z.string().trim().min(1, 'Cart ID is required').max(80, 'Cart ID is too long').optional(),
-  cartCode: z.string().trim().min(1, 'Cart code is required').max(80, 'Cart code is too long').optional(),
-  bluetoothName: z.string().trim().min(1, 'Bluetooth name is required').max(120, 'Bluetooth name is too long').optional(),
-  pairingCode: z.string().trim().min(1, 'Pairing code is required').max(64, 'Pairing code is too long').optional(),
-  sessionId: z.string().trim().min(1, 'QR session ID is required').max(128, 'QR session ID is too long').optional(),
+  cartCode: z.string().trim().min(1, 'Cart code is required').max(80, 'Cart code is too long'),
+  pairingCode: z.string().trim().min(1, 'Pairing code is required').max(64, 'Pairing code is too long'),
   listId: z.string().min(1, 'List ID is required'),
-}).superRefine((data, ctx) => {
-  const cartIdentifier = data.cartId || data.cartCode;
-
-  if (!cartIdentifier) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Cart ID is required',
-      path: ['cartId'],
-    });
-  }
-
-  if ((data.bluetoothName || data.sessionId) && !data.pairingCode) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Pairing code is required',
-      path: ['pairingCode'],
-    });
-  }
 });
 
 export const cartQrPayloadSchema = z.object({
-  cartId: z.string().trim().min(1, 'QR code is missing cartId').max(80, 'Cart ID is too long'),
-  bluetoothName: z.string().trim().min(1, 'QR code is missing bluetoothName').max(120, 'Bluetooth name is too long'),
+  type: z.literal('cart_pairing'),
+  cartCode: z.string().trim().min(1, 'QR code is missing cartCode').max(80, 'Cart code is too long'),
   pairingCode: z.string().trim().min(1, 'QR code is missing pairingCode').max(64, 'Pairing code is too long'),
-  sessionId: z.string().trim().min(1, 'QR code is missing sessionId').max(128, 'QR session ID is too long'),
 });
 
 // ─── Stores ────────────────────────────────────────────────────────────────────

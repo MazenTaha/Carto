@@ -6,14 +6,14 @@ interface LogoProps {
     width?: number;
     height?: number;
     className?: string;
-    variant?: 'white' | 'dark' | 'green';
+    variant?: 'white' | 'dark' | 'brand';
 }
 
 export function Logo({
     width = 150,
     height = 50,
     className = "",
-    variant = 'green'
+    variant = 'brand'
 }: LogoProps) {
     // Use the same logo image for all variants currently as it has its own branding
     return (

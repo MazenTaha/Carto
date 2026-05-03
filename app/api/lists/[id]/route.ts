@@ -1,29 +1,11 @@
 // Individual list API routes
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 import { createListSchema, updateListSchema } from '@/lib/validations';
-import {
-  getGuestList,
-  getGuestLists,
-  updateGuestList,
-  deleteGuestList,
-  generateGuestSessionId,
-} from '@/store/guest-store';
-
-// Helper function to get or create guest session ID
-function getGuestSessionId(request: NextRequest): { sessionId: string; needsCookie: boolean } {
-  let guestSessionId = request.cookies.get('guest_session_id')?.value;
-
-  if (!guestSessionId) {
-    guestSessionId = generateGuestSessionId();
-    return { sessionId: guestSessionId, needsCookie: true };
-  }
-
-  return { sessionId: guestSessionId, needsCookie: false };
-}
+import { getPermanentDeleteAt, purgeExpiredShoppingLists } from '@/lib/list-retention';
+import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+import { ACTIVE_LIST_LOCK_MESSAGE, isListActiveOnCart } from '@/lib/list-session-lock';
 
 // GET /api/lists/[id] - Get a specific list
 export async function GET(
@@ -31,43 +13,17 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    const guestMode = request.cookies.get('guest_mode')?.value === 'true';
+    const owner = await requireUserOrGuest();
 
-    // Handle guest users
-    if (guestMode && !session) {
-      const { sessionId, needsCookie } = getGuestSessionId(request);
-      const list = getGuestList(sessionId, params.id);
-
-      if (!list) {
-        return NextResponse.json({ error: 'List not found' }, { status: 404 });
-      }
-
-      const response = NextResponse.json({ success: true, data: list });
-
-      // Set cookie if needed
-      if (needsCookie) {
-        response.cookies.set('guest_session_id', sessionId, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 30, // 30 days
-        });
-      }
-
-      return response;
-    }
-
-    // Check if user is logged in
-    if (!session) {
+    if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Database query for logged-in users
     const list = await prisma.shoppingList.findFirst({
       where: {
         id: params.id,
-        userId: session.user.id,
+        ...ownerWhere(owner),
+        deletedAt: null,
       },
       include: {
         items: true,
@@ -94,58 +50,46 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    const guestMode = request.cookies.get('guest_mode')?.value === 'true';
+    const owner = await requireUserOrGuest();
 
     const body = await request.json();
     const validatedData = updateListSchema.parse(body);
 
-    // Handle guest users
-    if (guestMode && !session) {
-      const { sessionId, needsCookie } = getGuestSessionId(request);
-
-      const updatedList = updateGuestList(sessionId, params.id, validatedData);
-
-      if (!updatedList) {
-        return NextResponse.json({ error: 'List not found' }, { status: 404 });
-      }
-
-      const response = NextResponse.json({ success: true, data: updatedList });
-
-      // Set cookie if needed
-      if (needsCookie) {
-        response.cookies.set('guest_session_id', sessionId, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 30, // 30 days
-        });
-      }
-
-      return response;
-    }
-
-    // Check if user is logged in
-    if (!session) {
+    if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Database operations for logged-in users
     const list = await prisma.shoppingList.findFirst({
       where: {
         id: params.id,
-        userId: session.user.id,
+        ...ownerWhere(owner),
+        deletedAt: null,
       },
+      select: { id: true },
     });
 
     if (!list) {
       return NextResponse.json({ error: 'List not found' }, { status: 404 });
     }
 
+    if (await isListActiveOnCart(params.id)) {
+      return NextResponse.json(
+        { error: ACTIVE_LIST_LOCK_MESSAGE },
+        { status: 409 }
+      );
+    }
+
     const updatedList = await prisma.shoppingList.update({
       where: { id: params.id },
       data: validatedData,
-      include: { items: true },
+      select: {
+        id: true,
+        name: true,
+        userId: true,
+        guestSessionId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     return NextResponse.json({ success: true, data: updatedList });
@@ -165,61 +109,52 @@ export async function PUT(
   }
 }
 
-// DELETE /api/lists/[id] - Delete a list
+// DELETE /api/lists/[id] - Move a list to recently deleted for 30 days
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    const guestMode = request.cookies.get('guest_mode')?.value === 'true';
+    const owner = await requireUserOrGuest();
 
-    // Handle guest users
-    if (guestMode && !session) {
-      const { sessionId, needsCookie } = getGuestSessionId(request);
-      const deleted = deleteGuestList(sessionId, params.id);
-
-      if (!deleted) {
-        return NextResponse.json({ error: 'List not found' }, { status: 404 });
-      }
-
-      const response = NextResponse.json({ success: true });
-
-      // Set cookie if needed
-      if (needsCookie) {
-        response.cookies.set('guest_session_id', sessionId, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 30, // 30 days
-        });
-      }
-
-      return response;
-    }
-
-    // Check if user is logged in
-    if (!session) {
+    if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Database operations for logged-in users
+    const ownerFilter = ownerWhere(owner);
+    await purgeExpiredShoppingLists(prisma, ownerFilter);
     const list = await prisma.shoppingList.findFirst({
       where: {
         id: params.id,
-        userId: session.user.id,
+        ...ownerFilter,
+        deletedAt: null,
       },
+      select: { id: true },
     });
 
     if (!list) {
       return NextResponse.json({ error: 'List not found' }, { status: 404 });
     }
 
-    await prisma.shoppingList.delete({
+    if (await isListActiveOnCart(params.id)) {
+      return NextResponse.json(
+        { error: ACTIVE_LIST_LOCK_MESSAGE },
+        { status: 409 }
+      );
+    }
+
+    const deletedAt = new Date();
+    const permanentDeleteAt = getPermanentDeleteAt(deletedAt);
+
+    await prisma.shoppingList.update({
       where: { id: params.id },
+      data: {
+        deletedAt,
+        permanentDeleteAt,
+      },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: { deletedAt, permanentDeleteAt } });
   } catch (error) {
     console.error('Error deleting list:', error);
     return NextResponse.json(
@@ -228,4 +163,3 @@ export async function DELETE(
     );
   }
 }
-

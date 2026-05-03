@@ -1,5 +1,22 @@
 import type { Config } from "tailwindcss";
 
+const brandBrown = "#722F37";
+const white = "#FFFFFF";
+
+const warmScale = {
+  50: white,
+  100: white,
+  200: brandBrown,
+  300: brandBrown,
+  400: brandBrown,
+  500: brandBrown,
+  600: brandBrown,
+  700: brandBrown,
+  800: brandBrown,
+  900: brandBrown,
+  950: brandBrown,
+};
+
 const config: Config = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,12 +27,34 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#059669",
-        "primary-dark": "#047857",
-        "primary-soft": "#d1fae5",
-        "background-light": "#f6f8f6",
-        "background-dark": "#0f172a",
-        "surface-muted": "#eef3ef",
+        primary: brandBrown,
+        "primary-dark": brandBrown,
+        "primary-soft": white,
+        "background-light": white,
+        "background-dark": white,
+        "surface-muted": brandBrown,
+        cream: white,
+        "cream-light": white,
+        "cream-text": white,
+        wine: brandBrown,
+        "wine-deep": brandBrown,
+        "wine-soft": brandBrown,
+        "warm-text": brandBrown,
+        "warm-muted": brandBrown,
+        "warm-border": brandBrown,
+        white,
+        black: brandBrown,
+        slate: warmScale,
+        gray: warmScale,
+        zinc: warmScale,
+        neutral: warmScale,
+        stone: warmScale,
+        emerald: warmScale,
+        green: warmScale,
+        teal: warmScale,
+        cyan: warmScale,
+        blue: warmScale,
+        red: warmScale,
       },
       fontFamily: {
         display: ["var(--font-inter)", "Inter", "sans-serif"],
@@ -29,9 +68,9 @@ const config: Config = {
         full: "9999px",
       },
       boxShadow: {
-        soft: "0 16px 40px rgba(15, 23, 42, 0.08)",
-        card: "0 10px 30px rgba(15, 23, 42, 0.06)",
-        glow: "0 18px 45px rgba(5, 150, 105, 0.22)",
+        soft: "0 18px 44px rgba(114, 47, 55, 0.12)",
+        card: "0 12px 30px rgba(114, 47, 55, 0.09)",
+        glow: "0 18px 45px rgba(114, 47, 55, 0.24)",
       },
     },
   },

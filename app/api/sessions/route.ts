@@ -1,21 +1,22 @@
 // Sessions API routes
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
+import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+
+export const dynamic = 'force-dynamic';
 
 // GET /api/sessions - Get all user sessions
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const owner = await requireUserOrGuest();
 
-    if (!session) {
+    if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const cartSessions = await prisma.cartSession.findMany({
-      where: { userId: session.user.id },
+      where: ownerWhere(owner),
       include: {
         shoppingList: {
           include: { items: true },

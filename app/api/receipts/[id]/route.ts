@@ -1,9 +1,8 @@
 // Receipt API routes
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
+import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 
 // GET /api/receipts/[id] - Get a receipt
 export async function GET(
@@ -11,16 +10,16 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const owner = await requireUserOrGuest();
 
-    if (!session) {
+    if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const receipt = await prisma.receipt.findFirst({
       where: {
         id: params.id,
-        userId: session.user.id,
+        ...ownerWhere(owner),
       },
       include: {
         items: {

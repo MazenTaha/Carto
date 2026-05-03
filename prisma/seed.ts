@@ -1571,6 +1571,36 @@ async function main() {
         }
     }
 
+    const store = await prisma.store.upsert({
+        where: { id: 'dev-carto-store' },
+        update: {},
+        create: {
+            id: 'dev-carto-store',
+            name: 'Carto Demo Store',
+            location: 'Development seed',
+        },
+    })
+
+    await prisma.cart.upsert({
+        where: { cartCode: 'CART-001' },
+        update: {
+            pairingCode: '123456',
+            deviceSecret: 'dev-device-secret',
+            status: 'AVAILABLE',
+            storeId: store.id,
+            lastSeen: new Date(),
+        },
+        create: {
+            cartCode: 'CART-001',
+            bluetoothName: 'Carto-CART-001',
+            pairingCode: '123456',
+            deviceSecret: 'dev-device-secret',
+            storeId: store.id,
+            status: 'AVAILABLE',
+            lastSeen: new Date(),
+        },
+    })
+
     const totalCount = await prisma.product.count()
     console.log(`Seeding finished. Added ${count} new products, skipped ${skipped} duplicates.`)
     console.log(`Total unique products in database: ${totalCount}`)

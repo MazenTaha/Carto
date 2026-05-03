@@ -1,17 +1,13 @@
-import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { authOptions } from '@/lib/auth-config';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Logo } from '@/components/ui/Logo';
+import { requireUserOrGuest } from '@/lib/guest-session';
 
 export default async function CheckoutSuccessPage() {
-  const session = await getServerSession(authOptions);
-  const cookieStore = await cookies();
-  const isGuestMode = cookieStore.get('guest_mode')?.value === 'true';
+  const owner = process.env.DATABASE_URL ? await requireUserOrGuest() : null;
 
-  if (!session && !isGuestMode) {
+  if (!owner) {
     redirect('/auth/signin');
   }
 

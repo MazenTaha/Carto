@@ -1,42 +1,39 @@
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatCurrency } from '@/lib/utils';
+import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 
 export default async function HistoryPage() {
-  let session = null;
-  const cookieStore = await cookies();
-  const guestMode = cookieStore.get('guest_mode')?.value === 'true';
+  const owner = process.env.DATABASE_URL ? await requireUserOrGuest() : null;
 
-  if (!guestMode && process.env.NEXTAUTH_SECRET && process.env.DATABASE_URL) {
-    try {
-      const { getServerSession } = await import('next-auth');
-      const { authOptions } = await import('@/lib/auth-config');
-      session = await getServerSession(authOptions);
-    } catch (error) {}
-  }
-
-  if (!session && !guestMode) {
+  if (!owner) {
     redirect('/auth/signin');
   }
 
   let receipts: any[] = [];
 
-  if (session && process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL) {
     try {
       const { prisma } = await import('@/lib/prisma');
       receipts = await prisma.receipt.findMany({
         where: {
-          userId: session.user.id,
+          ...ownerWhere(owner),
           status: 'PAID',
         },
-        include: {
-          items: true,
-          store: true,
+        select: {
+          id: true,
+          total: true,
+          createdAt: true,
+          items: {
+            select: { quantity: true },
+          },
+          store: {
+            select: { name: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
       });

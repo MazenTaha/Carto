@@ -4,17 +4,19 @@
 
 @layer base {
   :root {
-    --background: #f6f8f6;
-    --foreground: #111827;
+    color-scheme: light;
+    --background: #FFFFFF;
+    --foreground: #722F37;
   }
 
   .dark {
-    --background: #0f172a;
-    --foreground: #f8fafc;
+    color-scheme: light;
+    --background: #FFFFFF;
+    --foreground: #722F37;
   }
 
   body {
-    @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen antialiased;
+    @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-900 min-h-screen antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
@@ -23,11 +25,16 @@
   }
 
   button,
+  a {
+    touch-action: manipulation;
+  }
+
+  button,
   a,
   input,
   textarea,
   select {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background-light dark:focus-visible:ring-offset-background-dark;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background-light dark:focus-visible:ring-offset-background-light;
   }
 }
 
@@ -42,17 +49,17 @@
 
 @layer components {
   .glass {
-    @apply bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-white/70 dark:border-slate-800/70;
+    @apply bg-white/85 dark:bg-white/85 backdrop-blur-md border border-warm-border/50 dark:border-warm-border/50;
   }
 
   .card-surface {
-    @apply rounded-2xl border border-slate-200/70 bg-white shadow-card dark:border-slate-800 dark:bg-slate-900;
+    @apply rounded-2xl border border-warm-border/45 bg-white shadow-card dark:border-warm-border/45 dark:bg-white;
   }
 
   .receipt-edge {
     background-image:
-      radial-gradient(circle at 0 12px, transparent 12px, white 13px),
-      radial-gradient(circle at 100% 12px, transparent 12px, white 13px);
+      radial-gradient(circle at 0 12px, transparent 12px, #FFFFFF 13px),
+      radial-gradient(circle at 100% 12px, transparent 12px, #FFFFFF 13px);
     background-size: 100% 28px;
     background-repeat: repeat-y;
   }
@@ -78,15 +85,15 @@
     width: 10px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(15,23,42,0.04);
+    background: rgba(114,47,55,0.08);
     border-radius: 999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(5,150,105,0.35);
+    background: rgba(114,47,55,0.35);
     border-radius: 999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(5,150,105,0.55);
+    background: rgba(114,47,55,0.55);
   }
 
   .no-scrollbar::-webkit-scrollbar {

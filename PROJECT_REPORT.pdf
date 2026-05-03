@@ -1,0 +1,4943 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R 36 0 R 38 0 R 40 0 R 42 0 R] /Count 20 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 4775 >>
+stream
+BT
+/F1 22.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 738.00 Tm
+(Carto Smart Shopping Cart System - Technical) Tj
+ET
+BT
+/F1 22.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 709.00 Tm
+(Project Report) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 662.00 Tm
+(1. Cover Page) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 627.00 Tm
+(Project name: Carto) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 606.50 Tm
+(Subtitle: Smart Shopping Cart System) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 586.00 Tm
+(Short description: Carto is a smart shopping cart web application that lets users create shopping lists,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 572.50 Tm
+(connect a selected list to a physical cart through QR scanning, monitor an active shopping session, view) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 559.00 Tm
+(a virtual receipt, and complete a demo checkout flow.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 538.50 Tm
+(Technologies summary: Next.js 14 App Router, React 18, TypeScript, Tailwind CSS, Prisma, PostgreSQL,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 525.00 Tm
+(NextAuth.js, Zustand, Zod, QR scanning/generation libraries, PWA support, and mock/placeholder payment) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 511.50 Tm
+(integration.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 491.00 Tm
+(Date generated: April 29, 2026) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 470.50 Tm
+(Author/team: Not found in the codebase.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 450.00 Tm
+(Primary evidence: package.json, prisma/schema.prisma, app/, components/, lib/, store/, README.md, and) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 436.50 Tm
+(SETUP.md.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 411.00 Tm
+(2. Executive Summary) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 376.00 Tm
+(Carto is a full-stack smart shopping cart system implemented as a Next.js application. It combines a) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 362.50 Tm
+(shopper-facing web interface with backend API routes, authentication, database models, QR/cart linking,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 349.00 Tm
+(active shopping sessions, and receipt/checkout flows.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 328.50 Tm
+(The project solves a practical retail workflow problem: a shopper can prepare a grocery list before) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 315.00 Tm
+(shopping, link that list to a smart cart at the store, track progress as items are collected or scanned,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 301.50 Tm
+(and review a virtual receipt before checkout. The target users are shoppers, developers/evaluators) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 288.00 Tm
+(reviewing the system, and potentially store operators if the platform is extended.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 267.50 Tm
+(The main value of the application is workflow integration: list planning, cart activation, receipt) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 254.00 Tm
+(tracking, and checkout are connected in one interface. The app also includes guest mode, making it) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 240.50 Tm
+(suitable for demonstrations without full account setup.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 220.00 Tm
+(Based on the codebase, this appears to be an academic prototype or MVP rather than a production-ready) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 206.50 Tm
+(commercial system. Evidence: the project is versioned as 0.1.0 and private in package.json; README.md) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 193.00 Tm
+(states it is created for academic purposes; the payment route uses mock payment behavior with live Stripe) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 179.50 Tm
+(code only sketched as comments in app/api/payment/create/route.ts; guest mode persists data through) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 166.00 Tm
+(guest_data.json via store/guest-store.ts.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 140.50 Tm
+(3. Project Overview) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 100.50 Tm
+(Main Idea) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 75.50 Tm
+(Carto models a smart shopping experience. A user creates a shopping list, activates it, links it to a) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 62.00 Tm
+(physical cart, follows progress during shopping, and completes checkout from a virtual receipt.) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 1 of 20) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 4777 >>
+stream
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 738.00 Tm
+(User Journey) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 713.00 Tm
+(1. The user opens the app and signs in, signs up, or continues as guest.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 699.50 Tm
+(2. The user opens the dashboard and creates or selects a shopping list.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 686.00 Tm
+(3. The user adds items manually or through product search.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 672.50 Tm
+(4. The user activates the list and opens the cart linking page.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 659.00 Tm
+(5. The user scans a cart QR code or enters cart ID and pairing code manually.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 645.50 Tm
+(6. The backend creates an active cart session and a draft receipt.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 632.00 Tm
+(7. The user monitors remaining items, collected items, cart status, and receipt totals.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 618.50 Tm
+(8. The user finishes shopping, locks the receipt, and opens checkout.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 605.00 Tm
+(9. The user completes the demo payment and can later view the receipt in history.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 579.50 Tm
+(Smart Cart Concept) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 554.50 Tm
+(The smart cart is represented by the Cart model in prisma/schema.prisma. It includes a public cartCode,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 541.00 Tm
+(optional Bluetooth/pairing metadata, a storeId, status, and last-seen timestamp. Cart linking logic is) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 527.50 Tm
+(implemented in app/api/cart/link/route.ts.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 502.00 Tm
+(Shopping List Concept) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 477.00 Tm
+(Shopping lists are represented by ShoppingList and ListItem models. The list interface is implemented) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 463.50 Tm
+(through app/lists/page.tsx, app/lists/new/page.tsx, app/lists/[id]/page.tsx, and) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 450.00 Tm
+(components/lists/ListItemsManager.tsx.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 424.50 Tm
+(QR Cart Linking Concept) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 399.50 Tm
+(The camera scanner is implemented in components/carto/QrScanner.tsx using @zxing/browser. The session) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 386.00 Tm
+(start page parses and validates cart QR payloads in app/session/start/page.tsx. The backend endpoint) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 372.50 Tm
+(app/api/cart/link/route.ts validates ownership, cart availability, pairing code, and creates the) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 359.00 Tm
+(session/receipt.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 333.50 Tm
+(Active Shopping Session Concept) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 308.50 Tm
+(The CartSession model connects a user, list, cart, and receipt. The active session screen in) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 295.00 Tm
+(app/session/page.tsx polls session APIs and uses store/session-store.ts for shared client state.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 269.50 Tm
+(Virtual Receipt Concept) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 244.50 Tm
+(Receipts are represented by Receipt and ReceiptItem. The live receipt panel is implemented in) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 231.00 Tm
+(components/receipt/VirtualReceipt.tsx. Receipt APIs live under app/api/receipts/[id].) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 205.50 Tm
+(Checkout Concept) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 180.50 Tm
+(Checkout starts after a session is finished through app/api/sessions/[id]/finish/route.ts. The checkout) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 167.00 Tm
+(page is app/checkout/page.tsx; payment processing is handled by app/api/payment/create/route.ts. The) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 153.50 Tm
+(current implementation is mock/demo payment, with Stripe libraries present but live Stripe processing not) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 140.00 Tm
+(fully implemented.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 114.50 Tm
+(4. Key Features) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 74.50 Tm
+(User authentication) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 2 of 20) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 4512 >>
+stream
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 738.00 Tm
+(What it does: Supports sign up, sign in, JWT sessions, and protected server/API access.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 717.50 Tm
+(How the user interacts with it: Users create an account or sign in through /auth/signup and /auth/signin.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 697.00 Tm
+(Related pages/components: app/auth/signup/page.tsx, app/auth/signin/page.tsx) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 676.50 Tm
+(Related API routes: app/api/auth/signup/route.ts, app/api/auth/[...nextauth]/route.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 656.00 Tm
+(Related database models: User) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 630.50 Tm
+(Guest mode) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 605.50 Tm
+(What it does: Allows demo use without a full authenticated account by setting guest cookies and storing) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 592.00 Tm
+(guest lists.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 571.50 Tm
+(How the user interacts with it: Users press "Continue as Guest" from auth screens.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 551.00 Tm
+(Related pages/components: app/auth/signin/page.tsx, app/auth/signup/page.tsx) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 530.50 Tm
+(Related API routes: app/api/auth/guest-bypass/route.ts, store/guest-store.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 510.00 Tm
+(Related database models: Guest mode uses JSON-backed local storage; database model not used for) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 496.50 Tm
+(unauthenticated guest lists.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 471.00 Tm
+(Dashboard) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 446.00 Tm
+(What it does: Shows summary metrics, recent lists, and quick actions for starting shopping.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 425.50 Tm
+(How the user interacts with it: After login/guest entry, users land on /dashboard.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 405.00 Tm
+(Related pages/components: app/dashboard/page.tsx, components/ui/MetricCard.tsx,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 391.50 Tm
+(components/ui/ProgressBar.tsx) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 371.00 Tm
+(Related API routes: Server component queries Prisma directly; no dedicated dashboard API found.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 350.50 Tm
+(Related database models: ShoppingList, Receipt, ReceiptItem) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 325.00 Tm
+(Shopping list CRUD) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 300.00 Tm
+(What it does: Creates, displays, updates, and deletes shopping lists.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 279.50 Tm
+(How the user interacts with it: Users browse /lists, create via /lists/new, open /lists/:id, and delete) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 266.00 Tm
+(lists.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 245.50 Tm
+(Related pages/components: app/lists/page.tsx, app/lists/new/page.tsx, app/lists/[id]/page.tsx,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 232.00 Tm
+(components/lists/ListCards.tsx) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 211.50 Tm
+(Related API routes: app/api/lists/route.ts, app/api/lists/[id]/route.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 191.00 Tm
+(Related database models: ShoppingList, ListItem) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 165.50 Tm
+(Shopping list items) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 140.50 Tm
+(What it does: Adds, updates, toggles, and deletes list items with immediate UI feedback.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 120.00 Tm
+(How the user interacts with it: Users quick-add items, search products, adjust quantities, mark) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 106.50 Tm
+(collected, and delete.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 86.00 Tm
+(Related pages/components: components/lists/ListItemsManager.tsx, components/lists/ProductSearch.tsx) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 65.50 Tm
+(Related API routes: app/api/lists/[id]/items/route.ts, app/api/lists/[id]/items/[itemId]/route.ts) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 3 of 20) Tj
+ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 4404 >>
+stream
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 738.00 Tm
+(Related database models: ListItem, ShoppingList, Product) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 712.50 Tm
+(Product search) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 687.50 Tm
+(What it does: Searches database products or local fallback dataset and returns popular/search results.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 667.00 Tm
+(How the user interacts with it: Users open product search from the list detail screen.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 646.50 Tm
+(Related pages/components: components/lists/ProductSearch.tsx, lib/product-dataset.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 626.00 Tm
+(Related API routes: app/api/products/route.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 605.50 Tm
+(Related database models: Product) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 580.00 Tm
+(QR code and cart linking) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 555.00 Tm
+(What it does: Scans cart QR payloads, validates cart identifiers/pairing codes, creates dynamic carts if) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 541.50 Tm
+(needed, and starts sessions.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 521.00 Tm
+(How the user interacts with it: Users choose a list, open /session/start, scan a cart QR, or enter cart) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 507.50 Tm
+(details manually.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 487.00 Tm
+(Related pages/components: app/session/start/page.tsx, components/carto/QrScanner.tsx) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 466.50 Tm
+(Related API routes: app/api/cart/link/route.ts, app/api/cart/qrcode/route.ts,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 453.00 Tm
+(app/api/carts/[cartCode]/route.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 432.50 Tm
+(Related database models: Cart, Store, CartSession, Receipt, Notification) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 407.00 Tm
+(Active shopping sessions) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 382.00 Tm
+(What it does: Displays linked cart state, remaining/collected items, progress, and current receipt total.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 361.50 Tm
+(How the user interacts with it: Users view /session after cart linking or from quick actions.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 341.00 Tm
+(Related pages/components: app/session/page.tsx, store/session-store.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 320.50 Tm
+(Related API routes: app/api/sessions/active/route.ts, app/api/sessions/[id]/route.ts,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 307.00 Tm
+(app/api/sessions/[id]/finish/route.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 286.50 Tm
+(Related database models: CartSession, ShoppingList, ListItem, Receipt) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 261.00 Tm
+(Virtual receipt) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 236.00 Tm
+(What it does: Shows scanned items, subtotal, tax, total, and receipt status.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 215.50 Tm
+(How the user interacts with it: Users see the receipt panel during an active session and at checkout.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 195.00 Tm
+(Related pages/components: components/receipt/VirtualReceipt.tsx, components/ui/ReceiptPanel.tsx) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 174.50 Tm
+(Related API routes: app/api/receipts/[id]/route.ts, app/api/receipts/[id]/items/route.ts,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 161.00 Tm
+(app/api/receipts/[id]/items/[itemId]/route.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 140.50 Tm
+(Related database models: Receipt, ReceiptItem) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 115.00 Tm
+(Receipt item scanning simulation) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 90.00 Tm
+(What it does: Adds items to a receipt through an API to simulate cart scanning.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 69.50 Tm
+(How the user interacts with it: Developer/tester can POST scanned items to the receipt items endpoint.) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 4 of 20) Tj
+ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 13 0 R >>
+endobj
+13 0 obj
+<< /Length 4283 >>
+stream
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 738.00 Tm
+(Related pages/components: No dedicated UI found for manual receipt item simulation.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 717.50 Tm
+(Related API routes: app/api/receipts/[id]/items/route.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 697.00 Tm
+(Related database models: Receipt, ReceiptItem) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 671.50 Tm
+(Checkout and payment) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 646.50 Tm
+(What it does: Locks a receipt, displays checkout summary, processes mock payment, updates status and) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 633.00 Tm
+(history.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 612.50 Tm
+(How the user interacts with it: Users finish shopping, review /checkout, then confirm payment.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 592.00 Tm
+(Related pages/components: app/checkout/page.tsx, app/checkout/success/page.tsx) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 571.50 Tm
+(Related API routes: app/api/payment/create/route.ts, app/api/sessions/[id]/finish/route.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 551.00 Tm
+(Related database models: Receipt, CartSession, Cart, UserStats, UserFavoriteProduct, Notification) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 525.50 Tm
+(Order/history pages) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 500.50 Tm
+(What it does: Shows paid receipt history.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 480.00 Tm
+(How the user interacts with it: Users open /history from navigation.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 459.50 Tm
+(Related pages/components: app/history/page.tsx, components/layout/BottomNav.tsx) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 439.00 Tm
+(Related API routes: Server component queries Prisma directly; no dedicated history API found.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 418.50 Tm
+(Related database models: Receipt, ReceiptItem, Store) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 393.00 Tm
+(Notifications) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 368.00 Tm
+(What it does: Lists notifications, counts unread items, and marks selected notifications read.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 347.50 Tm
+(How the user interacts with it: No complete notification UI found in the inspected pages; API support) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 334.00 Tm
+(exists.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 313.50 Tm
+(Related pages/components: Not found as a full user-facing notifications page.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 293.00 Tm
+(Related API routes: app/api/notifications/route.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 272.50 Tm
+(Related database models: Notification) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 247.00 Tm
+(Wishlist and favorites) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 222.00 Tm
+(What it does: Provides APIs for wishlist items and favorite product tracking.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 201.50 Tm
+(How the user interacts with it: No complete wishlist/favorites page found in inspected page routes; API) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 188.00 Tm
+(support exists.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 167.50 Tm
+(Related pages/components: Not found as a full user-facing wishlist/favorites page.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 147.00 Tm
+(Related API routes: app/api/wishlist/route.ts, app/api/wishlist/[itemId]/route.ts,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 133.50 Tm
+(app/api/users/favorites/route.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 113.00 Tm
+(Related database models: Wishlist, WishlistItem, UserFavoriteProduct, Product) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 87.50 Tm
+(Stores and carts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 62.50 Tm
+(What it does: Represents physical carts, stores, cart status, and dynamic cart lookup/linking.) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 5 of 20) Tj
+ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 15 0 R >>
+endobj
+15 0 obj
+<< /Length 6348 >>
+stream
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 738.00 Tm
+(How the user interacts with it: Cart data is mostly used behind the cart linking flow.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 717.50 Tm
+(Related pages/components: app/session/start/page.tsx) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 697.00 Tm
+(Related API routes: app/api/stores/route.ts, app/api/carts/[cartCode]/route.ts,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 683.50 Tm
+(app/api/cart/link/route.ts) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 663.00 Tm
+(Related database models: Store, Cart) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 637.50 Tm
+(PWA/mobile support) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 612.50 Tm
+(What it does: Includes manifest, icons, service worker config, and iPhone HTTPS camera guidance.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 592.00 Tm
+(How the user interacts with it: Users can run mobile testing through HTTPS/tunnel scripts and use phone) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 578.50 Tm
+(camera scanning.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 558.00 Tm
+(Related pages/components: app/layout.tsx, SETUP.md, README.md) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 537.50 Tm
+(Related API routes: No API specific to PWA installability.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 517.00 Tm
+(Related database models: No database model.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 491.50 Tm
+(5. Technology Stack) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 456.50 Tm
+(| Technology | Category | Where Used | Purpose | Evidence |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 445.50 Tm
+(| --- | --- | --- | --- | --- |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 434.50 Tm
+(| Next.js | Full-stack framework | App Router pages and API routes | Routing, SSR/server components, API endpoints | package.json, app/*, a) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 423.50 Tm
+(pp/api/* |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 412.50 Tm
+(| React | Frontend UI | Client components and interactive screens | UI rendering and component state | package.json, components/*, app/*/pa) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 401.50 Tm
+(ge.tsx |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 390.50 Tm
+(| TypeScript | Language/tooling | Application source and types | Static typing | tsconfig.json, types/index.ts |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 379.50 Tm
+(| Tailwind CSS | Styling | Global CSS and utility classes | Responsive UI styling | tailwind.config.ts, app/globals.css, component class na) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 368.50 Tm
+(mes |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 357.50 Tm
+(| Prisma | ORM/data access | Prisma client and schema | PostgreSQL database access | prisma/schema.prisma, lib/prisma.ts |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 346.50 Tm
+(| PostgreSQL | Database | Prisma datasource provider | Relational persistence | prisma/schema.prisma datasource provider |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 335.50 Tm
+(| NextAuth.js | Authentication | Credentials auth and session checks | JWT sessions and protected data access | lib/auth-config.ts, app/api) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 324.50 Tm
+(/auth/[...nextauth]/route.ts |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 313.50 Tm
+(| Zustand | Client state | Active session store | Shared session and receipt state | store/session-store.ts |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 302.50 Tm
+(| Zod | Validation | API and form schemas | Runtime validation | lib/validations.ts |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 291.50 Tm
+(| @zxing/browser | QR scanning | Camera QR scanner | Decode cart QR codes from video | components/carto/QrScanner.tsx, package.json |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 280.50 Tm
+(| qrcode / qrcode.react | QR generation | QR code API and UI support | Generate QR payloads/data URLs | app/api/cart/qrcode/route.ts, packa) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 269.50 Tm
+(ge.json |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 258.50 Tm
+(| Stripe libraries | Payments | Dependency and placeholder logic | Future payment integration; current flow is mock/demo | package.json, ap) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 247.50 Tm
+(p/api/payment/create/route.ts |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 236.50 Tm
+(| next-pwa | PWA/service worker | PWA config and generated service worker | Installability/offline caching support | next.config.js, public) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 225.50 Tm
+(/manifest.json, public/sw.js |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 214.50 Tm
+(| bcryptjs | Security | Password hashing and verification | Hash passwords and verify credentials | lib/auth.ts, app/api/auth/signup/route.) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 203.50 Tm
+(ts |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 192.50 Tm
+(| date-fns | Date formatting | List recency display | Human-readable date distances | app/lists/page.tsx, package.json |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 181.50 Tm
+(| clsx / tailwind-merge | UI utilities | Class name composition | Conditional Tailwind classes | lib/utils.ts, component files |) Tj
+ET
+BT
+/F1 7.40 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 48.00 170.50 Tm
+(| ESLint | Code quality | Next lint script | Static lint checks | .eslintrc.json, package.json |) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 147.50 Tm
+(Dependency Evidence From package.json) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 122.50 Tm
+(Runtime dependencies:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 102.00 Tm
+(- @prisma/client: ^5.19.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 88.50 Tm
+(- @stripe/stripe-js: ^2.4.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 75.00 Tm
+(- @tailwindcss/forms: ^0.5.11) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 61.50 Tm
+(- @zxing/browser: ^0.1.5) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 6 of 20) Tj
+ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 17 0 R >>
+endobj
+17 0 obj
+<< /Length 4723 >>
+stream
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 738.00 Tm
+(- bcryptjs: ^2.4.3) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 724.50 Tm
+(- clsx: ^2.1.1) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 711.00 Tm
+(- date-fns: ^3.6.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 697.50 Tm
+(- dotenv: ^17.2.3) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 684.00 Tm
+(- next: ^14.2.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 670.50 Tm
+(- next-auth: ^4.24.7) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 657.00 Tm
+(- next-pwa: ^5.6.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 643.50 Tm
+(- qrcode: ^1.5.3) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 630.00 Tm
+(- qrcode.react: ^3.1.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 616.50 Tm
+(- react: ^18.3.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 603.00 Tm
+(- react-dom: ^18.3.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 589.50 Tm
+(- stripe: ^14.21.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 576.00 Tm
+(- tailwind-merge: ^2.4.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 562.50 Tm
+(- zod: ^3.23.8) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 549.00 Tm
+(- zustand: ^4.5.2) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 528.50 Tm
+(Development dependencies:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 508.00 Tm
+(- @types/bcryptjs: ^2.4.6) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 494.50 Tm
+(- @types/node: ^20.14.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 481.00 Tm
+(- @types/qrcode: ^1.5.5) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 467.50 Tm
+(- @types/react: ^18.3.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 454.00 Tm
+(- @types/react-dom: ^18.3.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 440.50 Tm
+(- autoprefixer: ^10.4.19) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 427.00 Tm
+(- eslint: ^8.57.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 413.50 Tm
+(- eslint-config-next: ^14.2.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 400.00 Tm
+(- postcss: ^8.4.38) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 386.50 Tm
+(- prisma: ^5.19.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 373.00 Tm
+(- tailwindcss: ^3.4.4) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 359.50 Tm
+(- ts-node: ^10.9.2) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 346.00 Tm
+(- typescript: ^5.5.0) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 320.50 Tm
+(6. System Architecture) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 285.50 Tm
+(Carto is a modular monolith built with Next.js App Router. The frontend pages, reusable React components,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 272.00 Tm
+(API routes, authentication logic, and database access live in the same project. API routes are) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 258.50 Tm
+(serverless-style route handlers under app/api, while persistent data is accessed through Prisma and) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 245.00 Tm
+(PostgreSQL.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 224.50 Tm
+(The frontend/backend relationship is direct: client components call Next.js API routes with fetch, and) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 211.00 Tm
+(server components query Prisma directly after checking session or guest mode. Authentication is handled) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 197.50 Tm
+(through NextAuth.js; protected API routes call getServerSession\(authOptions\).) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 172.00 Tm
+(Architecture Characteristics) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 147.00 Tm
+(- Application style: Full-stack Next.js modular monolith.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 133.50 Tm
+(- Frontend: React components and App Router pages under app/ and components/.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 120.00 Tm
+(- Backend: Next.js route handlers under app/api/.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 106.50 Tm
+(- Database layer: Prisma client in lib/prisma.ts.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 93.00 Tm
+(- Authentication: NextAuth config in lib/auth-config.ts and provider wrapper in app/providers.tsx.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 79.50 Tm
+(- Client state: Zustand store in store/session-store.ts.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 66.00 Tm
+(- Validation: Zod schemas in lib/validations.ts.) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 7 of 20) Tj
+ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 19 0 R >>
+endobj
+19 0 obj
+<< /Length 4607 >>
+stream
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 738.00 Tm
+(- Guest storage: Local JSON-backed store in store/guest-store.ts.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 712.50 Tm
+(Architecture Diagram) Tj
+ET
+BT
+/F1 8.50 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 58.00 687.50 Tm
+(```mermaid) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 675.50 Tm
+(flowchart TD) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 662.00 Tm
+(User[User / Mobile Browser] --> UI[Next.js App Router UI]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 648.50 Tm
+(UI --> ClientState[Zustand Session Store]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 635.00 Tm
+(UI --> Camera[Phone Camera / QR Scanner]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 621.50 Tm
+(UI --> API[Next.js API Routes]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 608.00 Tm
+(API --> Auth[NextAuth Session Checks]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 594.50 Tm
+(API --> Prisma[Prisma Client]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 581.00 Tm
+(Prisma --> DB[\(PostgreSQL Database\)]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 567.50 Tm
+(API --> Guest[Guest JSON Store]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 554.00 Tm
+(API --> Payment[Mock Payment / Stripe Placeholder]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 540.50 Tm
+(API --> PWA[PWA Manifest / Service Worker]) Tj
+ET
+BT
+/F1 8.50 Tf
+0.16 0.18 0.22 rg
+1 0 0 1 58.00 527.00 Tm
+(```) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 503.00 Tm
+(Data Flow Example: Cart Linking) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 478.00 Tm
+(1. User selects a list and opens /session/start?listId=....) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 464.50 Tm
+(2. components/carto/QrScanner.tsx captures a QR payload.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 451.00 Tm
+(3. app/session/start/page.tsx validates the QR JSON through Zod schemas.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 437.50 Tm
+(4. The UI posts cart data to POST /api/cart/link.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 424.00 Tm
+(5. app/api/cart/link/route.ts verifies the user session and list ownership.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 410.50 Tm
+(6. The route creates or updates Cart, creates CartSession, creates a draft Receipt, and creates a) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 397.00 Tm
+(Notification.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 383.50 Tm
+(7. The user is routed to /session?sessionId=....) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 358.00 Tm
+(7. Project Structure) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 323.00 Tm
+(Important directories:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 302.50 Tm
+(- app/: App Router pages, layouts, API routes, global styles, and providers.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 289.00 Tm
+(- components/: Reusable UI, layout, list, cart, and receipt components.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 275.50 Tm
+(- lib/: Auth helpers, Prisma client, validations, hooks, utility functions, and product dataset.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 262.00 Tm
+(- store/: Zustand active session store and guest data store.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 248.50 Tm
+(- prisma/: Database schema, migrations, and seed script.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 235.00 Tm
+(- public/: Images, icons, manifest, and generated service worker assets.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 221.50 Tm
+(- types/: Shared TypeScript interfaces and NextAuth type augmentation.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 196.00 Tm
+(Page Routes Found) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 171.00 Tm
+(- /) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 157.50 Tm
+(- /auth/signin) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 144.00 Tm
+(- /auth/signup) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 130.50 Tm
+(- /checkout) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 117.00 Tm
+(- /checkout/success) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 103.50 Tm
+(- /dashboard) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 90.00 Tm
+(- /history) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 76.50 Tm
+(- /lists) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 63.00 Tm
+(- /lists/:id) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 8 of 20) Tj
+ET
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 21 0 R >>
+endobj
+21 0 obj
+<< /Length 4290 >>
+stream
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 738.00 Tm
+(- /lists/new) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 724.50 Tm
+(- /profile) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 711.00 Tm
+(- /session) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 697.50 Tm
+(- /session/start) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 672.00 Tm
+(API Routes Found) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 647.00 Tm
+(- /api/auth/:...nextauth) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 633.50 Tm
+(- /api/auth/guest) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 620.00 Tm
+(- /api/auth/guest-bypass) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 606.50 Tm
+(- /api/auth/signup) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 593.00 Tm
+(- /api/cart/link) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 579.50 Tm
+(- /api/cart/qrcode) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 566.00 Tm
+(- /api/carts/:cartCode) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 552.50 Tm
+(- /api/lists) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 539.00 Tm
+(- /api/lists/:id) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 525.50 Tm
+(- /api/lists/:id/items) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 512.00 Tm
+(- /api/lists/:id/items/:itemId) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 498.50 Tm
+(- /api/notifications) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 485.00 Tm
+(- /api/payment/create) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 471.50 Tm
+(- /api/products) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 458.00 Tm
+(- /api/receipts/:id) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 444.50 Tm
+(- /api/receipts/:id/items) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 431.00 Tm
+(- /api/receipts/:id/items/:itemId) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 417.50 Tm
+(- /api/sessions) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 404.00 Tm
+(- /api/sessions/:id) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 390.50 Tm
+(- /api/sessions/:id/finish) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 377.00 Tm
+(- /api/sessions/active) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 363.50 Tm
+(- /api/stores) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 350.00 Tm
+(- /api/users/favorites) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 336.50 Tm
+(- /api/users/stats) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 323.00 Tm
+(- /api/wishlist) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 309.50 Tm
+(- /api/wishlist/:itemId) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 284.00 Tm
+(Components Found) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 259.00 Tm
+(- components/carto/QrScanner.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 245.50 Tm
+(- components/layout/BottomNav.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 232.00 Tm
+(- components/layout/Header.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 218.50 Tm
+(- components/layout/Navbar.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 205.00 Tm
+(- components/layout/PageContainer.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 191.50 Tm
+(- components/layout/Sidebar.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 178.00 Tm
+(- components/lists/EditableListTitle.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 164.50 Tm
+(- components/lists/ListCards.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 151.00 Tm
+(- components/lists/ListItemsManager.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 137.50 Tm
+(- components/lists/ProductSearch.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 124.00 Tm
+(- components/receipt/VirtualReceipt.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 110.50 Tm
+(- components/ui/Badge.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 97.00 Tm
+(- components/ui/Button.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 83.50 Tm
+(- components/ui/Card.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 70.00 Tm
+(- components/ui/EmptyState.tsx) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 9 of 20) Tj
+ET
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 23 0 R >>
+endobj
+23 0 obj
+<< /Length 3830 >>
+stream
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 738.00 Tm
+(- components/ui/Input.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 724.50 Tm
+(- components/ui/LoadingState.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 711.00 Tm
+(- components/ui/Logo.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 697.50 Tm
+(- components/ui/MetricCard.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 684.00 Tm
+(- components/ui/ProgressBar.tsx) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 670.50 Tm
+(- components/ui/ReceiptPanel.tsx) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 645.00 Tm
+(8. Database Design) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 610.00 Tm
+(The database is defined in prisma/schema.prisma using PostgreSQL as the datasource. The schema includes) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 596.50 Tm
+(user accounts, stores, carts, shopping lists, list items, cart sessions, receipts, receipt items, product) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 583.00 Tm
+(catalog data, analytics, favorites, wishlists, and notifications.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 557.50 Tm
+(Models) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 527.50 Tm
+(User) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 504.50 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 484.00 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 470.50 Tm
+(- email String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 457.00 Tm
+(- password String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 443.50 Tm
+(- name String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 430.00 Tm
+(- createdAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 416.50 Tm
+(- updatedAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 403.00 Tm
+(- shoppingLists ShoppingList[]) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 389.50 Tm
+(- cartSessions CartSession[]) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 376.00 Tm
+(- receipts Receipt[]) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 362.50 Tm
+(- stats UserStats?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 349.00 Tm
+(- favoriteProducts UserFavoriteProduct[]) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 335.50 Tm
+(- wishlist Wishlist?) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 315.00 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 294.50 Tm
+(- @@map\("users"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 269.00 Tm
+(Store) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 246.00 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 225.50 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 212.00 Tm
+(- name String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 198.50 Tm
+(- location String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 185.00 Tm
+(- currency String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 171.50 Tm
+(- taxRate Float) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 158.00 Tm
+(- logo String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 144.50 Tm
+(- createdAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 131.00 Tm
+(- updatedAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 117.50 Tm
+(- carts Cart[]) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 104.00 Tm
+(- receipts Receipt[]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 83.50 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 63.00 Tm
+(- @@map\("stores"\)) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 10 of 20) Tj
+ET
+endstream
+endobj
+24 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 25 0 R >>
+endobj
+25 0 obj
+<< /Length 3724 >>
+stream
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 738.00 Tm
+(Cart) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 715.00 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 694.50 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 681.00 Tm
+(- cartCode String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 667.50 Tm
+(- bluetoothName String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 654.00 Tm
+(- pairingCode String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 640.50 Tm
+(- qrSessionId String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 627.00 Tm
+(- storeId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 613.50 Tm
+(- status CartStatus) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 600.00 Tm
+(- lastSeen DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 586.50 Tm
+(- createdAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 573.00 Tm
+(- updatedAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 559.50 Tm
+(- store Store) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 546.00 Tm
+(- sessions CartSession[]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 525.50 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 505.00 Tm
+(- @@index\([storeId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 491.50 Tm
+(- @@index\([cartCode]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 478.00 Tm
+(- @@map\("carts"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 452.50 Tm
+(ShoppingList) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 429.50 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 409.00 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 395.50 Tm
+(- name String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 382.00 Tm
+(- userId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 368.50 Tm
+(- createdAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 355.00 Tm
+(- updatedAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 341.50 Tm
+(- user User) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 328.00 Tm
+(- items ListItem[]) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 314.50 Tm
+(- cartSessions CartSession[]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 294.00 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 273.50 Tm
+(- @@index\([userId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 260.00 Tm
+(- @@map\("shopping_lists"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 234.50 Tm
+(ListItem) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 211.50 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 191.00 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 177.50 Tm
+(- name String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 164.00 Tm
+(- quantity Int) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 150.50 Tm
+(- price Float) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 137.00 Tm
+(- category String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 123.50 Tm
+(- isCollected Boolean) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 110.00 Tm
+(- collectedAt DateTime?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 96.50 Tm
+(- listId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 83.00 Tm
+(- shoppingList ShoppingList) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 62.50 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 11 of 20) Tj
+ET
+endstream
+endobj
+26 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 27 0 R >>
+endobj
+27 0 obj
+<< /Length 3744 >>
+stream
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 738.00 Tm
+(- @@index\([listId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 724.50 Tm
+(- @@map\("list_items"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 699.00 Tm
+(CartSession) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 676.00 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 655.50 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 642.00 Tm
+(- cartId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 628.50 Tm
+(- userId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 615.00 Tm
+(- listId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 601.50 Tm
+(- status SessionStatus) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 588.00 Tm
+(- startedAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 574.50 Tm
+(- endedAt DateTime?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 561.00 Tm
+(- qrCode String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 547.50 Tm
+(- externalSessionId String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 534.00 Tm
+(- user User) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 520.50 Tm
+(- shoppingList ShoppingList) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 507.00 Tm
+(- cart Cart) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 486.50 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 466.00 Tm
+(- @@index\([userId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 452.50 Tm
+(- @@index\([listId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 439.00 Tm
+(- @@index\([cartId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 425.50 Tm
+(- @@index\([externalSessionId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 412.00 Tm
+(- @@map\("cart_sessions"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 386.50 Tm
+(Receipt) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 363.50 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 343.00 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 329.50 Tm
+(- sessionId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 316.00 Tm
+(- userId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 302.50 Tm
+(- status ReceiptStatus) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 289.00 Tm
+(- subtotal Float) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 275.50 Tm
+(- tax Float) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 262.00 Tm
+(- total Float) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 248.50 Tm
+(- createdAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 235.00 Tm
+(- lockedAt DateTime?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 221.50 Tm
+(- paymentId String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 208.00 Tm
+(- storeId String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 194.50 Tm
+(- cartId String?) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 174.00 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 153.50 Tm
+(- @@index\([sessionId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 140.00 Tm
+(- @@index\([userId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 126.50 Tm
+(- @@index\([storeId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 113.00 Tm
+(- @@map\("receipts"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 87.50 Tm
+(ReceiptItem) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 64.50 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 12 of 20) Tj
+ET
+endstream
+endobj
+28 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 29 0 R >>
+endobj
+29 0 obj
+<< /Length 3546 >>
+stream
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 738.00 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 724.50 Tm
+(- name String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 711.00 Tm
+(- quantity Int) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 697.50 Tm
+(- price Float) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 684.00 Tm
+(- category String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 670.50 Tm
+(- receiptId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 657.00 Tm
+(- scannedAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 643.50 Tm
+(- receipt Receipt) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 623.00 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 602.50 Tm
+(- @@index\([receiptId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 589.00 Tm
+(- @@map\("receipt_items"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 563.50 Tm
+(Product) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 540.50 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 520.00 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 506.50 Tm
+(- name String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 493.00 Tm
+(- category String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 479.50 Tm
+(- emoji String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 466.00 Tm
+(- price Float) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 452.50 Tm
+(- popularity Int) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 439.00 Tm
+(- createdAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 425.50 Tm
+(- updatedAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 412.00 Tm
+(- favoritedBy UserFavoriteProduct[]) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 398.50 Tm
+(- wishlistItems WishlistItem[]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 378.00 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 357.50 Tm
+(- @@map\("products"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 332.00 Tm
+(UserStats) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 309.00 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 288.50 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 275.00 Tm
+(- userId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 261.50 Tm
+(- totalOrders Int) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 248.00 Tm
+(- totalSpent Float) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 234.50 Tm
+(- averageBasketValue Float) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 221.00 Tm
+(- user User) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 200.50 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 180.00 Tm
+(- @@map\("user_stats"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 154.50 Tm
+(UserFavoriteProduct) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 131.50 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 111.00 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 97.50 Tm
+(- userId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 84.00 Tm
+(- productId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 70.50 Tm
+(- purchaseCount Int) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 13 of 20) Tj
+ET
+endstream
+endobj
+30 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 31 0 R >>
+endobj
+31 0 obj
+<< /Length 3579 >>
+stream
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 738.00 Tm
+(- lastPurchased DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 724.50 Tm
+(- user User) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 711.00 Tm
+(- product Product) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 690.50 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 670.00 Tm
+(- @@unique\([userId, productId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 656.50 Tm
+(- @@index\([userId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 643.00 Tm
+(- @@map\("user_favorite_products"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 617.50 Tm
+(Wishlist) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 594.50 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 574.00 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 560.50 Tm
+(- userId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 547.00 Tm
+(- createdAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 533.50 Tm
+(- updatedAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 520.00 Tm
+(- user User) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 506.50 Tm
+(- items WishlistItem[]) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 486.00 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 465.50 Tm
+(- @@map\("wishlists"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 440.00 Tm
+(WishlistItem) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 417.00 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 396.50 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 383.00 Tm
+(- wishlistId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 369.50 Tm
+(- productId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 356.00 Tm
+(- addedAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 342.50 Tm
+(- note String?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 329.00 Tm
+(- wishlist Wishlist) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 315.50 Tm
+(- product Product) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 295.00 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 274.50 Tm
+(- @@unique\([wishlistId, productId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 261.00 Tm
+(- @@index\([wishlistId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 247.50 Tm
+(- @@map\("wishlist_items"\)) Tj
+ET
+BT
+/F1 11.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 222.00 Tm
+(Notification) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 199.00 Tm
+(Fields visible in schema:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 178.50 Tm
+(- id String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 165.00 Tm
+(- userId String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 151.50 Tm
+(- type NotificationType) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 138.00 Tm
+(- title String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 124.50 Tm
+(- message String) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 111.00 Tm
+(- isRead Boolean) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 97.50 Tm
+(- data Json?) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 84.00 Tm
+(- createdAt DateTime) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 70.50 Tm
+(- user User) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 14 of 20) Tj
+ET
+endstream
+endobj
+32 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 33 0 R >>
+endobj
+33 0 obj
+<< /Length 4295 >>
+stream
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 738.00 Tm
+(Indexes/constraints:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 717.50 Tm
+(- @@index\([userId]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 704.00 Tm
+(- @@index\([userId, isRead]\)) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 690.50 Tm
+(- @@map\("notifications"\)) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 665.00 Tm
+(Database Notes) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 640.00 Tm
+(- The schema uses cascading deletes for important ownership relationships such as users to lists,) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 626.50 Tm
+(sessions, receipts, wishlists, and related items.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 613.00 Tm
+(- Common foreign keys such as userId, listId, cartId, receiptId, and storeId are indexed where shown in) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 599.50 Tm
+(prisma/schema.prisma.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 586.00 Tm
+(- Potential future index improvements are discussed in the limitations/future improvements sections, but) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 572.50 Tm
+(no destructive schema change is required for the current report.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 547.00 Tm
+(9. API Design) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 512.00 Tm
+(The API is implemented through Next.js route handlers under app/api. Most protected APIs call) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 498.50 Tm
+(getServerSession\(authOptions\) and filter by session.user.id. Guest-compatible list routes also check) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 485.00 Tm
+(guest_mode and guest_session_id cookies.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 459.50 Tm
+(API Route Inventory) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 434.50 Tm
+(- /api/auth/:...nextauth) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 421.00 Tm
+(- /api/auth/guest) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 407.50 Tm
+(- /api/auth/guest-bypass) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 394.00 Tm
+(- /api/auth/signup) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 380.50 Tm
+(- /api/cart/link) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 367.00 Tm
+(- /api/cart/qrcode) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 353.50 Tm
+(- /api/carts/:cartCode) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 340.00 Tm
+(- /api/lists) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 326.50 Tm
+(- /api/lists/:id) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 313.00 Tm
+(- /api/lists/:id/items) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 299.50 Tm
+(- /api/lists/:id/items/:itemId) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 286.00 Tm
+(- /api/notifications) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 272.50 Tm
+(- /api/payment/create) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 259.00 Tm
+(- /api/products) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 245.50 Tm
+(- /api/receipts/:id) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 232.00 Tm
+(- /api/receipts/:id/items) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 218.50 Tm
+(- /api/receipts/:id/items/:itemId) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 205.00 Tm
+(- /api/sessions) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 191.50 Tm
+(- /api/sessions/:id) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 178.00 Tm
+(- /api/sessions/:id/finish) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 164.50 Tm
+(- /api/sessions/active) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 151.00 Tm
+(- /api/stores) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 137.50 Tm
+(- /api/users/favorites) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 124.00 Tm
+(- /api/users/stats) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 110.50 Tm
+(- /api/wishlist) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 97.00 Tm
+(- /api/wishlist/:itemId) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 71.50 Tm
+(API Categories) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 15 of 20) Tj
+ET
+endstream
+endobj
+34 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 35 0 R >>
+endobj
+35 0 obj
+<< /Length 5284 >>
+stream
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 738.00 Tm
+(- Authentication: app/api/auth/signup/route.ts, app/api/auth/[...nextauth]/route.ts,) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 724.50 Tm
+(app/api/auth/guest-bypass/route.ts, app/api/auth/guest/route.ts.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 711.00 Tm
+(- Lists and items: app/api/lists/route.ts, app/api/lists/[id]/route.ts,) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 697.50 Tm
+(app/api/lists/[id]/items/route.ts, app/api/lists/[id]/items/[itemId]/route.ts.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 684.00 Tm
+(- Cart and sessions: app/api/cart/link/route.ts, app/api/cart/qrcode/route.ts,) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 670.50 Tm
+(app/api/carts/[cartCode]/route.ts, app/api/sessions/*.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 657.00 Tm
+(- Receipts: app/api/receipts/[id]/route.ts, app/api/receipts/[id]/items/route.ts,) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 643.50 Tm
+(app/api/receipts/[id]/items/[itemId]/route.ts.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 630.00 Tm
+(- Checkout/payment: app/api/payment/create/route.ts.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 616.50 Tm
+(- Product catalog: app/api/products/route.ts.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 603.00 Tm
+(- Store/cart metadata: app/api/stores/route.ts.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 589.50 Tm
+(- User extensions: app/api/users/stats/route.ts, app/api/users/favorites/route.ts,) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 576.00 Tm
+(app/api/wishlist/route.ts, app/api/notifications/route.ts.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 550.50 Tm
+(10. UI/UX Design) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 515.50 Tm
+(The UI is mobile-first and uses Tailwind CSS. Common visual components include Button, Badge, Card,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 502.00 Tm
+(EmptyState, LoadingState, MetricCard, ProgressBar, and ReceiptPanel.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 476.50 Tm
+(UX Patterns Found) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 451.50 Tm
+(- Sticky mobile bottom navigation in components/layout/BottomNav.tsx.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 438.00 Tm
+(- Page shells through components/layout/PageContainer.tsx and components/layout/Header.tsx.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 424.50 Tm
+(- Loading states through components/ui/LoadingState.tsx.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 411.00 Tm
+(- Optimistic list item updates and pending states in components/lists/ListItemsManager.tsx.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 397.50 Tm
+(- Debounced product search with stale request cancellation in components/lists/ProductSearch.tsx.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 384.00 Tm
+(- Camera permission and HTTPS messaging in components/carto/QrScanner.tsx.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 370.50 Tm
+(- Receipt display formatted as a checkout panel in components/receipt/VirtualReceipt.tsx.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 345.00 Tm
+(Responsive/Mobile Behavior) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 320.00 Tm
+(The project includes PWA metadata in app/layout.tsx, icons and manifest files under public/, and next-pwa) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 306.50 Tm
+(configuration in next.config.js. Phone camera access requires HTTPS, and this is documented in SETUP.md) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 293.00 Tm
+(and supported by dev:https and tunnel scripts in package.json.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 267.50 Tm
+(11. Authentication and Authorization) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 232.50 Tm
+(Authentication uses NextAuth.js credentials provider in lib/auth-config.ts. Password hashing/verification) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 219.00 Tm
+(is implemented using bcrypt helpers in lib/auth.ts. The signup route creates users in) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 205.50 Tm
+(app/api/auth/signup/route.ts.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 185.00 Tm
+(Session behavior:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 164.50 Tm
+(- NextAuth uses JWT session strategy in lib/auth-config.ts.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 151.00 Tm
+(- The root provider wraps the app through app/providers.tsx.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 137.50 Tm
+(- Protected server pages check sessions or guest mode before rendering.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 124.00 Tm
+(- Middleware in middleware.ts protects dashboard, lists, session, checkout, and profile routes unless) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 110.50 Tm
+(guest mode is active.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 90.00 Tm
+(Authorization pattern:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 69.50 Tm
+(- API routes verify the session.) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 16 of 20) Tj
+ET
+endstream
+endobj
+36 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 37 0 R >>
+endobj
+37 0 obj
+<< /Length 4306 >>
+stream
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 738.00 Tm
+(- User-owned records are filtered by session.user.id.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 724.50 Tm
+(- Guest mode uses guest_mode and guest_session_id cookies.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 699.00 Tm
+(12. PWA and Mobile Support) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 664.00 Tm
+(The project uses next-pwa in next.config.js, includes public/manifest.json, and has app icons under) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 650.50 Tm
+(public/icons/. The PWA config caches product API responses, images, fonts, and navigations.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 630.00 Tm
+(Mobile camera support is present through components/carto/QrScanner.tsx. The code checks) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 616.50 Tm
+(window.isSecureContext before starting camera access, because iOS and other phone browsers require HTTPS) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 603.00 Tm
+(for camera APIs. The setup guide includes tunnel and local HTTPS options.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 577.50 Tm
+(13. Setup and Running Instructions) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 542.50 Tm
+(Evidence for commands is in package.json and SETUP.md.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 517.00 Tm
+(Prerequisites) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 492.00 Tm
+(- Node.js 18+ is required according to SETUP.md.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 478.50 Tm
+(- PostgreSQL database is required for full database-backed behavior.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 465.00 Tm
+(- npm is used in the project scripts.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 439.50 Tm
+(Environment Variables) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 414.50 Tm
+(Expected environment variables:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 394.00 Tm
+(- DATABASE_URL: PostgreSQL connection string.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 380.50 Tm
+(- NEXTAUTH_URL: recommended for stable NextAuth behavior, especially tunnels/deployment.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 367.00 Tm
+(- NEXTAUTH_SECRET: required for secure NextAuth sessions.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 353.50 Tm
+(- NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: optional/placeholder for payment integration.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 340.00 Tm
+(- STRIPE_SECRET_KEY: optional/placeholder for payment integration.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 314.50 Tm
+(Main Commands) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 289.50 Tm
+(- dev: next dev) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 276.00 Tm
+(- dev:host: next dev -H 0.0.0.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 262.50 Tm
+(- dev:https: next dev --experimental-https -H 0.0.0.0) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 249.00 Tm
+(- tunnel: npx --yes localtunnel --port 3000) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 235.50 Tm
+(- build: next build) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 222.00 Tm
+(- start: next start) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 208.50 Tm
+(- lint: next lint) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 195.00 Tm
+(- db:generate: prisma generate) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 181.50 Tm
+(- db:push: prisma db push) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 168.00 Tm
+(- db:migrate: prisma migrate dev) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 154.50 Tm
+(- db:studio: prisma studio) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 129.00 Tm
+(Typical Setup Flow) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 104.00 Tm
+(1. Run npm install.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 90.50 Tm
+(2. Create/configure .env.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 77.00 Tm
+(3. Run npm run db:generate.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 63.50 Tm
+(4. Run npm run db:push or npm run db:migrate.) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 17 of 20) Tj
+ET
+endstream
+endobj
+38 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 39 0 R >>
+endobj
+39 0 obj
+<< /Length 4734 >>
+stream
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 738.00 Tm
+(5. Run npm run dev.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 724.50 Tm
+(6. Open http://localhost:3000.) Tj
+ET
+BT
+/F1 12.50 Tf
+0.10 0.22 0.32 rg
+1 0 0 1 48.00 699.00 Tm
+(iPhone Camera Testing) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 674.00 Tm
+(Phone camera access requires HTTPS. The project includes:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 653.50 Tm
+(- npm run dev:https: Next.js development server with experimental HTTPS.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 640.00 Tm
+(- npm run tunnel: localtunnel HTTPS tunnel for phone testing.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 626.50 Tm
+(- npm run dev:host: host dev server on 0.0.0.0 for local network testing, though HTTP alone is not enough) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 613.00 Tm
+(for phone camera access.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 587.50 Tm
+(14. Testing and Validation) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 552.50 Tm
+(Available validation commands:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 532.00 Tm
+(- npm run lint: Next.js linting.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 518.50 Tm
+(- npm run build: production build and TypeScript checking.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 505.00 Tm
+(- npm run db:generate: Prisma client generation.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 491.50 Tm
+(- npm run db:studio: Prisma Studio for database inspection.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 471.00 Tm
+(Manual testing paths:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 450.50 Tm
+(- Sign up/sign in/guest mode.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 437.00 Tm
+(- Create shopping list.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 423.50 Tm
+(- Add item manually and through product search.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 410.00 Tm
+(- Toggle collected status and update quantities.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 396.50 Tm
+(- Activate a list.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 383.00 Tm
+(- Scan or manually enter cart details.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 369.50 Tm
+(- View active session.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 356.00 Tm
+(- Finish shopping.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 342.50 Tm
+(- Complete checkout.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 329.00 Tm
+(- View history.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 315.50 Tm
+(- Simulate receipt scanning through POST /api/receipts/:id/items.) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 295.00 Tm
+(Automated test suite:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 274.50 Tm
+(- Not found in the codebase. No dedicated Jest, Vitest, Playwright, or Cypress test configuration was) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 261.00 Tm
+(found in package.json.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 235.50 Tm
+(15. Limitations and Risks) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 200.50 Tm
+(- Payment is not production complete. app/api/payment/create/route.ts uses a mock payment ID and contains) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 187.00 Tm
+(comments for future Stripe integration.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 173.50 Tm
+(- Real-time updates are polling-based. Active session and receipt behavior use polling rather than) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 160.00 Tm
+(WebSockets or server-sent events.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 146.50 Tm
+(- Guest mode persists to local JSON. store/guest-store.ts writes to guest_data.json, which is appropriate) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 133.00 Tm
+(for demos but not production multi-user storage.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 119.50 Tm
+(- No automated test suite found. Lint/build exist, but no formal unit/e2e tests were found.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 106.00 Tm
+(- No complete notifications UI found. Notification APIs and database model exist, but a full notification) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 92.50 Tm
+(screen was not found.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 79.00 Tm
+(- No complete wishlist/favorites UI found. APIs and models exist, but full user-facing pages were not) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 65.50 Tm
+(found.) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 18 of 20) Tj
+ET
+endstream
+endobj
+40 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 41 0 R >>
+endobj
+41 0 obj
+<< /Length 5801 >>
+stream
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 738.00 Tm
+(- Camera requires HTTPS on phones. This is handled/documented, but it affects local network demos.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 724.50 Tm
+(- Physical smart cart hardware integration is unclear. Cart data models and QR linking exist, but actual) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 711.00 Tm
+(hardware communication beyond QR/Bluetooth metadata is unclear from the codebase.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 697.50 Tm
+(- Production deployment hardening is incomplete. Environment management, secrets, payment provider) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 684.00 Tm
+(configuration, and operational monitoring would need review.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 658.50 Tm
+(16. Future Improvements) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 623.50 Tm
+(- Replace polling with WebSockets or server-sent events for active sessions and receipts.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 610.00 Tm
+(- Complete production Stripe payment integration.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 596.50 Tm
+(- Add automated tests for API routes, list interactions, cart linking, checkout, and guest mode.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 583.00 Tm
+(- Add a complete notification center UI.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 569.50 Tm
+(- Add wishlist/favorites pages if those APIs are intended for end users.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 556.00 Tm
+(- Add store inventory, aisle locations, and cart navigation.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 542.50 Tm
+(- Add admin/store operator screens for carts, stores, and inventory.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 529.00 Tm
+(- Add stronger product search indexes or PostgreSQL full-text/trigram search if catalog size grows.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 515.50 Tm
+(- Review and add compound database indexes after measuring production query plans.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 502.00 Tm
+(- Add observability: API timing logs in development, structured production logs, error reporting, and) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 488.50 Tm
+(performance monitoring.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 475.00 Tm
+(- Improve PWA install flow and offline behavior for non-critical pages.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 449.50 Tm
+(17. Evidence Summary) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 414.50 Tm
+(Key files inspected:) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 394.00 Tm
+(- package.json: dependencies, scripts, project version.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 380.50 Tm
+(- prisma/schema.prisma: database models and relations.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 367.00 Tm
+(- app/dashboard/page.tsx: dashboard behavior and stats.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 353.50 Tm
+(- app/lists/page.tsx, app/lists/new/page.tsx, app/lists/[id]/page.tsx: list workflows.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 340.00 Tm
+(- components/lists/ListItemsManager.tsx: list item interaction behavior.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 326.50 Tm
+(- components/lists/ProductSearch.tsx: product search UI.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 313.00 Tm
+(- components/carto/QrScanner.tsx: camera QR scanning.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 299.50 Tm
+(- app/session/start/page.tsx: cart QR parsing and linking UI.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 286.00 Tm
+(- app/session/page.tsx: active session UI and polling.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 272.50 Tm
+(- components/receipt/VirtualReceipt.tsx: receipt display.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 259.00 Tm
+(- app/checkout/page.tsx, app/checkout/success/page.tsx: checkout screens.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 245.50 Tm
+(- app/api/*: backend API route handlers.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 232.00 Tm
+(- lib/auth-config.ts, lib/auth.ts: authentication.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 218.50 Tm
+(- lib/validations.ts: Zod schemas.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 205.00 Tm
+(- store/session-store.ts, store/guest-store.ts: client/shared state and guest persistence.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 191.50 Tm
+(- next.config.js, public/manifest.json: PWA configuration.) Tj
+ET
+BT
+/F1 9.50 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 62.00 178.00 Tm
+(- SETUP.md, README.md: setup and project notes.) Tj
+ET
+BT
+/F1 15.00 Tf
+0.02 0.38 0.26 rg
+1 0 0 1 48.00 152.50 Tm
+(18. Conclusion) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 117.50 Tm
+(Carto is a substantial full-stack prototype/MVP for a smart shopping cart experience. It demonstrates) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 104.00 Tm
+(list planning, QR-based cart linking, active session tracking, virtual receipts, checkout,) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 90.50 Tm
+(authentication, guest mode, and a reasonably complete data model. The project is suitable for academic) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 77.00 Tm
+(evaluation and further product development. The largest gaps before production would be real hardware) Tj
+ET
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 63.50 Tm
+(integration, production payment processing, automated tests, stronger observability, real-time transport,) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 19 of 20) Tj
+ET
+endstream
+endobj
+42 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 43 0 R >>
+endobj
+43 0 obj
+<< /Length 192 >>
+stream
+BT
+/F1 9.80 Tf
+0.07 0.09 0.13 rg
+1 0 0 1 48.00 738.00 Tm
+(and deployment hardening.) Tj
+ET
+BT
+/F1 8 Tf
+0.45 0.49 0.56 rg
+1 0 0 1 48 28 Tm
+(Carto Technical Project Report - Page 20 of 20) Tj
+ET
+endstream
+endobj
+xref
+0 44
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000247 00000 n 
+0000000317 00000 n 
+0000000443 00000 n 
+0000005270 00000 n 
+0000005396 00000 n 
+0000010225 00000 n 
+0000010351 00000 n 
+0000014915 00000 n 
+0000015043 00000 n 
+0000019500 00000 n 
+0000019628 00000 n 
+0000023964 00000 n 
+0000024092 00000 n 
+0000030493 00000 n 
+0000030621 00000 n 
+0000035397 00000 n 
+0000035525 00000 n 
+0000040185 00000 n 
+0000040313 00000 n 
+0000044656 00000 n 
+0000044784 00000 n 
+0000048667 00000 n 
+0000048795 00000 n 
+0000052572 00000 n 
+0000052700 00000 n 
+0000056497 00000 n 
+0000056625 00000 n 
+0000060224 00000 n 
+0000060352 00000 n 
+0000063984 00000 n 
+0000064112 00000 n 
+0000068460 00000 n 
+0000068588 00000 n 
+0000073925 00000 n 
+0000074053 00000 n 
+0000078412 00000 n 
+0000078540 00000 n 
+0000083327 00000 n 
+0000083455 00000 n 
+0000089309 00000 n 
+0000089437 00000 n 
+trailer
+<< /Size 44 /Root 1 0 R >>
+startxref
+89681
+%%EOF

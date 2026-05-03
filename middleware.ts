@@ -1,40 +1,39 @@
-// Next.js middleware for route protection
+import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+const GUEST_SESSION_COOKIE = 'guest_session_id';
 
-export function middleware(request: NextRequest) {
-  // Check for guest mode cookie
-  const guestMode = request.cookies.get('guest_mode');
-  
-  // If guest mode is active, allow access
-  if (guestMode?.value === 'true') {
+const guestAllowedRoutes = [
+  '/dashboard',
+  '/lists',
+  '/session',
+  '/checkout',
+  '/history',
+];
+
+function startsWithRoute(pathname: string, route: string) {
+  return pathname === route || pathname.startsWith(`${route}/`);
+}
+
+export async function middleware(request: NextRequest) {
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production',
+  });
+
+  if (token?.id) {
     return NextResponse.next();
   }
-  
-  // If NextAuth is not configured, allow access (for development)
-  if (!process.env.NEXTAUTH_SECRET) {
+
+  const hasGuestCookie = Boolean(request.cookies.get(GUEST_SESSION_COOKIE)?.value);
+
+  if (hasGuestCookie && guestAllowedRoutes.some((route) => startsWithRoute(request.nextUrl.pathname, route))) {
     return NextResponse.next();
   }
-  
-  // Otherwise, use NextAuth middleware
-  // Only import and use NextAuth if secret is configured
-  try {
-    const { withAuth } = require('next-auth/middleware');
-    return withAuth(
-      function middleware(req: NextRequest) {
-        return NextResponse.next();
-      },
-      {
-        callbacks: {
-          authorized: ({ token }: { token: any }) => !!token,
-        },
-      }
-    )(request);
-  } catch (error) {
-    // If NextAuth fails, allow access (for guest mode/development)
-    return NextResponse.next();
-  }
+
+  const signInUrl = new URL('/auth/signin', request.url);
+  signInUrl.searchParams.set('callbackUrl', request.nextUrl.pathname + request.nextUrl.search);
+  return NextResponse.redirect(signInUrl);
 }
 
 export const config = {
@@ -44,6 +43,6 @@ export const config = {
     '/session/:path*',
     '/checkout/:path*',
     '/profile/:path*',
+    '/history/:path*',
   ],
 };
-

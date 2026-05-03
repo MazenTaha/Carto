@@ -32,7 +32,7 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
-  const displayName = session?.user?.name || session?.user?.email || 'Guest Shopper';
+  const displayName = session?.user?.name || session?.user?.email || 'Signed in';
   const initials = displayName
     .split(/\s|@/)
     .filter(Boolean)

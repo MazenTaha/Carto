@@ -30,7 +30,7 @@ export async function GET(
             );
         }
 
-        const safeCart = { ...cart, pairingCode: undefined };
+        const safeCart = { ...cart, pairingCode: undefined, deviceSecret: undefined };
 
         return NextResponse.json({ success: true, data: safeCart });
     } catch (error) {

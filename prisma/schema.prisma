@@ -14,12 +14,14 @@ datasource db {
 // ─── USER ──────────────────────────────────────────────────────────────────────
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  email       String?  @unique
+  password    String?
+  name        String?
+  phoneNumber String?  @unique
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   shoppingLists    ShoppingList[]
@@ -30,7 +32,22 @@ model User {
   wishlist         Wishlist?
   notifications    Notification[]
 
+  @@index([phoneNumber])
   @@map("users")
+}
+
+model GuestSession {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime?
+
+  shoppingLists ShoppingList[]
+  cartSessions  CartSession[]
+  receipts      Receipt[]
+
+  @@index([expiresAt])
+  @@map("guest_sessions")
 }
 
 // ─── STORE ─────────────────────────────────────────────────────────────────────
@@ -58,6 +75,8 @@ model Cart {
   cartCode      String     @unique // Physical code printed on the cart (scanned via QR)
   bluetoothName String?
   pairingCode   String?
+  deviceSecret  String?    @unique
+  pairingExpiresAt DateTime?
   qrSessionId   String?
   storeId       String
   status        CartStatus @default(AVAILABLE)
@@ -70,6 +89,7 @@ model Cart {
 
   @@index([storeId])
   @@index([cartCode])
+  @@index([pairingExpiresAt])
   @@map("carts")
 }
 
@@ -83,17 +103,25 @@ enum CartStatus {
 // ─── SHOPPING LIST ─────────────────────────────────────────────────────────────
 
 model ShoppingList {
-  id        String   @id @default(cuid())
-  name      String
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String    @id @default(cuid())
+  name              String
+  userId            String?
+  guestSessionId    String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  permanentDeleteAt DateTime?
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestSession GuestSession? @relation(fields: [guestSessionId], references: [id], onDelete: Cascade)
   items        ListItem[]
   cartSessions CartSession[]
 
   @@index([userId])
+  @@index([userId, deletedAt])
+  @@index([guestSessionId])
+  @@index([guestSessionId, deletedAt])
+  @@index([permanentDeleteAt])
   @@map("shopping_lists")
 }
 
@@ -120,7 +148,8 @@ model ListItem {
 model CartSession {
   id                String        @id @default(cuid())
   cartId            String // References physical Cart
-  userId            String
+  userId            String?
+  guestSessionId    String?
   listId            String
   status            SessionStatus @default(ACTIVE)
   startedAt         DateTime      @default(now())
@@ -128,12 +157,14 @@ model CartSession {
   qrCode            String?
   externalSessionId String?
 
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  shoppingList ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
-  cart         Cart         @relation(fields: [cartId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestSession GuestSession? @relation(fields: [guestSessionId], references: [id], onDelete: Cascade)
+  shoppingList ShoppingList  @relation(fields: [listId], references: [id], onDelete: Cascade)
+  cart         Cart          @relation(fields: [cartId], references: [id])
   receipt      Receipt?
 
   @@index([userId])
+  @@index([guestSessionId])
   @@index([listId])
   @@index([cartId])
   @@index([externalSessionId])
@@ -150,16 +181,17 @@ enum SessionStatus {
 // ─── RECEIPT ───────────────────────────────────────────────────────────────────
 
 model Receipt {
-  id        String        @id @default(cuid())
-  sessionId String        @unique
-  userId    String
-  status    ReceiptStatus @default(DRAFT)
-  subtotal  Float         @default(0)
-  tax       Float         @default(0)
-  total     Float         @default(0)
-  createdAt DateTime      @default(now())
-  lockedAt  DateTime?
-  paymentId String?
+  id             String        @id @default(cuid())
+  sessionId      String        @unique
+  userId         String?
+  guestSessionId String?
+  status         ReceiptStatus @default(DRAFT)
+  subtotal       Float         @default(0)
+  tax            Float         @default(0)
+  total          Float         @default(0)
+  createdAt      DateTime      @default(now())
+  lockedAt       DateTime?
+  paymentId      String?
 
   // New fields
   storeId       String?
@@ -167,13 +199,15 @@ model Receipt {
   paymentMethod PaymentMethod @default(CARD)
   paymentStatus PaymentStatus @default(PENDING)
 
-  cartSession CartSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  store       Store?        @relation(fields: [storeId], references: [id])
-  items       ReceiptItem[]
+  cartSession  CartSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestSession GuestSession? @relation(fields: [guestSessionId], references: [id], onDelete: Cascade)
+  store        Store?        @relation(fields: [storeId], references: [id])
+  items        ReceiptItem[]
 
   @@index([sessionId])
   @@index([userId])
+  @@index([guestSessionId])
   @@index([storeId])
   @@map("receipts")
 }

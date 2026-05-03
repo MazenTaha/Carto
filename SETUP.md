@@ -26,6 +26,21 @@ DATABASE_URL="postgresql://user:password@localhost:5432/carto?schema=public"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key-here"
 
+# Google OAuth
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# Firebase client SDK (browser phone OTP)
+NEXT_PUBLIC_FIREBASE_API_KEY="your-firebase-api-key"
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-firebase-project-id"
+NEXT_PUBLIC_FIREBASE_APP_ID="your-firebase-app-id"
+
+# Firebase Admin SDK (server ID-token verification)
+FIREBASE_PROJECT_ID="your-firebase-project-id"
+FIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
 # Optional: Stripe (for payment integration)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
 STRIPE_SECRET_KEY="sk_test_..."
@@ -58,6 +73,8 @@ Alternatively, use migrations:
 npm run db:migrate
 ```
 
+For production-like environments, prefer migrations so the `GuestSession` table and guest ownership columns are applied consistently. `db:push` is fine for disposable demo databases.
+
 ## Step 4: Run the Development Server
 
 ```bash
@@ -65,6 +82,42 @@ npm run dev
 ```
 
 The application will be available at [http://localhost:3000](http://localhost:3000)
+
+### Testing the Camera on an iPhone
+
+Phone browsers require a secure context before they allow camera access. If you open Carto from your computer's local network address, such as `http://192.168.1.20:3000`, iOS will block the camera.
+
+Use one of these mobile testing options:
+
+#### Option A: Secure tunnel (recommended)
+
+In one terminal, start Carto:
+
+```bash
+npm run dev
+```
+
+In another terminal, start a temporary HTTPS tunnel:
+
+```bash
+npm run tunnel
+```
+
+Open the `https://...loca.lt` URL on the iPhone. If you set `NEXTAUTH_URL` in `.env`, update it to the tunnel URL and restart `npm run dev`.
+
+#### Option B: Local HTTPS on your network
+
+Start the dev server with HTTPS enabled:
+
+```bash
+npm run dev:https
+```
+
+Open the shown `https://<your-computer-ip>:3000` URL on the iPhone. Because this uses a local development certificate, iOS may require you to open the URL in Safari, accept the certificate warning, and trust the certificate in Settings before camera access works.
+
+#### Option C: Desktop-only local testing
+
+Camera access is allowed from `http://localhost:3000` on the same computer running the dev server. This does not help an iPhone, because `localhost` on the iPhone means the phone itself, not your computer.
 
 ## Step 5: Create Your First Account
 
@@ -99,6 +152,7 @@ The application will be available at [http://localhost:3000](http://localhost:30
 
 ### 1. User Authentication
 - Sign up with email and password
+- Continue as guest with a database-backed `guest_session_id` cookie
 - Secure session management with NextAuth
 - Protected routes with middleware
 
@@ -136,7 +190,7 @@ The application will be available at [http://localhost:3000](http://localhost:30
 - `POST /api/auth/[...nextauth]` - NextAuth endpoints
 
 ### Shopping Lists
-- `GET /api/lists` - Get all user lists
+- `GET /api/lists` - Get all lists for the current user or guest session
 - `POST /api/lists` - Create new list
 - `GET /api/lists/[id]` - Get specific list
 - `PUT /api/lists/[id]` - Update list
@@ -149,6 +203,7 @@ The application will be available at [http://localhost:3000](http://localhost:30
 ### Cart & Sessions
 - `POST /api/cart/link` - Link cart to list
 - `GET /api/cart/qrcode?listId=xxx` - Generate QR code
+- `GET /api/carts/[cartCode]/active-session` - Device-only active session endpoint, requires `Authorization: Bearer <deviceSecret>`
 - `GET /api/sessions` - Get all sessions
 - `GET /api/sessions/active` - Get active session
 - `GET /api/sessions/[id]` - Get specific session
@@ -165,7 +220,40 @@ The application will be available at [http://localhost:3000](http://localhost:30
 
 ## Testing the Application
 
+### Manual Guest Mode Checklist
+
+1. Clear browser cookies.
+2. Visit `/dashboard`; you should be redirected to `/auth/signin`.
+3. Click **Continue as Guest**.
+4. Confirm the HTTP-only `guest_session_id` cookie is set.
+5. Create a shopping list and add items.
+6. Refresh the page; the data should persist.
+7. Restart the dev server; the data should still persist from PostgreSQL.
+8. Sign in as a real user; guest lists should not appear.
+9. Verify no `guest_data.json` file is created or used.
+
 ### Simulating Cart Scanning
+
+For the QR/device flow, create or seed a physical cart with:
+
+```text
+cartCode: CART-001
+pairingCode: 123456
+deviceSecret: dev-device-secret
+status: AVAILABLE
+```
+
+The seed script creates this demo cart when run. The cart QR payload should contain only pairing data:
+
+```json
+{
+  "type": "cart_pairing",
+  "cartCode": "CART-001",
+  "pairingCode": "123456"
+}
+```
+
+Open `/device/CART-001`, enter `dev-device-secret`, then link a selected list from `/session/start?listId=<listId>`. The device page polls the protected backend endpoint and shows the assigned list after linking.
 
 To simulate items being scanned by the cart, you can use the receipt items API:
 
@@ -222,6 +310,9 @@ npm start
 ### NextAuth Issues
 - Ensure `NEXTAUTH_SECRET` is set
 - Verify `NEXTAUTH_URL` matches your deployment URL
+- Ensure Google OAuth redirect URI includes `/api/auth/callback/google`
+- For phone OTP, enable Phone provider in Firebase Authentication and add your app domain to Firebase authorized domains
+- Keep `FIREBASE_PRIVATE_KEY` server-side only and preserve escaped `\n` line breaks in `.env`
 
 ### TypeScript Errors
 - Run `npm run db:generate` after schema changes

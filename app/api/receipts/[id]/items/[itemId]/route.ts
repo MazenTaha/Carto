@@ -1,10 +1,9 @@
 // Receipt item API routes
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 
 const updateItemSchema = z.object({
   quantity: z.number().int().positive().optional(),
@@ -16,9 +15,9 @@ export async function PUT(
   { params }: { params: { id: string; itemId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const owner = await requireUserOrGuest();
 
-    if (!session) {
+    if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -26,7 +25,7 @@ export async function PUT(
     const receipt = await prisma.receipt.findFirst({
       where: {
         id: params.id,
-        userId: session.user.id,
+        ...ownerWhere(owner),
       },
     });
 
@@ -44,8 +43,17 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateItemSchema.parse(body);
 
+    const existingItem = await prisma.receiptItem.findFirst({
+      where: { id: params.itemId, receiptId: params.id },
+      select: { id: true },
+    });
+
+    if (!existingItem) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
     const item = await prisma.receiptItem.update({
-      where: { id: params.itemId },
+      where: { id: existingItem.id },
       data: validatedData,
     });
 
@@ -76,9 +84,9 @@ export async function DELETE(
   { params }: { params: { id: string; itemId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const owner = await requireUserOrGuest();
 
-    if (!session) {
+    if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -86,7 +94,7 @@ export async function DELETE(
     const receipt = await prisma.receipt.findFirst({
       where: {
         id: params.id,
-        userId: session.user.id,
+        ...ownerWhere(owner),
       },
     });
 
@@ -101,8 +109,17 @@ export async function DELETE(
       );
     }
 
+    const item = await prisma.receiptItem.findFirst({
+      where: { id: params.itemId, receiptId: params.id },
+      select: { id: true },
+    });
+
+    if (!item) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
     await prisma.receiptItem.delete({
-      where: { id: params.itemId },
+      where: { id: item.id },
     });
 
     return NextResponse.json({ success: true });

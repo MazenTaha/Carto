@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -10,66 +9,59 @@ import { MetricCard } from '@/components/ui/MetricCard';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { ShoppingList } from '@/types';
 import { formatCurrency } from '@/lib/utils';
+import { purgeExpiredShoppingLists } from '@/lib/list-retention';
+import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 
 export default async function DashboardPage() {
-  let session = null;
+  const owner = process.env.DATABASE_URL ? await requireUserOrGuest() : null;
 
-  const cookieStore = await cookies();
-  const guestModeCookie = cookieStore.get('guest_mode');
-  const isGuestMode = guestModeCookie?.value === 'true';
-
-  if (!isGuestMode && process.env.NEXTAUTH_SECRET && process.env.DATABASE_URL) {
-    try {
-      const { getServerSession } = await import('next-auth');
-      const { authOptions } = await import('@/lib/auth-config');
-      session = await getServerSession(authOptions);
-    } catch (error) {}
-  }
-
-  if (!session && !isGuestMode) {
+  if (!owner) {
     redirect('/auth/signin');
   }
 
-  let stats = { totalSpent: 0, productsBought: 0, savedLists: 0 };
+  let stats = { totalSpent: 0, savedLists: 0 };
   let recentLists: ShoppingList[] = [];
-  let userName = session?.user?.name || 'Alex';
+  let userName = owner.type === 'guest' ? 'Guest Shopper' : 'Alex';
 
-  if (session && session.user?.id && !isGuestMode && process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL) {
     try {
       const { prisma } = await import('@/lib/prisma');
-      const [listsData, paidReceipts] = await Promise.all([
+      const ownerFilter = ownerWhere(owner);
+      await purgeExpiredShoppingLists(prisma, ownerFilter);
+      const [listsData, savedListsCount, receiptTotals] = await Promise.all([
         prisma.shoppingList.findMany({
-          where: { userId: session.user.id },
+          where: { ...ownerFilter, deletedAt: null },
           orderBy: { updatedAt: 'desc' },
           take: 4,
-          include: { items: true },
+          select: {
+            id: true,
+            name: true,
+            userId: true,
+            guestSessionId: true,
+            createdAt: true,
+            updatedAt: true,
+            items: {
+              select: {
+                id: true,
+                isCollected: true,
+              },
+            },
+          },
         }),
-        prisma.receipt.findMany({
+        prisma.shoppingList.count({ where: { ...ownerFilter, deletedAt: null } }),
+        prisma.receipt.aggregate({
           where: {
-            userId: session.user.id,
+            ...ownerFilter,
             status: 'PAID',
           },
-          include: { items: true },
+          _sum: { total: true },
         }),
       ]);
 
-      recentLists = listsData;
-      stats.savedLists = await prisma.shoppingList.count({ where: { userId: session.user.id } });
-      stats.productsBought = paidReceipts.reduce(
-        (sum: number, receipt: any) =>
-          sum + receipt.items.reduce((itemSum: number, item: any) => itemSum + item.quantity, 0),
-        0
-      );
-      stats.totalSpent = paidReceipts.reduce((sum: number, receipt: any) => sum + receipt.total, 0);
+      recentLists = listsData as ShoppingList[];
+      stats.savedLists = savedListsCount;
+      stats.totalSpent = receiptTotals._sum.total || 0;
     } catch (error) {}
-  } else if (isGuestMode) {
-    const guestSessionId = cookieStore.get('guest_session_id')?.value;
-    if (guestSessionId) {
-      const { getGuestLists } = await import('@/store/guest-store');
-      recentLists = getGuestLists(guestSessionId).slice(0, 4);
-      stats.savedLists = recentLists.length;
-    }
-    userName = 'Guest';
   }
 
   return (
@@ -85,7 +77,7 @@ export default async function DashboardPage() {
             <Link href="/history" className="rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">History</Link>
           </nav>
           <div className="ml-auto flex items-center gap-2">
-            <Badge variant={isGuestMode ? 'warning' : 'success'}>{isGuestMode ? 'Guest' : 'Signed in'}</Badge>
+            <Badge variant="success">Signed in</Badge>
             <Link href="/profile" className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-primary/10 hover:text-primary dark:bg-slate-800 dark:text-slate-300" aria-label="Open profile">
               <span className="material-symbols-outlined">person</span>
             </Link>
@@ -135,13 +127,7 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <MetricCard
-            icon="shopping_bag"
-            label="Total Orders"
-            value={stats.productsBought}
-            helper={`${formatCurrency(stats.totalSpent)} net spent`}
-          />
+        <section className="mt-5 grid gap-3 sm:grid-cols-2">
           <MetricCard
             icon="format_list_bulleted"
             label="Saved Lists"

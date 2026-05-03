@@ -14,30 +14,43 @@ interface HeaderProps {
   showLogo?: boolean;
 }
 
-export function Header({ title, showBack = false, onBack, rightElement, sticky = true, className }: HeaderProps) {
+export function Header({
+  title,
+  showBack = false,
+  onBack,
+  rightElement,
+  sticky = true,
+  className,
+  showLogo = false,
+}: HeaderProps) {
   return (
     <header
       className={cn(
-        'z-40 -mx-4 flex items-center gap-3 border-b border-slate-200/70 bg-white/85 px-4 py-3 backdrop-blur-xl dark:border-slate-800 dark:bg-background-dark/85 sm:mx-0 sm:rounded-b-2xl sm:px-5',
+        'z-40 -mx-4 flex items-center gap-3 border-b border-warm-border/45 bg-white/88 px-4 py-3 backdrop-blur-xl dark:border-warm-border/45 dark:bg-white/88 sm:mx-0 sm:rounded-b-2xl sm:px-5',
         sticky && 'sticky top-0',
         className
       )}
     >
-      <div className="flex min-w-10 shrink-0 items-center">
+      <div className="flex min-w-10 shrink-0 items-center gap-2">
         {showBack && (
           <button
             type="button"
             onClick={onBack || (() => window.history.back())}
-            className="flex size-10 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 active:scale-95 dark:text-slate-100 dark:hover:bg-slate-800"
+            className="flex size-10 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:scale-95 dark:text-primary dark:hover:bg-primary/10"
             aria-label="Go back"
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
         )}
+        {showLogo && (
+          <Link href="/dashboard" aria-label="Go to Carto home" className="flex items-center rounded-xl transition hover:opacity-80">
+            <Logo width={82} height={30} />
+          </Link>
+        )}
       </div>
       <div className="flex min-w-0 flex-1 items-center justify-center">
         {title ? (
-          <h2 className="truncate text-center text-base font-bold leading-tight text-slate-950 dark:text-slate-100 sm:text-lg">
+          <h2 className="truncate text-center text-base font-bold leading-tight text-slate-950 dark:text-slate-950 sm:text-lg">
             {title}
           </h2>
         ) : (

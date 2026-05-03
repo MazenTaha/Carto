@@ -1,11 +1,10 @@
 // Add items to receipt API route (simulates cart scanning)
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { ReceiptItem } from '@/types';
+import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 
 const addItemSchema = z.object({
   name: z.string().min(1),
@@ -20,9 +19,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const owner = await requireUserOrGuest();
 
-    if (!session) {
+    if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -30,7 +29,7 @@ export async function POST(
     const receipt = await prisma.receipt.findFirst({
       where: {
         id: params.id,
-        userId: session.user.id,
+        ...ownerWhere(owner),
       },
     });
 

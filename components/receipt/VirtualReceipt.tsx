@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Receipt, ReceiptItem } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -10,27 +10,49 @@ import { calculateTax, formatCurrency } from '@/lib/utils';
 interface VirtualReceiptProps {
   receipt: Receipt;
   sessionId: string;
+  poll?: boolean;
 }
 
-export function VirtualReceipt({ receipt, sessionId }: VirtualReceiptProps) {
+export function VirtualReceipt({ receipt, sessionId, poll = true }: VirtualReceiptProps) {
   const [items, setItems] = useState<ReceiptItem[]>(receipt.items || []);
   const [status, setStatus] = useState(receipt.status);
+  const isFetchingRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setItems(receipt.items || []);
+    setStatus(receipt.status);
+  }, [receipt]);
 
   const fetchReceipt = useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
     try {
       const response = await fetch(`/api/receipts/${receipt.id}`);
       const data = await response.json();
-      if (data.success) {
+      if (data.success && isMountedRef.current) {
         setItems(data.data.items || []);
         setStatus(data.data.status);
       }
-    } catch (err) {}
+    } catch (err) {
+    } finally {
+      isFetchingRef.current = false;
+    }
   }, [receipt.id]);
 
   useEffect(() => {
+    if (!poll || status !== 'DRAFT') return;
+
     const interval = setInterval(fetchReceipt, 3000);
     return () => clearInterval(interval);
-  }, [fetchReceipt]);
+  }, [fetchReceipt, poll, status]);
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const tax = calculateTax(subtotal);

@@ -2,77 +2,50 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/ui/Logo';
 
 export function Navbar() {
   const { data: session } = useSession();
-  const router = useRouter();
-  const [isGuestMode, setIsGuestMode] = useState(false);
-
-  useEffect(() => {
-    // Check for guest mode cookie
-    if (typeof document !== 'undefined') {
-      const guestCookie = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('guest_mode='));
-      setIsGuestMode(guestCookie?.split('=')[1] === 'true');
-    }
-  }, []);
 
   const handleSignOut = () => {
-    // Clear guest mode cookie
-    if (isGuestMode && typeof document !== 'undefined') {
-      document.cookie = 'guest_mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    }
-    if (session) {
-      signOut({ callbackUrl: '/auth/signin' });
-    } else {
-      router.push('/auth/signin');
-    }
+    signOut({ callbackUrl: '/auth/signin' });
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
+    <nav className="border-b border-warm-border/45 bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center space-x-8">
             <Link href="/dashboard" className="flex items-center">
               <Logo width={100} height={35} className="hover:opacity-80 transition-opacity" />
             </Link>
-            {(session || isGuestMode) && (
+            {session && (
               <>
-                <Link href="/dashboard" className="text-gray-700 hover:text-gray-900">
+                <Link href="/dashboard" className="text-slate-700 hover:text-primary">
                   Home
                 </Link>
-                <Link href="/dashboard" className="text-gray-700 hover:text-gray-900">
+                <Link href="/dashboard" className="text-slate-700 hover:text-primary">
                   Dashboard
                 </Link>
-                <Link href="/lists" className="text-gray-700 hover:text-gray-900">
+                <Link href="/lists" className="text-slate-700 hover:text-primary">
                   My Lists
                 </Link>
-                <Link href="/session" className="text-gray-700 hover:text-gray-900">
+                <Link href="/session" className="text-slate-700 hover:text-primary">
                   Active Session
                 </Link>
               </>
             )}
           </div>
           <div className="flex items-center space-x-4">
-            {(session || isGuestMode) ? (
+            {session ? (
               <>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-700">
-                    {session?.user?.name || session?.user?.email || 'Guest User'}
+                  <span className="text-sm text-slate-700">
+                    {session?.user?.name || session?.user?.email || 'Signed in'}
                   </span>
-                  {(isGuestMode || session?.user?.email === 'guest@carto.local') && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
-                      Guest Mode
-                    </span>
-                  )}
                 </div>
                 <Button
                   variant="outline"
