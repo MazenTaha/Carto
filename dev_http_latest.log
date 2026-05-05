@@ -4,30 +4,28 @@
 
   ▲ Next.js 14.2.35
   - Local:        http://localhost:3000
-  - Environments: .env
+  - Environments: .env.local, .env
 
  ✓ Starting...
 > [PWA] PWA support is disabled
 > [PWA] PWA support is disabled
- ✓ Ready in 2.6s
- ○ Compiling / ...
- ✓ Compiled / in 8.8s (844 modules)
- GET / 307 in 5456ms
- ✓ Compiled in 931ms (305 modules)
+ ✓ Ready in 3.4s
  ○ Compiling /auth/signin ...
- ✓ Compiled /auth/signin in 14.8s (892 modules)
- GET /auth/signin 200 in 15165ms
- GET /auth/signin 200 in 58ms
- ✓ Compiled /api/auth/[...nextauth] in 96ms (571 modules)
- ✓ Compiled /api/auth/guest-bypass in 164ms (600 modules)
- GET /api/auth/guest-bypass 200 in 210ms
- GET /api/auth/session 200 in 514ms
- GET /api/auth/session 200 in 519ms
- ✓ Compiled /middleware in 146ms (174 modules)
- ✓ Compiled /dashboard in 219ms (943 modules)
- ✓ Compiled /lists/new in 165ms (951 modules)
- ✓ Compiled /api/lists in 240ms (623 modules)
- POST /api/lists 201 in 450ms
- ✓ Compiled /lists/[id] in 356ms (972 modules)
- ○ Compiling /session/start ...
- ✓ Compiled /session/start in 1179ms (1430 modules)
+ ✓ Compiled /auth/signin in 3.7s (854 modules)
+ HEAD /auth/signin 200 in 3953ms
+ ✓ Compiled in 487ms (351 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 2.7s (930 modules)
+ GET / 307 in 3671ms
+ GET / 307 in 143ms
+ ✓ Compiled /auth/signin in 375ms (757 modules)
+ GET /auth/signin 200 in 807ms
+ ✓ Compiled /api/auth/[...nextauth] in 272ms (761 modules)
+ GET /api/auth/session 200 in 1043ms
+ GET /api/auth/session 200 in 1050ms
+ GET /api/auth/providers 200 in 62ms
+ GET /api/auth/csrf 200 in 34ms
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."password", "public"."users"."name", "public"."users"."phoneNumber", "public"."users"."image", "public"."users"."createdAt", "public"."users"."updatedAt" FROM "public"."users" WHERE ("public"."users"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ POST /api/auth/callback/credentials 200 in 3677ms
+ GET /api/auth/session 200 in 16ms
+ ✓ Compiled /middleware in 283ms (214 modules)

@@ -15,7 +15,6 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -51,29 +50,6 @@ export default function SignUpPage() {
       setError(err.message || 'An error occurred');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleGuestSignIn = async () => {
-    setError('');
-    setIsGuestLoading(true);
-
-    try {
-      const response = await fetch('/api/auth/guest', {
-        method: 'POST',
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to sign in as guest');
-      }
-
-      router.push(data.data?.redirectTo || '/dashboard');
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
-    } finally {
-      setIsGuestLoading(false);
     }
   };
 
@@ -162,23 +138,15 @@ export default function SignUpPage() {
         <div className="flex flex-col gap-3 pt-4">
           <button
             type="submit"
-            disabled={isLoading || isGuestLoading || isGoogleLoading}
+            disabled={isLoading || isGoogleLoading}
             className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 px-5 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 active:scale-[0.98] transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
           >
             <span className="truncate">{isLoading ? "Creating..." : "Sign Up"}</span>
           </button>
           <button
             type="button"
-            onClick={handleGuestSignIn}
-            disabled={isLoading || isGuestLoading || isGoogleLoading}
-            className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 px-5 border-2 border-slate-200 dark:border-slate-800 bg-transparent text-slate-700 dark:text-slate-300 text-base font-semibold leading-normal hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all disabled:opacity-50"
-          >
-            <span className="truncate">{isGuestLoading ? 'Signing In...' : 'Continue as Guest'}</span>
-          </button>
-          <button
-            type="button"
             onClick={handleGoogleSignIn}
-            disabled={isLoading || isGuestLoading || isGoogleLoading}
+            disabled={isLoading || isGoogleLoading}
             className="flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl h-14 px-5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 text-base font-semibold leading-normal hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all disabled:opacity-50"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">

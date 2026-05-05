@@ -1,11 +1,12 @@
-# Local HTTPS Testing for Phone Camera and QR Scanning
+# Trusted HTTPS Tunnel Testing for Phone Camera and QR Scanning
 
-Use this guide when you need to open the local Carto Next.js app on a phone over HTTPS. This is the recommended workflow for testing the camera-based QR scanner from a mobile browser.
+Use this guide when you need to open the local Carto Next.js app on an iPhone over HTTPS. The recommended workflow is a real HTTPS tunnel such as ngrok or Cloudflare Tunnel, not a local self-signed certificate.
 
 ## Project Facts
 
 - The local dev command is `npm run dev`.
 - `npm run dev` runs `next dev`, which serves the app on `http://localhost:3000` by default.
+- `npm run dev:lan` runs `next dev -H 0.0.0.0 -p 3000` if direct LAN HTTP testing is needed for non-camera pages.
 - The app uses NextAuth through `app/api/auth/[...nextauth]/route.ts` and `lib/auth-config.ts`.
 - Next.js loads local environment variables from `.env` / `.env.local` files automatically.
 - For tunnel testing, `NEXTAUTH_URL` must temporarily match the public HTTPS tunnel URL.
@@ -14,9 +15,11 @@ Do not commit real `.env` files or production secrets. Keep tunnel-specific valu
 
 ## Why HTTPS Is Needed
 
-Mobile browsers often require a secure context before allowing camera access through `getUserMedia`. `https://` pages are secure contexts. `http://localhost` is also treated specially, but only on the same device.
+Mobile browsers require a secure context before allowing camera access through `getUserMedia`. `https://` pages are secure contexts. `http://localhost` is also treated specially, but only on the same device.
 
-When a phone opens `http://<laptop-ip>:3000`, that is not the phone's own localhost and is usually not considered secure. The page may load, but camera permission or QR scanning can fail. A tunnel gives the phone a real public `https://` URL that forwards to your local Next.js server.
+When an iPhone opens `https://192.168.x.x:3000`, Safari sees a certificate that is invalid for that IP address or self-signed by a local development CA it does not trust. Safari then shows "This Connection Is Not Private", and camera access is blocked or unreliable. Do not force Safari through that warning for QR scanner testing.
+
+A tunnel gives the phone a trusted public `https://` URL that forwards traffic to your local Next.js server at `http://localhost:3000`.
 
 ## Option A: ngrok
 
@@ -51,7 +54,7 @@ http://localhost:3000
 In terminal 2:
 
 ```powershell
-ngrok http 3000
+npx ngrok http 3000
 ```
 
 Copy the generated HTTPS forwarding URL. It will look similar to:
@@ -78,7 +81,7 @@ After changing `NEXTAUTH_URL`, stop and restart the Next.js dev server:
 npm run dev
 ```
 
-Then open the same HTTPS ngrok URL on your phone.
+Then open the same HTTPS ngrok URL on your iPhone in Safari.
 
 ## Option B: Cloudflare Tunnel
 
@@ -140,12 +143,12 @@ After changing `NEXTAUTH_URL`, stop and restart the Next.js dev server:
 npm run dev
 ```
 
-Then open the same HTTPS Cloudflare Tunnel URL on your phone.
+Then open the same HTTPS Cloudflare Tunnel URL on your iPhone in Safari.
 
 ## Camera and QR Scanner Testing Checklist
 
 1. Start the Next.js dev server with `npm run dev`.
-2. Start either `ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000`.
+2. Start either `npx ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000`.
 3. Copy the generated HTTPS tunnel URL.
 4. Set `NEXTAUTH_URL` in your local `.env` to that exact HTTPS URL.
 5. Restart the Next.js dev server after editing `.env`.
@@ -166,10 +169,11 @@ Then open the same HTTPS Cloudflare Tunnel URL on your phone.
 - On Android, check Chrome site settings and OS camera permissions.
 - If you previously denied permission, clear the site's camera permission and reload.
 
-### Still Using HTTP
+### Still Using HTTP or Local IP HTTPS
 
 - The phone must open the tunnel URL beginning with `https://`.
 - Do not open the local laptop IP address over plain HTTP for QR scanner testing.
+- Do not open `https://192.168.x.x:3000`; local IP HTTPS causes invalid certificate errors on iPhone Safari.
 - Do not use `http://localhost:3000` on the phone; that points to the phone itself, not your laptop.
 
 ### NEXTAUTH_URL Mismatch

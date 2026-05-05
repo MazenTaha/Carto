@@ -8,10 +8,21 @@
   ▲ Next.js 14.2.35
   - Local:        https://localhost:3000
   - Network:      http://0.0.0.0:3000
-  - Environments: .env
+  - Environments: .env.local, .env
 
  ✓ Starting...
 > [PWA] PWA support is disabled
 > [PWA] PWA support is disabled
- ✓ Ready in 2.9s
+ ✓ Ready in 2.6s
+ ○ Compiling / ...
+ ✓ Compiled / in 6s (897 modules)
+ GET / 307 in 13049ms
+ ○ Compiling /auth/signin ...
+ ✓ Compiled /auth/signin in 15.1s (1095 modules)
+ GET /auth/signin 200 in 8959ms
+ ✓ Compiled /api/auth/[...nextauth] in 231ms (761 modules)
+ GET /api/auth/session 200 in 1158ms
+ GET /api/auth/session 200 in 1166ms
+ ✓ Compiled in 1855ms (846 modules)
+ ✓ Compiled in 380ms (352 modules)
 [?25h

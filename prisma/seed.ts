@@ -1,7 +1,11 @@
 const { PrismaClient } = require('@prisma/client')
+const bcrypt = require('bcryptjs')
 require('dotenv').config()
 
 const prisma = new PrismaClient()
+
+const ADMIN_EMAIL = 'admin@gmail.com'
+const ADMIN_PASSWORD = 'Admin_1'
 
 // Curated product dataset - 300+ generic grocery items
 const products = [
@@ -1549,6 +1553,20 @@ async function main() {
     let count = 0
     let skipped = 0
 
+    const adminPasswordHash = await bcrypt.hash(ADMIN_PASSWORD, 12)
+    await prisma.user.upsert({
+        where: { email: ADMIN_EMAIL },
+        update: {
+            password: adminPasswordHash,
+            name: 'Admin',
+        },
+        create: {
+            email: ADMIN_EMAIL,
+            password: adminPasswordHash,
+            name: 'Admin',
+        },
+    })
+
     for (const product of products) {
         // Use findFirst with mode: 'insensitive' to correctly skip duplicates
         const existing = await prisma.product.findFirst({
@@ -1604,6 +1622,7 @@ async function main() {
     const totalCount = await prisma.product.count()
     console.log(`Seeding finished. Added ${count} new products, skipped ${skipped} duplicates.`)
     console.log(`Total unique products in database: ${totalCount}`)
+    console.log(`Admin test account ready: ${ADMIN_EMAIL}`)
 }
 
 main()

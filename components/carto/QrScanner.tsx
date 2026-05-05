@@ -112,7 +112,7 @@ export function QrScanner({
     }
 
     if (!window.isSecureContext) {
-      setError('Camera access requires HTTPS on phones. Run Carto with HTTPS or use a secure tunnel, then reopen this page.');
+      setError('Camera access requires a trusted HTTPS URL on iPhone. Use ngrok or Cloudflare Tunnel and open the HTTPS tunnel link.');
       return;
     }
 

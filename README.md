@@ -82,24 +82,39 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 ### iPhone Camera Testing
 
-The QR scanner needs HTTPS on phones. A local network URL like `http://192.168.x.x:3000` will load the app, but iOS will block camera access.
+The QR scanner needs a trusted HTTPS page on iPhone Safari because it uses camera APIs. Do not open `https://192.168.x.x:3000` directly for QR scanner testing. Local IP HTTPS usually uses an invalid or self-signed certificate, so Safari shows "This Connection Is Not Private" and camera access will not be reliable.
 
-For the easiest mobile test, run Carto and a secure tunnel in two terminals:
+Use a public HTTPS tunnel that forwards to your local Next.js server on port `3000`.
 
+Terminal 1:
 ```bash
 npm run dev
-npm run tunnel
 ```
 
-Open the generated `https://...loca.lt` URL on the iPhone. If `NEXTAUTH_URL` is set in `.env`, set it to that HTTPS tunnel URL and restart the dev server.
+Terminal 2 with ngrok:
+```bash
+npx ngrok http 3000
+```
 
-You can also run local HTTPS with:
+Open the generated HTTPS forwarding URL on iPhone Safari, for example:
 
 ```bash
-npm run dev:https
+https://xxxx.ngrok-free.app
 ```
 
-Then open the shown `https://<your-computer-ip>:3000` URL on the iPhone and trust the local development certificate if iOS asks.
+Alternative with Cloudflare Tunnel:
+
+```bash
+cloudflared tunnel --url http://localhost:3000
+```
+
+Then open the generated HTTPS URL, for example:
+
+```bash
+https://xxxx.trycloudflare.com
+```
+
+If `NEXTAUTH_URL` is set in `.env`, temporarily set it to the exact tunnel origin and restart `npm run dev`.
 
 ## Project Structure
 

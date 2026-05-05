@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:lan": "next dev -H 0.0.0.0 -p 3000",
     "dev:host": "next dev -H 0.0.0.0",
     "dev:https": "next dev --experimental-https -H 0.0.0.0",
-    "tunnel": "npx --yes localtunnel --port 3000",
+    "tunnel": "npx ngrok http 3000",
+    "tunnel:ngrok": "npx ngrok http 3000",
+    "tunnel:cloudflare": "cloudflared tunnel --url http://localhost:3000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

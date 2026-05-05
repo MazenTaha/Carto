@@ -1,0 +1,9 @@
+DO $$
+BEGIN
+  CREATE TYPE "SessionStatus" AS ENUM ('ACTIVE', 'DISCONNECTED', 'COMPLETED', 'CHECKED_OUT');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+ALTER TABLE "cart_sessions"
+  ADD COLUMN IF NOT EXISTS "status" "SessionStatus" NOT NULL DEFAULT 'ACTIVE';
