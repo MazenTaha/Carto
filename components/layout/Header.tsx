@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
+import { SignOutButton } from '@/components/auth/SignOutButton';
+import { useSession } from 'next-auth/react';
+
 
 interface HeaderProps {
   title?: string;
@@ -23,6 +26,8 @@ export function Header({
   className,
   showLogo = false,
 }: HeaderProps) {
+  const { data: session } = useSession();
+
   return (
     <header
       className={cn(
@@ -59,7 +64,15 @@ export function Header({
           </Link>
         )}
       </div>
-      <div className="flex min-w-10 items-center justify-end">{rightElement}</div>
+      <div className="flex min-w-10 items-center justify-end gap-2">
+        {session && (
+          <>
+            <SignOutButton className="hidden sm:inline-flex" />
+            <SignOutButton variant="icon" className="sm:hidden" />
+          </>
+        )}
+        {rightElement}
+      </div>
     </header>
   );
 }

@@ -1,0 +1,50 @@
+import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { ApiErrorResponse } from '../api-response';
+
+export class DeviceAuthService {
+  /**
+   * Extracts the Bearer token from the authorization header.
+   */
+  public static getBearerToken(request: NextRequest): string | null {
+    const authorization = request.headers.get('authorization') || '';
+    const [scheme, token] = authorization.split(' ');
+    return scheme?.toLowerCase() === 'bearer' ? token : null;
+  }
+
+  /**
+   * Verifies that the request contains a valid device secret for the given cart code.
+   * Updates the lastSeen timestamp of the cart if successful.
+   * Returns the authenticated Cart record.
+   */
+  public static async authenticateDevice(request: NextRequest, cartCode: string) {
+    const deviceSecret = this.getBearerToken(request);
+
+    if (!deviceSecret) {
+      throw new ApiErrorResponse('Unauthorized device: Missing bearer token', 401, 'UNAUTHORIZED');
+    }
+
+    const cart = await prisma.cart.findUnique({
+      where: { cartCode },
+      select: {
+        id: true,
+        cartCode: true,
+        status: true,
+        deviceSecret: true,
+      },
+    });
+
+    if (!cart || !cart.deviceSecret || cart.deviceSecret !== deviceSecret) {
+      throw new ApiErrorResponse('Unauthorized device: Invalid credentials', 401, 'UNAUTHORIZED');
+    }
+
+    // Optionally update lastSeen asynchronously without blocking the main request
+    // This tracks device health without adding latency
+    prisma.cart.update({
+      where: { id: cart.id },
+      data: { lastSeen: new Date() },
+    }).catch((err: any) => console.error('Failed to update cart lastSeen:', err));
+
+    return cart;
+  }
+}

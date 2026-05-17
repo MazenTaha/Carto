@@ -48,6 +48,30 @@ export default function SignInPage() {
       setIsLoading(false);
     }
   };
+  const handleAdminQuickAccess = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    try {
+      const result = await signIn('credentials', {
+        email: 'admin@gmail.com',
+        password: 'Admin_1',
+        redirect: false,
+      });
+
+      if (result?.error) {
+        console.error('NextAuth sign in error:', result.error);
+        setError('Admin account not found or password incorrect. Try restarting the dev server.');
+      } else {
+        router.push('/admin');
+      }
+    } catch (err) {
+      console.error('Admin quick access error:', err);
+      setError('An error occurred during admin quick access.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     setError('');
@@ -226,6 +250,28 @@ export default function SignInPage() {
           </svg>
           {isGoogleLoading ? 'Opening...' : 'Google'}
         </button>
+      </div>
+
+      <div className="w-full px-6 pt-2">
+        <button 
+          type="button"
+          onClick={handleAdminQuickAccess}
+          disabled={isLoading || isGoogleLoading || isPhoneLoading}
+          className="group flex items-center justify-center gap-3 w-full rounded-xl border border-indigo-100 bg-indigo-50/50 py-4 text-indigo-700 transition-all hover:bg-indigo-100 hover:shadow-sm disabled:opacity-50 dark:border-indigo-900/30 dark:bg-indigo-900/20 dark:text-indigo-300 dark:hover:bg-indigo-900/30"
+        >
+          <span className="material-symbols-outlined text-xl transition-transform group-hover:scale-110">admin_panel_settings</span>
+          <span className="font-bold tracking-tight text-base">Admin Dashboard</span>
+        </button>
+      </div>
+
+      <div className="w-full px-6 pt-2">
+        <Link 
+          href="/device-simulator"
+          className="group flex items-center justify-center gap-3 w-full rounded-xl border border-slate-200 bg-slate-50 py-4 text-slate-700 transition-all hover:bg-slate-100 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          <span className="material-symbols-outlined text-xl transition-transform group-hover:scale-110">shopping_cart</span>
+          <span className="font-bold tracking-tight text-base">Device Simulator</span>
+        </Link>
       </div>
 
       <div className="w-full px-6 pt-6">

@@ -19,3 +19,12 @@
 2026-05-05T14:56:59Z INF ICMP proxy will use fe80::a9a5:c30f:b2b7:5be2 in zone Ethernet as source for IPv6
 2026-05-05T14:56:59Z INF Starting metrics server on 127.0.0.1:20241/metrics
 2026-05-05T14:56:59Z INF Registered tunnel connection connIndex=0 connection=99660b24-bb4c-40f2-971e-8e4e74152623 event=0 ip=198.41.200.13 location=fco01 protocol=http2
+2026-05-05T16:49:03Z ERR failed to serve incoming request error="Error shutting down control stream: context canceled"
+2026-05-05T16:49:03Z ERR Serve tunnel error error="Error shutting down control stream: context canceled" connIndex=0 event=0 ip=198.41.200.13
+2026-05-05T16:49:03Z INF Retrying connection in up to 1s connIndex=0 event=0 ip=198.41.200.13
+2026-05-05T16:49:04Z ERR Connection terminated error="Error shutting down control stream: context canceled" connIndex=0
+2026-05-05T16:49:29Z ERR Unable to establish connection with Cloudflare edge error="TLS handshake with edge error: read tcp 192.168.100.180:60131->198.41.200.13:7844: i/o timeout" connIndex=0 event=0 ip=198.41.200.13
+2026-05-05T16:49:29Z ERR Serve tunnel error error="TLS handshake with edge error: read tcp 192.168.100.180:60131->198.41.200.13:7844: i/o timeout" connIndex=0 event=0 ip=198.41.200.13
+2026-05-05T16:49:29Z INF Retrying connection in up to 4s connIndex=0 event=0 ip=198.41.200.13
+2026-05-05T16:49:31Z ERR Connection terminated error="TLS handshake with edge error: read tcp 192.168.100.180:60131->198.41.200.13:7844: i/o timeout" connIndex=0
+2026-05-05T16:50:03Z INF Registered tunnel connection connIndex=0 connection=594a4961-f8f3-41fe-b066-cfe9558c083c event=0 ip=198.41.200.193 location=fco01 protocol=http2

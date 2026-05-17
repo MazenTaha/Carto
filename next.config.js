@@ -62,6 +62,20 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    serverComponentsExternalPackages: ['firebase-admin'],
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        stream: false,
+        crypto: false,
+        fs: false,
+        os: false,
+        path: false,
+      };
+    }
+    return config;
   },
 };
 

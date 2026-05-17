@@ -84,7 +84,7 @@ function StartSessionContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to link cart');
+        throw new Error(data.error?.message || data.error || 'Failed to link cart');
       }
 
       router.push(`/session?sessionId=${data.data.sessionId || data.data.id}`);

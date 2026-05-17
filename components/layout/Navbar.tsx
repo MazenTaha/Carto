@@ -10,8 +10,9 @@ import { Logo } from '@/components/ui/Logo';
 export function Navbar() {
   const { data: session } = useSession();
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/auth/signin' });
+  const handleSignOut = async () => {
+    await signOut({ redirect: false });
+    window.location.href = '/auth/signin';
   };
 
   return (

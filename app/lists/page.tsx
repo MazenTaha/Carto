@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/Badge';
 import { ListsOverview, type ListOverviewItem } from '@/components/lists/ListsOverview';
 import { purgeExpiredShoppingLists } from '@/lib/list-retention';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+import { SignOutButton } from '@/components/auth/SignOutButton';
+
 
 function serializeList(list: any): ListOverviewItem {
   return {
@@ -59,13 +61,15 @@ export default async function ListsPage({
             <Logo width={104} height={38} />
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            <Badge variant={isActivationFlow ? 'success' : 'muted'}>
+            <Badge variant={isActivationFlow ? 'success' : 'muted'} className="hidden sm:inline-flex">
               {isActivationFlow ? 'Activation mode' : `${lists.length} lists`}
             </Badge>
+            <SignOutButton className="hidden sm:inline-flex" />
             <Link href="/lists/new" className="hidden h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-glow transition active:scale-95 sm:inline-flex">
               <span className="material-symbols-outlined text-[20px]">add</span>
               New List
             </Link>
+            <SignOutButton variant="icon" className="sm:hidden" />
           </div>
         </div>
       </header>
