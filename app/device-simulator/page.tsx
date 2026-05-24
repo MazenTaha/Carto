@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { ShoppingCart, Receipt, WifiOff, RefreshCw } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import QRCode from 'react-qr-code';
 import { PageContainer } from '@/components/layout/PageContainer';
 
-const fetcher = async ([url, deviceSecret]: [string, string]) => {
+const deviceFetcher = async ([url, deviceSecret]: [string, string]) => {
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${deviceSecret}`,
@@ -23,15 +23,31 @@ const fetcher = async ([url, deviceSecret]: [string, string]) => {
   return res.json();
 };
 
+const qrFetcher = async ([url, deviceSecret]: [string, string]) => {
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${deviceSecret}`,
+      'Cache-Control': 'no-cache',
+    },
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData?.error?.message || 'Failed to fetch QR code');
+  }
+
+  return res.json();
+};
+
 export default function DeviceSimulatorPage() {
   const [deviceSecret, setDeviceSecret] = useState('dev-device-secret');
   const [cartCode, setCartCode] = useState('CART-001');
   const [isConnected, setIsConnected] = useState(false);
 
   // Poll every 2.5 seconds when connected
-  const { data, error, isLoading, mutate } = useSWR(
+  const { data, error, isLoading } = useSWR(
     isConnected ? [`/api/carts/${cartCode}/active-session`, deviceSecret] : null,
-    fetcher,
+    deviceFetcher,
     {
       refreshInterval: 2500,
       dedupingInterval: 2000,
@@ -52,22 +68,37 @@ export default function DeviceSimulatorPage() {
 
   const isCartInUse = data?.data?.active;
   const sessionData = data?.data;
+  const cartStatus = sessionData?.status;
+  const isCartAvailable = cartStatus === 'AVAILABLE';
 
-  // Fetch a new QR code payload only when connected and NOT in use.
-  // This avoids generating new pairing codes while a shopper is active.
-  const { data: qrData, mutate: refreshQr } = useSWR(
-    isConnected && !isCartInUse ? [`/api/carts/${cartCode}/qrcode`, deviceSecret] : null,
-    fetcher,
+  // The QR identifies the cart only. The backend creates CartSession after scan,
+  // and the cart receives the assigned list/receipt later through polling.
+  const { data: qrData, error: qrError, mutate: refreshQr } = useSWR(
+    isConnected && isCartAvailable && !isCartInUse
+      ? [`/api/carts/${cartCode}/qrcode`, deviceSecret]
+      : null,
+    qrFetcher,
     {
-      refreshInterval: 4.5 * 60 * 1000, // Refresh 30 seconds before 5-min expiration
-      revalidateOnFocus: false, // Don't generate new code just on tab focus
+      revalidateOnFocus: false,
       dedupingInterval: 10000,
     }
   );
 
-  // Derived state from the API response
-  const activePairingCode = qrData?.data?.pairingCode || 'Loading...';
-  const qrPayloadString = qrData?.data?.payload ? JSON.stringify(qrData.data.payload) : '';
+  const qrValue = qrData?.data?.qrValue || '';
+  const activePairingCode = qrData?.data?.payload?.pairingCode || 'Loading...';
+  const pairingExpiresAt = qrData?.data?.expiresAt || '';
+  const formattedExpiry = pairingExpiresAt ? new Date(pairingExpiresAt).toLocaleTimeString() : 'Loading...';
+
+  useEffect(() => {
+    if (!isConnected || isCartInUse || !pairingExpiresAt) return;
+
+    const refreshInMs = Math.max(new Date(pairingExpiresAt).getTime() - Date.now() + 250, 1000);
+    const timeoutId = window.setTimeout(() => {
+      void refreshQr();
+    }, refreshInMs);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isConnected, isCartInUse, pairingExpiresAt, refreshQr]);
 
   return (
     <PageContainer>
@@ -130,6 +161,13 @@ export default function DeviceSimulatorPage() {
                 </div>
               )}
 
+              {qrError && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-lg text-sm flex items-start gap-2">
+                  <WifiOff className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{qrError.message}</span>
+                </div>
+              )}
+
               {isConnected ? (
                 <button
                   type="button"
@@ -151,15 +189,16 @@ export default function DeviceSimulatorPage() {
 
           {/* Connection Status Log */}
           <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 shadow-sm font-mono text-xs text-green-400 h-48 overflow-y-auto">
-            <p className="text-slate-500 mb-2">// Device Log</p>
+            <p className="text-slate-500 mb-2">Device Log</p>
             {isConnected ? (
               <>
                 <p>&gt; Device initialized</p>
                 <p>&gt; Authenticating with {cartCode}...</p>
                 {isLoading && <p>&gt; Polling active session...</p>}
                 {data && <p>&gt; Received payload [200 OK]</p>}
-                {qrData && !isCartInUse && <p>&gt; Generated new pairing QR [200 OK]</p>}
+                {qrData && !isCartInUse && <p>&gt; Generated authenticated pairing QR [200 OK]</p>}
                 {error && <p className="text-red-400">&gt; Connection failed: {error.message}</p>}
+                {qrError && <p className="text-amber-300">&gt; QR generation failed: {qrError.message}</p>}
                 {isCartInUse && <p className="text-blue-400">&gt; Session ACTIVE. Disabling QR.</p>}
               </>
             ) : (
@@ -196,20 +235,27 @@ export default function DeviceSimulatorPage() {
                   <RefreshCw className="w-12 h-12 mb-4 animate-spin opacity-50" />
                   <p>Booting OS...</p>
                 </div>
-              ) : !isCartInUse ? (
+              ) : isCartAvailable && !isCartInUse ? (
                 <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500">
                   <div className="bg-white p-6 rounded-3xl mb-6 shadow-2xl flex items-center justify-center min-h-[240px] min-w-[240px]">
-                    {qrPayloadString ? (
-                      <QRCodeSVG value={qrPayloadString} size={192} />
+                    {qrValue ? (
+                      <QRCode value={qrValue} size={192} />
                     ) : (
                       <RefreshCw className="w-8 h-8 text-slate-300 animate-spin" />
                     )}
                   </div>
                   <h1 className="text-3xl font-bold text-white mb-2">Scan to Shop</h1>
                   <p className="text-slate-400 text-lg">Use the Carto app to scan this QR code.</p>
-                  <div className="mt-8 px-6 py-2 bg-slate-800/50 rounded-full font-mono text-slate-300">
-                    Pairing Code: {activePairingCode}
+                  <div className="mt-8 grid grid-cols-1 gap-2 rounded-2xl bg-slate-800/50 px-6 py-4 text-left font-mono text-sm text-slate-300">
+                    <div>Cart Code: {cartCode}</div>
+                    <div>Pairing Code: {activePairingCode}</div>
+                    <div>Expires: {formattedExpiry}</div>
                   </div>
+                </div>
+              ) : !isCartInUse ? (
+                <div className="text-slate-400 flex flex-col items-center">
+                  <RefreshCw className="w-12 h-12 mb-4 animate-spin opacity-50" />
+                  <p>Waiting for available cart status...</p>
                 </div>
               ) : (
                 <div className="w-full h-full flex flex-col items-start text-left animate-in fade-in slide-in-from-bottom-8 duration-500">

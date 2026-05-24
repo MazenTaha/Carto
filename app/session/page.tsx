@@ -14,6 +14,14 @@ import { useSessionStore } from '@/store/session-store';
 import { calculateProgress, formatCurrency } from '@/lib/utils';
 import { ListItem } from '@/types';
 
+type SessionFetchResult = 'live' | 'stopped' | 'missing' | 'error';
+
+function getApiErrorMessage(data: any, fallback: string) {
+  if (data?.error?.message) return data.error.message;
+  if (typeof data?.error === 'string') return data.error;
+  return fallback;
+}
+
 function SessionContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -29,6 +37,7 @@ function SessionContent() {
   const setConnected = useSessionStore((state) => state.setConnected);
   const [isLoading, setIsLoading] = useState(true);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [error, setError] = useState('');
   const sessionRequestInFlightRef = useRef(false);
   const activeRequestInFlightRef = useRef(false);
   const isMountedRef = useRef(true);
@@ -39,23 +48,47 @@ function SessionContent() {
     };
   }, []);
 
-  const fetchSession = useCallback(async () => {
-    if (!sessionId || sessionRequestInFlightRef.current) return;
+  const fetchSession = useCallback(async (): Promise<SessionFetchResult> => {
+    if (!sessionId || sessionRequestInFlightRef.current) return 'missing';
     sessionRequestInFlightRef.current = true;
 
     try {
-      const response = await fetch(`/api/sessions/${sessionId}`);
+      // WebApp session data always comes from the backend. The Raspberry Pi
+      // reads the same backend session through its separate active-session API.
+      const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`, { cache: 'no-store' });
       const data = await response.json();
+
+      if (!response.ok || data?.success === false) {
+        const message = getApiErrorMessage(data, 'Could not load this cart session.');
+        if (isMountedRef.current) {
+          setError(message);
+          setConnected(false);
+          if (response.status === 404) {
+            setSession(null);
+            setReceipt(null);
+            updateProgress(0, 0);
+          }
+        }
+        return response.status === 404 ? 'missing' : 'error';
+      }
+
       if (data.success && isMountedRef.current) {
         setSession(data.data.session);
         setReceipt(data.data.receipt);
         setConnected(data.data.session.status === 'ACTIVE');
+        setError('');
         if (data.data.session.shoppingList?.items) {
           const items: ListItem[] = data.data.session.shoppingList.items;
           updateProgress(items.length, items.filter((item) => item.isCollected).length);
         }
+        return data.data.session.status === 'ACTIVE' || data.data.session.status === 'DISCONNECTED' ? 'live' : 'stopped';
       }
+      return 'missing';
     } catch (err) {
+      if (isMountedRef.current) {
+        setError('Could not reach the backend. Check your connection and try again.');
+      }
+      return 'error';
     } finally {
       sessionRequestInFlightRef.current = false;
       if (isMountedRef.current) {
@@ -64,23 +97,50 @@ function SessionContent() {
     }
   }, [sessionId, setSession, setReceipt, setConnected, updateProgress]);
 
-  const fetchActiveSession = useCallback(async () => {
-    if (activeRequestInFlightRef.current) return;
+  const fetchActiveSession = useCallback(async (): Promise<SessionFetchResult> => {
+    if (activeRequestInFlightRef.current) return 'missing';
     activeRequestInFlightRef.current = true;
 
     try {
-      const response = await fetch('/api/sessions/active');
+      const response = await fetch('/api/sessions/active', { cache: 'no-store' });
       const data = await response.json();
+
+      if (!response.ok || data?.success === false) {
+        if (isMountedRef.current) {
+          setError(getApiErrorMessage(data, 'Could not load your active session.'));
+          setConnected(false);
+        }
+        return 'error';
+      }
+
+      if (!data.data) {
+        if (isMountedRef.current) {
+          setSession(null);
+          setReceipt(null);
+          setConnected(false);
+          updateProgress(0, 0);
+          setError('');
+        }
+        return 'missing';
+      }
+
       if (data.success && data.data && isMountedRef.current) {
         setSession(data.data.session);
         setReceipt(data.data.receipt);
         setConnected(data.data.session.status === 'ACTIVE');
+        setError('');
         if (data.data.session.shoppingList?.items) {
           const items = data.data.session.shoppingList.items;
           updateProgress(items.length, items.filter((item: any) => item.isCollected).length);
         }
+        return data.data.session.status === 'ACTIVE' || data.data.session.status === 'DISCONNECTED' ? 'live' : 'stopped';
       }
+      return 'missing';
     } catch (err) {
+      if (isMountedRef.current) {
+        setError('Could not reach the backend. Check your connection and try again.');
+      }
+      return 'error';
     } finally {
       activeRequestInFlightRef.current = false;
       if (isMountedRef.current) {
@@ -90,19 +150,33 @@ function SessionContent() {
   }, [setSession, setReceipt, setConnected, updateProgress]);
 
   useEffect(() => {
-    if (sessionId) {
-      fetchSession();
-      const interval = setInterval(fetchSession, 3000);
-      return () => clearInterval(interval);
-    }
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let cancelled = false;
+    const fetchCurrentSession = sessionId ? fetchSession : fetchActiveSession;
 
-    fetchActiveSession();
-    const interval = setInterval(fetchActiveSession, 3000);
-    return () => clearInterval(interval);
+    const startPollingIfLive = async () => {
+      const result = await fetchCurrentSession();
+      if (cancelled || result !== 'live') return;
+
+      interval = setInterval(async () => {
+        const nextResult = await fetchCurrentSession();
+        if (nextResult !== 'live' && interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      }, 3000);
+    };
+
+    void startPollingIfLive();
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
   }, [sessionId, fetchSession, fetchActiveSession]);
 
   const handleFinishShopping = async () => {
-    if (!session || isFinishing) return;
+    if (!session || isFinishing || (session.status !== 'ACTIVE' && session.status !== 'DISCONNECTED')) return;
     setIsFinishing(true);
     try {
       const response = await fetch(`/api/sessions/${session.id}/finish`, { method: 'POST' });
@@ -129,8 +203,8 @@ function SessionContent() {
         <main className="flex min-h-screen items-center justify-center p-4">
           <EmptyState
             icon="shopping_basket"
-            title="No active session"
-            description="Select a shopping list first, then scan the QR code on a cart to start a live session."
+            title={error ? 'Session unavailable' : 'No active session'}
+            description={error || 'Select a shopping list first, then scan the QR code on a cart to start a live session.'}
             actionLabel="Select a list"
             actionHref="/lists?activate=1"
             className="max-w-md"
@@ -141,6 +215,7 @@ function SessionContent() {
   }
 
   const progressData = calculateProgress(progress.total, progress.collected);
+  const isSessionLive = session.status === 'ACTIVE' || session.status === 'DISCONNECTED';
   const remainingItems: ListItem[] = session.shoppingList?.items?.filter((item: ListItem) => !item.isCollected) || [];
   const collectedItems: ListItem[] = session.shoppingList?.items?.filter((item: ListItem) => item.isCollected) || [];
 
@@ -151,15 +226,27 @@ function SessionContent() {
         showBack
         onBack={() => router.push('/dashboard')}
         rightElement={
-          <Badge variant={isConnected ? 'success' : 'warning'}>
+          <Badge variant={isSessionLive && isConnected ? 'success' : 'warning'}>
             <span className="size-1.5 rounded-full bg-current" />
-            {isConnected ? 'Linked' : 'Syncing'}
+            {isSessionLive ? (isConnected ? 'Linked' : 'Syncing') : 'Ended'}
           </Badge>
         }
       />
 
       <main className="grid flex-1 gap-6 pb-44 pt-6 lg:grid-cols-[1fr_380px] md:pb-10">
         <div className="space-y-6">
+          {error && (
+            <section className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+              {error}
+            </section>
+          )}
+
+          {!isSessionLive && (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+              This session is {session.status.toLowerCase().replace('_', ' ')}. Live polling has stopped.
+            </section>
+          )}
+
           <section className="rounded-3xl bg-slate-950 p-5 text-white shadow-soft md:p-6">
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div>
@@ -203,7 +290,7 @@ function SessionContent() {
               </div>
               <div className="grid gap-3 text-sm sm:grid-cols-3">
                 <div>
-                  <p className="font-bold text-slate-500">Bluetooth</p>
+                  <p className="font-bold text-slate-500">Device name</p>
                   <p className="mt-1 truncate font-black text-slate-900 dark:text-slate-100">{session.cart.bluetoothName || 'Not provided'}</p>
                 </div>
                 <div>
@@ -279,7 +366,7 @@ function SessionContent() {
             <span className="text-sm font-bold text-slate-500">Estimated total</span>
             <span className="text-2xl font-black text-slate-950 dark:text-slate-100">{formatCurrency(receipt?.total || 0)}</span>
           </div>
-          <Button size="lg" className="w-full" onClick={handleFinishShopping} disabled={isFinishing}>
+          <Button size="lg" className="w-full" onClick={handleFinishShopping} disabled={isFinishing || !isSessionLive}>
             <span className="material-symbols-outlined">shopping_cart_checkout</span>
             {isFinishing ? 'Preparing checkout...' : 'Finish Shopping'}
           </Button>
@@ -287,7 +374,7 @@ function SessionContent() {
       </div>
 
       <div className="hidden lg:fixed lg:bottom-6 lg:right-6 lg:z-40 lg:block">
-        <Button size="lg" onClick={handleFinishShopping} disabled={isFinishing}>
+        <Button size="lg" onClick={handleFinishShopping} disabled={isFinishing || !isSessionLive}>
           <span className="material-symbols-outlined">shopping_cart_checkout</span>
           {isFinishing ? 'Preparing checkout...' : 'Finish Shopping'}
         </Button>

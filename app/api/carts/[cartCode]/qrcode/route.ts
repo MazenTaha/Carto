@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { prisma } from '@/lib/prisma';
+import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +47,8 @@ export async function GET(
       cartCode: cart.cartCode,
       pairingCode: pairingCode,
       expiresInMs: expiresInMinutes * 60 * 1000,
+      expiresAt: pairingExpiresAt.toISOString(),
+      qrValue: JSON.stringify(payload),
       payload,
     });
     
@@ -59,6 +62,12 @@ export async function GET(
     if (error instanceof ApiErrorResponse) {
       return errorResponse(error.message, error.statusCode, error.code);
     }
+
+    const databaseMessage = getPrismaConnectivityMessage(error);
+    if (databaseMessage) {
+      return errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
+    }
+
     console.error('Error generating QR payload:', error);
     return errorResponse('Failed to generate QR payload', 500, 'INTERNAL_SERVER_ERROR');
   }

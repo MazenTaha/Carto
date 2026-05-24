@@ -3,6 +3,7 @@ import { RecentSessionsTable } from '@/components/admin/dashboard/RecentSessions
 import { ActivityFeed } from '@/components/admin/dashboard/ActivityFeed';
 import { QuickActions } from '@/components/admin/dashboard/QuickActions';
 import { AdminStats } from '@/types/admin';
+import { headers } from 'next/headers';
 import {
   ShoppingCart, Users, Activity, DollarSign,
   Wifi, WifiOff, CheckCircle, Clock,
@@ -12,7 +13,13 @@ export const dynamic = 'force-dynamic';
 
 async function getStats(): Promise<AdminStats | null> {
   try {
-    const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
+    const requestHeaders = headers();
+    const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host');
+
+    if (!host) return null;
+
+    const protocol = requestHeaders.get('x-forwarded-proto') ?? 'https';
+    const baseUrl = process.env.NEXTAUTH_URL ?? `${protocol}://${host}`;
     const res = await fetch(`${baseUrl}/api/admin/stats`, {
       cache: 'no-store',
       headers: { Cookie: '' },
@@ -81,7 +88,7 @@ export default async function AdminDashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Welcome to Carto Admin — here's what's happening right now.
+          Welcome to Carto Admin. Here&apos;s what&apos;s happening right now.
         </p>
       </div>
 

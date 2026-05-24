@@ -38,7 +38,7 @@ export default function SignInPage() {
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        setError(result.error === 'CredentialsSignin' ? 'Invalid email or password' : result.error);
       } else {
         router.push('/dashboard');
       }
@@ -61,7 +61,11 @@ export default function SignInPage() {
 
       if (result?.error) {
         console.error('NextAuth sign in error:', result.error);
-        setError('Admin account not found or password incorrect. Try restarting the dev server.');
+        setError(
+          result.error === 'CredentialsSignin'
+            ? 'Admin account not found or password incorrect. Try restarting the dev server.'
+            : result.error
+        );
       } else {
         router.push('/admin');
       }

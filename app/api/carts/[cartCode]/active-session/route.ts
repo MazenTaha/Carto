@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { PollingService } from '@/lib/services/polling.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
+import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,12 @@ export async function GET(
     if (error instanceof ApiErrorResponse) {
       return errorResponse(error.message, error.statusCode, error.code);
     }
+
+    const databaseMessage = getPrismaConnectivityMessage(error);
+    if (databaseMessage) {
+      return errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
+    }
+
     console.error('Error fetching device active session:', error);
     return errorResponse('Failed to fetch active session', 500, 'INTERNAL_SERVER_ERROR');
   }

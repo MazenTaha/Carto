@@ -12,9 +12,17 @@ export async function POST(request: NextRequest) {
       return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return errorResponse('Request body must be valid JSON.', 400, 'INVALID_JSON');
+    }
+
     const validatedData = linkCartSchema.parse(body);
 
+    // The WebApp sends only the selected list plus the cart QR identity.
+    // The backend owns session creation; the Raspberry Pi reads it later via Wi-Fi.
     const sessionData = await CartPairingService.linkCart(owner, {
       cartCode: validatedData.cartCode,
       pairingCode: validatedData.pairingCode,
@@ -37,6 +45,10 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof ApiErrorResponse) {
       return errorResponse(error.message, error.statusCode, error.code);
+    }
+
+    if (error?.code === 'P2034') {
+      return errorResponse('Cart link is being processed. Please try again.', 409, 'CART_LINK_CONFLICT');
     }
 
     console.error('Error linking cart:', error);

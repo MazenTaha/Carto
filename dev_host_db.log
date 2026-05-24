@@ -1,0 +1,33 @@
+
+> carto@0.1.0 dev
+> next dev -H 0.0.0.0 -p 3000
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+> [PWA] PWA support is disabled
+> [PWA] PWA support is disabled
+ ✓ Ready in 2.7s
+ ○ Compiling /api/carts/[cartCode]/active-session ...
+ ✓ Compiled /api/carts/[cartCode]/active-session in 14.1s (890 modules)
+ GET /auth/signin 200 in 15166ms
+ ✓ Compiled in 1225ms (351 modules)
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 16461ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 1809ms (333 modules)
+ GET /api/auth/csrf 200 in 2915ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."password", "public"."users"."name", "public"."users"."phoneNumber", "public"."users"."image", "public"."users"."createdAt", "public"."users"."updatedAt" FROM "public"."users" WHERE ("public"."users"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ POST /api/auth/callback/credentials 200 in 663ms
+ ✓ Compiled in 40ms
+ ○ Compiling / ...
+ ✓ Compiled / in 5.1s (945 modules)
+prisma:query SELECT "public"."guest_sessions"."id", "public"."guest_sessions"."expiresAt" FROM "public"."guest_sessions" WHERE ("public"."guest_sessions"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET / 307 in 6649ms
+ ✓ Compiled /middleware in 408ms (215 modules)

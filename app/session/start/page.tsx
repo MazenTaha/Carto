@@ -19,6 +19,12 @@ function cn(...inputs: ClassValue[]) {
 
 type CartQrPayload = z.infer<typeof cartQrPayloadSchema>;
 
+function getApiErrorMessage(data: any, fallback: string) {
+  if (data?.error?.message) return data.error.message;
+  if (typeof data?.error === 'string') return data.error;
+  return fallback;
+}
+
 function parseCartQr(raw: string): { cart?: CartQrPayload; error?: string } {
   try {
     const parsed = JSON.parse(raw.trim());
@@ -74,6 +80,8 @@ function StartSessionContent() {
       const response = await fetch('/api/cart/link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // The QR supplies only cart identity and a pairing token.
+        // The backend validates them and creates the CartSession for the selected list.
         body: JSON.stringify({
           listId,
           cartCode: cartCode.trim(),
@@ -83,11 +91,17 @@ function StartSessionContent() {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || 'Failed to link cart');
+      if (!response.ok || data?.success === false) {
+        throw new Error(getApiErrorMessage(data, 'Failed to link cart'));
       }
 
-      router.push(`/session?sessionId=${data.data.sessionId || data.data.id}`);
+      const sessionId = data?.data?.sessionId || data?.data?.id;
+
+      if (!sessionId) {
+        throw new Error('Cart linked, but the backend did not return a session ID.');
+      }
+
+      router.push(`/session?sessionId=${encodeURIComponent(sessionId)}`);
     } catch (err: any) {
       setError(err.message || 'An error occurred');
     } finally {
@@ -145,12 +159,14 @@ function StartSessionContent() {
             if (result.error || !result.cart) {
               setScannedCart(null);
               setError(result.error || 'Invalid cart QR code.');
-              return;
+              return false;
             }
 
             setScannedCart(result.cart);
             setManualCartCode(result.cart.cartCode);
             setManualPairingCode(result.cart.pairingCode);
+            // The phone does not connect to the Raspberry Pi. This request asks
+            // the backend to bind the selected list to the cart identity in the QR.
             void linkCart(result.cart.cartCode, result.cart.pairingCode);
           }}
         />

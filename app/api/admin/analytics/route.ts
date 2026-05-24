@@ -73,7 +73,10 @@ export async function GET(req: NextRequest) {
       fill: COLORS[name] ?? '#94a3b8',
     }));
 
-    const totalRevenue = sessions.reduce((s, r) => s + (r.receipt?.total ?? 0), 0);
+    const totalRevenue = sessions.reduce(
+      (sum: number, session: { receipt: { total: number } | null }) => sum + (session.receipt?.total ?? 0),
+      0
+    );
     const avgBasketSize = sessions.length > 0 ? totalRevenue / sessions.length : 0;
 
     return NextResponse.json({

@@ -94,7 +94,10 @@ export interface AdminSessionRow {
   endedAt: string | null;
   durationSeconds?: number;
   itemCount?: number;
+  collectedCount?: number;
   total?: number;
+  receiptStatus?: string | null;
+  paymentStatus?: string | null;
 }
 
 // ─── Admin User ───────────────────────────────────────────────────────────────

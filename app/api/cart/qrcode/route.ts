@@ -1,14 +1,13 @@
-// QR code generation API route for physical Carto cart pairing payloads.
-
-import { NextRequest, NextResponse } from 'next/server';
-import QRCode from 'qrcode';
+import { NextRequest } from 'next/server';
 import { randomInt } from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { successResponse, errorResponse } from '@/lib/api-response';
+import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
 import { cartQrPayloadSchema } from '@/lib/validations';
 
 export const dynamic = 'force-dynamic';
 
-const PAIRING_TTL_MINUTES = 10;
+const PAIRING_TTL_MINUTES = 5;
 
 function createPairingCode() {
   return String(randomInt(100000, 1000000));
@@ -19,15 +18,13 @@ function getPairingExpiresAt() {
 }
 
 // GET /api/cart/qrcode?cartCode=CART-001
-// Optional for demos: &pairingCode=123456
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const cartCode = searchParams.get('cartCode')?.trim() || searchParams.get('cartId')?.trim();
-    const requestedPairingCode = searchParams.get('pairingCode')?.trim();
+    const cartCode = searchParams.get('cartCode')?.trim();
 
     if (!cartCode) {
-      return NextResponse.json({ error: 'Cart code is required' }, { status: 400 });
+      return errorResponse('Cart code is required', 400, 'VALIDATION_ERROR');
     }
 
     const cart = await prisma.cart.findUnique({
@@ -40,62 +37,66 @@ export async function GET(request: NextRequest) {
     });
 
     if (!cart) {
-      return NextResponse.json({ error: 'Cart not found' }, { status: 404 });
+      return errorResponse('Cart not found', 404, 'NOT_FOUND');
     }
 
-    if (cart.status === 'MAINTENANCE' || cart.status === 'OFFLINE') {
-      return NextResponse.json(
-        { error: `Cart is currently ${cart.status.toLowerCase()}.` },
-        { status: 400 }
-      );
+    if (cart.status !== 'AVAILABLE') {
+      return errorResponse(`Cart is currently ${cart.status.toLowerCase()}.`, 409, 'CART_UNAVAILABLE');
     }
 
-    const pairingCode = requestedPairingCode || createPairingCode();
     const pairingExpiresAt = getPairingExpiresAt();
 
-    await prisma.cart.update({
+    const updatedCart = await prisma.cart.update({
       where: { id: cart.id },
       data: {
-        pairingCode,
+        pairingCode: createPairingCode(),
         pairingExpiresAt,
         qrSessionId: null,
         lastSeen: new Date(),
       },
+      select: {
+        cartCode: true,
+        pairingCode: true,
+        pairingExpiresAt: true,
+      },
     });
+
+    // The QR identifies only the physical cart and its short-lived pairing token.
+    // The backend creates CartSession after scan; the device receives list/receipt data later via polling.
+    if (!updatedCart.pairingCode) {
+      return errorResponse('Failed to generate pairing code', 500, 'PAIRING_CODE_MISSING');
+    }
 
     const payload = cartQrPayloadSchema.parse({
       type: 'cart_pairing',
-      cartCode: cart.cartCode,
-      pairingCode,
+      cartCode: updatedCart.cartCode,
+      pairingCode: updatedCart.pairingCode,
     });
 
-    const qrData = JSON.stringify(payload);
-    const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
-      width: 300,
-      margin: 2,
+    const qrValue = JSON.stringify(payload);
+
+    const response = successResponse({
+      payload,
+      qrValue,
+      expiresAt: updatedCart.pairingExpiresAt?.toISOString() ?? pairingExpiresAt.toISOString(),
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        qrCode: qrCodeDataUrl,
-        qrData,
-        payload,
-        pairingExpiresAt,
-      },
-    });
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: error.errors[0]?.message || 'Invalid QR payload' },
-        { status: 400 }
-      );
+      return errorResponse(error.errors[0]?.message || 'Invalid QR payload', 400, 'VALIDATION_ERROR');
+    }
+
+    const databaseMessage = getPrismaConnectivityMessage(error);
+    if (databaseMessage) {
+      return errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
     }
 
     console.error('Error generating cart QR code:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate cart QR code' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to generate cart QR code', 500, 'INTERNAL_SERVER_ERROR');
   }
 }

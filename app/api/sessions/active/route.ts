@@ -1,8 +1,9 @@
 // Get active session API route
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+import { errorResponse, successResponse } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
     const cartSession = await prisma.cartSession.findFirst({
@@ -114,22 +115,22 @@ export async function GET(request: NextRequest) {
     });
 
     if (!cartSession) {
-      return NextResponse.json({ success: true, data: null });
+      const response = successResponse(null);
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      return response;
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        session: cartSession,
-        receipt: cartSession.receipt,
-      },
+    const response = successResponse({
+      session: cartSession,
+      receipt: cartSession.receipt,
     });
+
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+
+    return response;
   } catch (error) {
     console.error('Error fetching active session:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch active session' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch active session', 500, 'INTERNAL_SERVER_ERROR');
   }
 }
 
