@@ -31,3 +31,674 @@ prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."u
 prisma:query SELECT "public"."guest_sessions"."id", "public"."guest_sessions"."expiresAt" FROM "public"."guest_sessions" WHERE ("public"."guest_sessions"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
  GET / 307 in 6649ms
  ✓ Compiled /middleware in 408ms (215 modules)
+ ✓ Compiled /auth/signin in 224ms (758 modules)
+ GET /auth/signin?callbackUrl=%2Fdashboard 200 in 586ms
+ ✓ Compiled /api/auth/[...nextauth] in 224ms (762 modules)
+ GET /api/auth/session 200 in 367ms
+ GET /api/auth/session 200 in 35ms
+ GET /api/auth/providers 200 in 36ms
+ GET /api/auth/csrf 200 in 17ms
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."password", "public"."users"."name", "public"."users"."phoneNumber", "public"."users"."image", "public"."users"."createdAt", "public"."users"."updatedAt" FROM "public"."users" WHERE ("public"."users"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ POST /api/auth/callback/credentials 200 in 585ms
+ GET /api/auth/session 200 in 36ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 544ms (1122 modules)
+prisma:query DELETE FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."permanentDeleteAt" <= $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL)
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) ORDER BY "public"."shopping_lists"."updatedAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."list_items"."id", "public"."list_items"."isCollected", "public"."list_items"."listId" FROM "public"."list_items" WHERE "public"."list_items"."listId" IN ($1) OFFSET $2
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."shopping_lists"."id" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) OFFSET $2) AS "sub"
+prisma:query SELECT SUM("total") FROM (SELECT "public"."receipts"."total" FROM "public"."receipts" WHERE ("public"."receipts"."userId" = $1 AND "public"."receipts"."guestSessionId" IS NULL AND "public"."receipts"."status" = CAST($2::text AS "public"."ReceiptStatus")) OFFSET $3) AS "sub"
+ GET /dashboard?_rsc=16jui 200 in 887ms
+ ○ Compiling /lists ...
+ ✓ Compiled /lists in 814ms (1193 modules)
+prisma:query DELETE FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."permanentDeleteAt" <= $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL)
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt", "public"."shopping_lists"."deletedAt", "public"."shopping_lists"."permanentDeleteAt", COALESCE("aggr_selection_0_ListItem"."_aggr_count_items", 0) AS "_aggr_count_items" FROM "public"."shopping_lists" LEFT JOIN (SELECT "public"."list_items"."listId", COUNT(*) AS "_aggr_count_items" FROM "public"."list_items" WHERE 1=1 GROUP BY "public"."list_items"."listId") AS "aggr_selection_0_ListItem" ON ("public"."shopping_lists"."id" = "aggr_selection_0_ListItem"."listId") WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) ORDER BY "public"."shopping_lists"."updatedAt" DESC OFFSET $2
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt", "public"."shopping_lists"."deletedAt", "public"."shopping_lists"."permanentDeleteAt", COALESCE("aggr_selection_0_ListItem"."_aggr_count_items", 0) AS "_aggr_count_items" FROM "public"."shopping_lists" LEFT JOIN (SELECT "public"."list_items"."listId", COUNT(*) AS "_aggr_count_items" FROM "public"."list_items" WHERE 1=1 GROUP BY "public"."list_items"."listId") AS "aggr_selection_0_ListItem" ON ("public"."shopping_lists"."id" = "aggr_selection_0_ListItem"."listId") WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NOT NULL) ORDER BY "public"."shopping_lists"."deletedAt" DESC OFFSET $2
+ GET /lists?activate=1&_rsc=zcze5 200 in 441ms
+ ○ Compiling /session/start ...
+ ✓ Compiled /session/start in 3.2s (1653 modules)
+ GET /api/auth/csrf 200 in 55ms
+ POST /api/auth/signout 200 in 27ms
+ GET /api/auth/session 200 in 24ms
+ GET /auth/signin 200 in 237ms
+ GET /api/auth/session 200 in 42ms
+ GET /api/auth/session 200 in 53ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."guest_sessions"."id", "public"."guest_sessions"."expiresAt" FROM "public"."guest_sessions" WHERE ("public"."guest_sessions"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET / 307 in 283ms
+ GET /auth/signin?callbackUrl=%2Fdashboard 200 in 49ms
+ GET /api/auth/session 200 in 41ms
+ GET /api/auth/session 200 in 47ms
+ ○ Compiling /device-simulator ...
+ ✓ Compiled /device-simulator in 6s (1736 modules)
+ HEAD /auth/signin 200 in 1203ms
+ HEAD /auth/signin 200 in 343ms
+ ○ Compiling / ...
+ ✓ Compiled / in 4.8s (1091 modules)
+ GET / 307 in 142ms
+ GET /auth/signin 200 in 125ms
+ ✓ Compiled /api/auth/[...nextauth] in 298ms (1095 modules)
+ GET /api/auth/session 200 in 464ms
+ GET /api/auth/session 200 in 476ms
+ GET /api/auth/providers 200 in 37ms
+ GET /api/auth/csrf 200 in 23ms
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."password", "public"."users"."name", "public"."users"."phoneNumber", "public"."users"."image", "public"."users"."createdAt", "public"."users"."updatedAt" FROM "public"."users" WHERE ("public"."users"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ POST /api/auth/callback/credentials 200 in 1793ms
+ GET /api/auth/session 200 in 29ms
+prisma:query DELETE FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."permanentDeleteAt" <= $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL)
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) ORDER BY "public"."shopping_lists"."updatedAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."list_items"."id", "public"."list_items"."isCollected", "public"."list_items"."listId" FROM "public"."list_items" WHERE "public"."list_items"."listId" IN ($1) OFFSET $2
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."shopping_lists"."id" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) OFFSET $2) AS "sub"
+prisma:query SELECT SUM("total") FROM (SELECT "public"."receipts"."total" FROM "public"."receipts" WHERE ("public"."receipts"."userId" = $1 AND "public"."receipts"."guestSessionId" IS NULL AND "public"."receipts"."status" = CAST($2::text AS "public"."ReceiptStatus")) OFFSET $3) AS "sub"
+ GET /dashboard?_rsc=16jui 200 in 801ms
+ GET /api/auth/session 200 in 38ms
+prisma:query DELETE FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."permanentDeleteAt" <= $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL)
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt", "public"."shopping_lists"."deletedAt", "public"."shopping_lists"."permanentDeleteAt", COALESCE("aggr_selection_0_ListItem"."_aggr_count_items", 0) AS "_aggr_count_items" FROM "public"."shopping_lists" LEFT JOIN (SELECT "public"."list_items"."listId", COUNT(*) AS "_aggr_count_items" FROM "public"."list_items" WHERE 1=1 GROUP BY "public"."list_items"."listId") AS "aggr_selection_0_ListItem" ON ("public"."shopping_lists"."id" = "aggr_selection_0_ListItem"."listId") WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) ORDER BY "public"."shopping_lists"."updatedAt" DESC OFFSET $2
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt", "public"."shopping_lists"."deletedAt", "public"."shopping_lists"."permanentDeleteAt", COALESCE("aggr_selection_0_ListItem"."_aggr_count_items", 0) AS "_aggr_count_items" FROM "public"."shopping_lists" LEFT JOIN (SELECT "public"."list_items"."listId", COUNT(*) AS "_aggr_count_items" FROM "public"."list_items" WHERE 1=1 GROUP BY "public"."list_items"."listId") AS "aggr_selection_0_ListItem" ON ("public"."shopping_lists"."id" = "aggr_selection_0_ListItem"."listId") WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NOT NULL) ORDER BY "public"."shopping_lists"."deletedAt" DESC OFFSET $2
+ GET /lists?activate=1&_rsc=zcze5 200 in 404ms
+ ○ Compiling /api/carts/[cartCode]/active-session ...
+ ✓ Compiled /api/carts/[cartCode]/active-session in 3.3s (1119 modules)
+prisma:query SELECT 1
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT 1
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 3788ms
+ ✓ Compiled /api/carts/[cartCode]/qrcode in 304ms (1121 modules)
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1080ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 172ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 152ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ ✓ Compiled /api/cart/link in 337ms (1124 modules)
+prisma:query BEGIN
+prisma:query SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
+prisma:query SELECT "public"."shopping_lists"."id" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."id" = $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) LIMIT $3 OFFSET $4
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."stores"."id", "public"."stores"."name", "public"."stores"."location", "public"."stores"."currency", "public"."stores"."taxRate", "public"."stores"."logo", "public"."stores"."createdAt", "public"."stores"."updatedAt" FROM "public"."stores" WHERE "public"."stores"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."listId", "public"."cart_sessions"."userId", "public"."cart_sessions"."guestSessionId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) LIMIT $3 OFFSET $4
+prisma:error 
+Invalid `prisma.cartSession.findFirst()` invocation:
+
+
+The column `cart_sessions.guestSessionId` does not exist in the current database.
+prisma:query ROLLBACK
+ POST /api/cart/link 500 in 1069ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 163ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/active-session 200 in 152ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 161ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT 1
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT 1
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 260ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 202ms
+prisma:query SELECT 1
+prisma:query BEGIN
+prisma:query SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
+prisma:query SELECT "public"."shopping_lists"."id" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."id" = $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) LIMIT $3 OFFSET $4
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."stores"."id", "public"."stores"."name", "public"."stores"."location", "public"."stores"."currency", "public"."stores"."taxRate", "public"."stores"."logo", "public"."stores"."createdAt", "public"."stores"."updatedAt" FROM "public"."stores" WHERE "public"."stores"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."listId", "public"."cart_sessions"."userId", "public"."cart_sessions"."guestSessionId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) LIMIT $3 OFFSET $4
+prisma:error 
+Invalid `prisma.cartSession.findFirst()` invocation:
+
+
+The column `cart_sessions.guestSessionId` does not exist in the current database.
+prisma:query ROLLBACK
+ POST /api/cart/link 500 in 506ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 4.4s (1753 modules)
+ GET /apple-touch-icon-precomposed.png 404 in 4723ms
+ GET /apple-touch-icon.png 404 in 4719ms
+ GET /auth/signin?callbackUrl=%2Fsession%2Fstart%3FlistId%3Dcmorqzb3j0001tosa7sofipuj 200 in 287ms
+ GET /auth/signin?callbackUrl=%2Fsession%2Fstart%3FlistId%3Dcmorqzb3j0001tosa7sofipuj 200 in 71ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 519ms (1092 modules)
+ GET /api/auth/session 200 in 794ms
+ GET /api/auth/session 200 in 21ms
+ GET /api/auth/providers 200 in 43ms
+ GET /api/auth/csrf 200 in 29ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."password", "public"."users"."name", "public"."users"."phoneNumber", "public"."users"."image", "public"."users"."createdAt", "public"."users"."updatedAt" FROM "public"."users" WHERE ("public"."users"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ POST /api/auth/callback/credentials 401 in 590ms
+ ✓ Compiled /api/carts/[cartCode]/qrcode in 438ms (1120 modules)
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT 1
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 807ms
+ GET /api/auth/providers 200 in 105ms
+ GET /api/auth/csrf 200 in 29ms
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."password", "public"."users"."name", "public"."users"."phoneNumber", "public"."users"."image", "public"."users"."createdAt", "public"."users"."updatedAt" FROM "public"."users" WHERE ("public"."users"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ POST /api/auth/callback/credentials 401 in 536ms
+ GET /api/auth/providers 200 in 47ms
+ GET /api/auth/csrf 200 in 23ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."password", "public"."users"."name", "public"."users"."phoneNumber", "public"."users"."image", "public"."users"."createdAt", "public"."users"."updatedAt" FROM "public"."users" WHERE ("public"."users"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ POST /api/auth/callback/credentials 200 in 518ms
+ GET /api/auth/session 200 in 43ms
+prisma:query DELETE FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."permanentDeleteAt" <= $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL)
+prisma:query SELECT 1
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) ORDER BY "public"."shopping_lists"."updatedAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."shopping_lists"."id" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) OFFSET $2) AS "sub"
+prisma:query SELECT "public"."list_items"."id", "public"."list_items"."isCollected", "public"."list_items"."listId" FROM "public"."list_items" WHERE "public"."list_items"."listId" IN ($1) OFFSET $2
+prisma:query SELECT SUM("total") FROM (SELECT "public"."receipts"."total" FROM "public"."receipts" WHERE ("public"."receipts"."userId" = $1 AND "public"."receipts"."guestSessionId" IS NULL AND "public"."receipts"."status" = CAST($2::text AS "public"."ReceiptStatus")) OFFSET $3) AS "sub"
+ GET /dashboard?_rsc=16jui 200 in 815ms
+prisma:query DELETE FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."permanentDeleteAt" <= $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL)
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt", "public"."shopping_lists"."deletedAt", "public"."shopping_lists"."permanentDeleteAt", COALESCE("aggr_selection_0_ListItem"."_aggr_count_items", 0) AS "_aggr_count_items" FROM "public"."shopping_lists" LEFT JOIN (SELECT "public"."list_items"."listId", COUNT(*) AS "_aggr_count_items" FROM "public"."list_items" WHERE 1=1 GROUP BY "public"."list_items"."listId") AS "aggr_selection_0_ListItem" ON ("public"."shopping_lists"."id" = "aggr_selection_0_ListItem"."listId") WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) ORDER BY "public"."shopping_lists"."updatedAt" DESC OFFSET $2
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt", "public"."shopping_lists"."deletedAt", "public"."shopping_lists"."permanentDeleteAt", COALESCE("aggr_selection_0_ListItem"."_aggr_count_items", 0) AS "_aggr_count_items" FROM "public"."shopping_lists" LEFT JOIN (SELECT "public"."list_items"."listId", COUNT(*) AS "_aggr_count_items" FROM "public"."list_items" WHERE 1=1 GROUP BY "public"."list_items"."listId") AS "aggr_selection_0_ListItem" ON ("public"."shopping_lists"."id" = "aggr_selection_0_ListItem"."listId") WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NOT NULL) ORDER BY "public"."shopping_lists"."deletedAt" DESC OFFSET $2
+ GET /lists?activate=1&_rsc=zcze5 200 in 379ms
+ GET /api/auth/session 200 in 69ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT 1
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 320ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1146ms
+ ○ Compiling /api/cart/link ...
+ ✓ Compiled /api/cart/link in 556ms (1118 modules)
+prisma:query SELECT 1
+prisma:query BEGIN
+prisma:query SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
+prisma:query SELECT "public"."shopping_lists"."id" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."id" = $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) LIMIT $3 OFFSET $4
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."stores"."id", "public"."stores"."name", "public"."stores"."location", "public"."stores"."currency", "public"."stores"."taxRate", "public"."stores"."logo", "public"."stores"."createdAt", "public"."stores"."updatedAt" FROM "public"."stores" WHERE "public"."stores"."id" IN ($1) OFFSET $2
+prisma:query ROLLBACK
+ POST /api/cart/link 403 in 1279ms
+ GET /session/start?listId=cmorqzb3j0001tosa7sofipuj 200 in 384ms
+ ✓ Compiled /api/auth/[...nextauth] in 263ms (1120 modules)
+ GET /api/auth/session 200 in 362ms
+ GET /api/auth/session 200 in 375ms
+ ✓ Compiled /api/carts/[cartCode]/qrcode in 412ms (1118 modules)
+prisma:query SELECT 1
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 768ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 756ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1129ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1133ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1147ms
+ ○ Compiling /api/carts/[cartCode]/active-session ...
+ ✓ Compiled /api/carts/[cartCode]/active-session in 862ms (1119 modules)
+prisma:query SELECT 1
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT 1
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 1290ms
+ ✓ Compiled /api/carts/[cartCode]/qrcode in 378ms (1118 modules)
+prisma:query SELECT 1
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT 1
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 712ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 2060ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1161ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1124ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 831ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1161ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 748ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1170ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1153ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1196ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1172ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 765ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT 1
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 859ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 798ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1175ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 788ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 889ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ ○ Compiling /api/carts/[cartCode]/active-session ...
+ ✓ Compiled /api/carts/[cartCode]/active-session in 1941ms (1119 modules)
+prisma:query SELECT 1
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT 1
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 2498ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 212ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 195ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 165ms
+ ✓ Compiled /api/carts/[cartCode]/qrcode in 330ms (1121 modules)
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 535ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/active-session 200 in 165ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT 1
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 279ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 156ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/active-session 200 in 166ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 29)
+ GET /api/carts/CART-001/qrcode 500 in 10107ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 67ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 71ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 2117ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 62ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 66ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 57ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 58ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 55ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 188ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 73ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 53ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 184ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 65ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 69ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 65ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 174ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 58ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 63ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 203ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 58ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 173ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 59ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 64ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 182ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 64ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 56ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 187ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 62ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 61ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 191ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 75ms
+prisma:error 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Can't reach database server at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-jolly-band-agjoxg5m-pooler.c-2.eu-central-1.aws.neon.tech:5432`.
+ GET /api/carts/CART-001/qrcode 503 in 57ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 2183ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1211ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query UPDATE "public"."carts" SET "pairingCode" = $1, "pairingExpiresAt" = $2, "updatedAt" = $3 WHERE ("public"."carts"."id" = $4 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+ GET /api/carts/CART-001/qrcode 200 in 1167ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT 1
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 428ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT 1
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" = CAST($2::text AS "public"."SessionStatus") AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $3 OFFSET $4
+ GET /api/carts/CART-001/active-session 200 in 339ms
+ ✓ Compiled in 2.2s (1088 modules)
+ ✓ Compiled in 3.9s (1965 modules)
+ ✓ Compiled in 1577ms (1965 modules)
+ ✓ Compiled in 641ms (662 modules)
+ ✓ Compiled in 1825ms (1965 modules)
+ ✓ Compiled in 1501ms (1951 modules)
+ ✓ Compiled in 1558ms (1965 modules)
+ ✓ Compiled in 1970ms (1951 modules)
+ ✓ Compiled in 2.1s (1965 modules)
+ ✓ Compiled in 2.5s (1951 modules)
+ ✓ Compiled in 2.1s (1965 modules)
+ ✓ Compiled in 747ms (662 modules)
+ ✓ Compiled in 1838ms (1965 modules)
+ ✓ Compiled in 1251ms (1951 modules)
+ ✓ Compiled in 1738ms (1875 modules)
+ ✓ Compiled in 1782ms (1861 modules)
+ ✓ Compiled in 1564ms (1875 modules)
+ ✓ Compiled in 1215ms (1861 modules)
+ ✓ Compiled in 647ms (618 modules)
+ ✓ Compiled in 926ms (618 modules)
+ GET /auth/signin 200 in 2775ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 2.9s (1046 modules)
+ GET /api/auth/session 200 in 3344ms
+ GET /api/auth/session 200 in 72ms
+ GET /api/auth/providers 200 in 37ms
+ GET /api/auth/csrf 200 in 27ms
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."password", "public"."users"."name", "public"."users"."phoneNumber", "public"."users"."image", "public"."users"."createdAt", "public"."users"."updatedAt" FROM "public"."users" WHERE ("public"."users"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ POST /api/auth/callback/credentials 200 in 1281ms
+ GET /api/auth/session 200 in 34ms
+ ○ Compiling /_error ...
+ ✓ Compiled /_not-found in 6s (1880 modules)
+ GET /api/auth/providers 200 in 1505ms
+ GET /_next/static/webpack/a4b7bec4ef2d788d.webpack.hot-update.json 404 in 2343ms
+ GET /dashboard 404 in 4ms
+ POST /api/auth/_log 200 in 44ms
+[?25h

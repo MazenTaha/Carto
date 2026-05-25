@@ -16,7 +16,12 @@ export async function POST(
 
     const result = await CartSessionService.finishSession(params.id, owner);
 
-    return successResponse({ receiptId: result.receiptId });
+    return successResponse({
+      sessionId: params.id,
+      receiptId: result.receiptId,
+      status: result.status,
+      alreadyFinished: result.alreadyFinished,
+    });
   } catch (error: any) {
     if (error instanceof ApiErrorResponse) {
       return errorResponse(error.message, error.statusCode, error.code);

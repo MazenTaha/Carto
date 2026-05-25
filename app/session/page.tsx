@@ -181,10 +181,14 @@ function SessionContent() {
     try {
       const response = await fetch(`/api/sessions/${session.id}/finish`, { method: 'POST' });
       const data = await response.json();
-      if (data.success) {
+      if (response.ok && data.success) {
         router.push(`/checkout?sessionId=${session.id}`);
+        return;
       }
+      setError(getApiErrorMessage(data, 'Could not finish this session.'));
     } catch (err) {
+      setError('Could not reach the backend. Check your connection and try again.');
+    } finally {
       setIsFinishing(false);
     }
   };

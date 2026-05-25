@@ -13,6 +13,12 @@ import { Receipt } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
+function getApiErrorMessage(data: any, fallback: string) {
+  if (data?.error?.message) return data.error.message;
+  if (typeof data?.error === 'string') return data.error;
+  return fallback;
+}
+
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -31,7 +37,7 @@ function CheckoutContent() {
       if (data.success && data.data.receipt) {
         setReceipt(data.data.receipt);
       } else {
-        setError('Receipt not found');
+        setError(getApiErrorMessage(data, 'Receipt not found'));
       }
     } catch (err: any) {
       if (err.name === 'AbortError') return;
@@ -71,7 +77,9 @@ function CheckoutContent() {
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Payment failed');
+      if (!response.ok || data?.success === false) {
+        throw new Error(getApiErrorMessage(data, 'Payment failed'));
+      }
 
       if (data.data.paymentUrl) {
         window.location.href = data.data.paymentUrl;

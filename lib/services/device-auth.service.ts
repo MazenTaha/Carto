@@ -21,11 +21,11 @@ export class DeviceAuthService {
     const deviceSecret = this.getBearerToken(request);
 
     if (!deviceSecret) {
-      throw new ApiErrorResponse('Unauthorized device: Missing bearer token', 401, 'UNAUTHORIZED');
+      throw new ApiErrorResponse('Missing device bearer token.', 401, 'DEVICE_SECRET_REQUIRED');
     }
 
     const cart = await prisma.cart.findUnique({
-      where: { cartCode },
+      where: { cartCode: cartCode.trim() },
       select: {
         id: true,
         cartCode: true,
@@ -34,12 +34,14 @@ export class DeviceAuthService {
       },
     });
 
-    if (!cart || !cart.deviceSecret || cart.deviceSecret !== deviceSecret) {
-      throw new ApiErrorResponse('Unauthorized device: Invalid credentials', 401, 'UNAUTHORIZED');
+    if (!cart) {
+      throw new ApiErrorResponse('Cart not found.', 404, 'CART_NOT_FOUND');
     }
 
-    // Optionally update lastSeen asynchronously without blocking the main request
-    // This tracks device health without adding latency
+    if (!cart.deviceSecret || cart.deviceSecret !== deviceSecret) {
+      throw new ApiErrorResponse('Invalid device secret.', 401, 'INVALID_DEVICE_SECRET');
+    }
+
     prisma.cart.update({
       where: { id: cart.id },
       data: { lastSeen: new Date() },

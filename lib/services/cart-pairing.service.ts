@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { RequestOwner, ownerCreateData, ownerWhere } from '@/lib/guest-session';
@@ -7,6 +8,16 @@ export interface LinkCartParams {
   cartCode: string;
   pairingCode: string;
   listId: string;
+}
+
+const PAIRING_TTL_MINUTES = 5;
+
+function createPairingCode() {
+  return String(randomInt(100000, 1000000));
+}
+
+function getPairingExpiresAt() {
+  return new Date(Date.now() + PAIRING_TTL_MINUTES * 60 * 1000);
 }
 
 function sessionBelongsToOwner(
@@ -19,6 +30,100 @@ function sessionBelongsToOwner(
 }
 
 export class CartPairingService {
+  private static async normalizeCartAvailability(
+    tx: Prisma.TransactionClient,
+    cart: { id: string; status: string }
+  ) {
+    if (cart.status !== 'IN_USE') {
+      return cart.status;
+    }
+
+    const liveSession = await tx.cartSession.findFirst({
+      where: {
+        cartId: cart.id,
+        status: { in: ['ACTIVE', 'DISCONNECTED'] },
+        endedAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (liveSession) {
+      return cart.status;
+    }
+
+    await tx.cart.update({
+      where: { id: cart.id },
+      data: { status: 'AVAILABLE', lastSeen: new Date() },
+    });
+
+    return 'AVAILABLE';
+  }
+
+  public static async generatePairingQr(cartCode: string) {
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const cart = await tx.cart.findUnique({
+        where: { cartCode },
+        select: {
+          id: true,
+          cartCode: true,
+          status: true,
+        },
+      });
+
+      if (!cart) {
+        throw new ApiErrorResponse('Cart not found. Please use a valid Carto cart code.', 404, 'CART_NOT_FOUND');
+      }
+
+      const normalizedStatus = await this.normalizeCartAvailability(tx, cart);
+
+      if (normalizedStatus === 'OFFLINE') {
+        throw new ApiErrorResponse('Cart is offline and cannot accept pairing right now.', 409, 'CART_OFFLINE');
+      }
+
+      if (normalizedStatus === 'MAINTENANCE') {
+        throw new ApiErrorResponse('Cart is in maintenance mode and cannot accept pairing right now.', 409, 'CART_MAINTENANCE');
+      }
+
+      if (normalizedStatus !== 'AVAILABLE') {
+        throw new ApiErrorResponse('Cart is currently in use. Please try another cart.', 409, 'CART_IN_USE');
+      }
+
+      const pairingExpiresAt = getPairingExpiresAt();
+      const updatedCart = await tx.cart.update({
+        where: { id: cart.id },
+        data: {
+          pairingCode: createPairingCode(),
+          pairingExpiresAt,
+          qrSessionId: null,
+          lastSeen: new Date(),
+        },
+        select: {
+          cartCode: true,
+          pairingCode: true,
+          pairingExpiresAt: true,
+        },
+      });
+
+      if (!updatedCart.pairingCode) {
+        throw new ApiErrorResponse('Failed to generate a cart pairing code.', 500, 'PAIRING_CODE_MISSING');
+      }
+
+      const payload = {
+        type: 'cart_pairing' as const,
+        cartCode: updatedCart.cartCode,
+        pairingCode: updatedCart.pairingCode,
+      };
+
+      return {
+        payload,
+        qrValue: JSON.stringify(payload),
+        expiresAt: updatedCart.pairingExpiresAt?.toISOString() ?? pairingExpiresAt.toISOString(),
+      };
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
+  }
+
   /**
    * Links a user and their shopping list to a physical cart.
    * Handles security validation of the pairingCode and cart availability.
@@ -55,17 +160,13 @@ export class CartPairingService {
         throw new ApiErrorResponse('Cart not found. Please scan a valid Carto QR code.', 404, 'NOT_FOUND');
       }
 
-      if (!cart.pairingCode || cart.pairingCode !== params.pairingCode) {
-        throw new ApiErrorResponse('Cart pairing failed. Please scan the latest cart QR code.', 403, 'INVALID_CODE');
-      }
-
-      if (!cart.pairingExpiresAt || cart.pairingExpiresAt.getTime() <= now.getTime()) {
-        throw new ApiErrorResponse('Cart pairing code expired. Please refresh the cart QR code.', 410, 'EXPIRED_CODE');
-      }
-
       // 3. Check for existing active sessions on this cart
       const existingCartSession = await tx.cartSession.findFirst({
-        where: { cartId: cart.id, status: 'ACTIVE', endedAt: null },
+        where: {
+          cartId: cart.id,
+          status: { in: ['ACTIVE', 'DISCONNECTED'] },
+          endedAt: null,
+        },
         select: {
           id: true,
           listId: true,
@@ -93,10 +194,26 @@ export class CartPairingService {
         throw new ApiErrorResponse('Cart is already in use by someone else.', 409, 'CART_IN_USE');
       }
 
-      if (cart.status !== 'AVAILABLE') {
-        const code = cart.status === 'IN_USE' ? 'CART_IN_USE' : 'CART_UNAVAILABLE';
-        const status = cart.status === 'IN_USE' ? 409 : 400;
-        throw new ApiErrorResponse(`Cart is currently ${cart.status.toLowerCase()}. Please try another cart.`, status, code);
+      const normalizedStatus = await this.normalizeCartAvailability(tx, cart);
+
+      if (normalizedStatus === 'OFFLINE') {
+        throw new ApiErrorResponse('Cart is offline and cannot accept pairing right now.', 409, 'CART_OFFLINE');
+      }
+
+      if (normalizedStatus === 'MAINTENANCE') {
+        throw new ApiErrorResponse('Cart is in maintenance mode and cannot accept pairing right now.', 409, 'CART_MAINTENANCE');
+      }
+
+      if (normalizedStatus !== 'AVAILABLE') {
+        throw new ApiErrorResponse(`Cart is currently ${normalizedStatus.toLowerCase()}. Please try another cart.`, 409, 'CART_IN_USE');
+      }
+
+      if (!cart.pairingCode || cart.pairingCode !== params.pairingCode) {
+        throw new ApiErrorResponse('Invalid or expired cart pairing code.', 403, 'INVALID_PAIRING_CODE');
+      }
+
+      if (!cart.pairingExpiresAt || cart.pairingExpiresAt.getTime() <= now.getTime()) {
+        throw new ApiErrorResponse('Invalid or expired cart pairing code.', 410, 'EXPIRED_PAIRING_CODE');
       }
 
       // 4. Close any previous sessions for this user on other carts
@@ -134,6 +251,9 @@ export class CartPairingService {
             },
             data: {
               status: 'AVAILABLE',
+              pairingCode: null,
+              pairingExpiresAt: null,
+              qrSessionId: null,
               lastSeen: new Date(),
             },
           });
@@ -146,8 +266,16 @@ export class CartPairingService {
         where: {
           id: cart.id,
           status: 'AVAILABLE',
+          pairingCode: params.pairingCode,
+          pairingExpiresAt: { gt: now },
         },
-        data: { status: 'IN_USE', lastSeen: now },
+        data: {
+          status: 'IN_USE',
+          pairingCode: null,
+          pairingExpiresAt: null,
+          qrSessionId: null,
+          lastSeen: now,
+        },
       });
 
       if (claimedCart.count !== 1) {

@@ -9,13 +9,14 @@ export class PollingService {
     const activeSession = await prisma.cartSession.findFirst({
       where: {
         cartId,
-        status: 'ACTIVE',
-        // Check endedAt === null as an extra safety measure, though status should be sufficient
-        endedAt: null, 
+        status: { in: ['ACTIVE', 'DISCONNECTED'] },
+        endedAt: null,
       },
       select: {
         id: true,
         status: true,
+        startedAt: true,
+        endedAt: true,
         shoppingList: {
           select: {
             id: true,

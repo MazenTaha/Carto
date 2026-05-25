@@ -3,6 +3,7 @@ import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { PollingService } from '@/lib/services/polling.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,31 +12,57 @@ export async function GET(
   { params }: { params: { cartCode: string } }
 ) {
   try {
-    // 1. Authenticate the hardware device using its bearer token
     const cart = await DeviceAuthService.authenticateDevice(request, params.cartCode);
-
-    // 2. Fetch the active session optimally
     const activeSession = await PollingService.getActiveSession(cart.id);
+    let cartStatus = cart.status;
 
-    // 3. Prepare response ensuring no-cache to guarantee real-time behavior
-    const responseData = activeSession 
+    if (activeSession && cartStatus !== 'IN_USE') {
+      await prisma.cart.update({
+        where: { id: cart.id },
+        data: { status: 'IN_USE', lastSeen: new Date() },
+      });
+      cartStatus = 'IN_USE';
+    }
+
+    if (!activeSession && cartStatus === 'IN_USE') {
+      await prisma.cart.update({
+        where: { id: cart.id },
+        data: {
+          status: 'AVAILABLE',
+          pairingCode: null,
+          pairingExpiresAt: null,
+          qrSessionId: null,
+          lastSeen: new Date(),
+        },
+      });
+      cartStatus = 'AVAILABLE';
+    }
+
+    const responseData = activeSession
       ? {
           active: true,
-          sessionId: activeSession.id,
-          status: activeSession.status,
-          cartCode: cart.cartCode,
+          cart: {
+            cartCode: cart.cartCode,
+            status: cartStatus,
+          },
+          session: {
+            id: activeSession.id,
+            status: activeSession.status,
+            startedAt: activeSession.startedAt,
+            endedAt: activeSession.endedAt,
+          },
           list: activeSession.shoppingList,
           receipt: activeSession.receipt,
         }
       : {
           active: false,
-          cartCode: cart.cartCode,
-          status: cart.status,
+          cart: {
+            cartCode: cart.cartCode,
+            status: cartStatus,
+          },
         };
 
     const response = successResponse(responseData);
-    
-    // Critical: Devices polling must not receive cached data
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');

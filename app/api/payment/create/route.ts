@@ -1,32 +1,37 @@
-// Payment creation API route
-
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createPaymentSchema } from '@/lib/validations';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+import { successResponse, errorResponse } from '@/lib/api-response';
 
-// POST /api/payment/create - Create payment session
 export async function POST(request: NextRequest) {
   try {
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return errorResponse('Request body must be valid JSON.', 400, 'INVALID_JSON');
+    }
+
     const { receiptId, sessionId, amount, paymentMethod } = createPaymentSchema.parse(body);
 
-    // Verify receipt ownership
     const receipt = await prisma.receipt.findFirst({
       where: {
         id: receiptId,
         ...ownerWhere(owner),
-        status: 'LOCKED',
       },
       select: {
         id: true,
         sessionId: true,
+        status: true,
+        paymentStatus: true,
+        paymentId: true,
         total: true,
         items: {
           select: {
@@ -38,37 +43,46 @@ export async function POST(request: NextRequest) {
     });
 
     if (!receipt) {
-      return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
+      return errorResponse('Receipt not found.', 404, 'NOT_FOUND');
     }
 
     if (receipt.sessionId !== sessionId) {
-      return NextResponse.json({ error: 'Receipt does not belong to this session' }, { status: 403 });
+      return errorResponse('Receipt does not belong to this session.', 403, 'FORBIDDEN');
     }
 
-    // Update receipt payment status to PROCESSING
-    await prisma.receipt.update({
-      where: { id: receiptId },
-      data: { paymentStatus: 'PROCESSING', paymentMethod },
-    });
+    if (receipt.status === 'PAID' && receipt.paymentId) {
+      return successResponse({
+        paymentId: receipt.paymentId,
+        paymentUrl: null,
+        alreadyPaid: true,
+      });
+    }
 
-    // Process payment (mock for development, real Stripe in production)
+    if (receipt.status !== 'LOCKED') {
+      return errorResponse('Receipt must be finalized before payment.', 409, 'RECEIPT_NOT_READY');
+    }
+
+    if (Math.abs(receipt.total - amount) > 0.01) {
+      return errorResponse('Payment amount does not match the finalized receipt total.', 400, 'INVALID_PAYMENT_AMOUNT');
+    }
+
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
     const mockPaymentId = `pi_mock_${Date.now()}`;
     let paymentUrl: string | null = null;
 
     if (stripeSecretKey && stripeSecretKey.startsWith('sk_live')) {
-      // Real Stripe integration would go here
-      // const stripe = require('stripe')(stripeSecretKey);
-      // const paymentIntent = await stripe.paymentIntents.create({
-      //   amount: Math.round(amount * 100),
-      //   currency: 'usd',
-      //   metadata: { receiptId, sessionId },
-      // });
-      // paymentUrl = paymentIntent.url;
+      paymentUrl = null;
     }
 
-    // Mark receipt and session as paid/completed
-    const cartSession = await prisma.$transaction(async (tx: any) => {
+    const cartSession = await prisma.$transaction(async (tx) => {
+      await tx.receipt.update({
+        where: { id: receiptId },
+        data: {
+          paymentStatus: 'PROCESSING',
+          paymentMethod,
+        },
+      });
+
       await tx.receipt.update({
         where: { id: receiptId },
         data: {
@@ -84,28 +98,30 @@ export async function POST(request: NextRequest) {
           status: 'CHECKED_OUT',
           endedAt: new Date(),
         },
-        select: { cartId: true },
+        select: {
+          cartId: true,
+        },
       });
     });
 
-    if (cartSession) {
-      await prisma.cart.update({
-        where: { id: cartSession.cartId },
-        data: { status: 'AVAILABLE' },
-      }).catch(() => { /* Cart may not exist in Cart model if legacy session */ });
-    }
+    await prisma.cart.updateMany({
+      where: { id: cartSession.cartId },
+      data: {
+        status: 'AVAILABLE',
+        pairingCode: null,
+        pairingExpiresAt: null,
+        qrSessionId: null,
+        lastSeen: new Date(),
+      },
+    });
 
     if (owner.type === 'guest') {
-      return NextResponse.json({
-        success: true,
-        data: {
-          paymentId: mockPaymentId,
-          paymentUrl,
-        },
+      return successResponse({
+        paymentId: mockPaymentId,
+        paymentUrl,
       });
     }
 
-    // ─── Update User Stats ───────────────────────────────────────────────────
     const currentStats = await prisma.userStats.findUnique({
       where: { userId: owner.userId },
     });
@@ -129,7 +145,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // ─── Track Favorite Products ─────────────────────────────────────────────
     const purchasedItems: Array<{ name: string; quantity: number }> = receipt.items;
     const purchasedNames = Array.from(new Set(purchasedItems.map((item) => item.name.trim()).filter(Boolean)));
     const matchedProducts: Array<{ id: string; name: string }> = purchasedNames.length > 0
@@ -169,7 +184,6 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // ─── Create Notification ─────────────────────────────────────────────────
     await prisma.notification.create({
       data: {
         userId: owner.userId,
@@ -185,25 +199,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        paymentId: mockPaymentId,
-        paymentUrl,
-      },
+    return successResponse({
+      paymentId: mockPaymentId,
+      paymentUrl,
     });
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: error.errors[0].message },
-        { status: 400 }
-      );
+      return errorResponse(error.errors[0].message, 400, 'VALIDATION_ERROR');
     }
 
     console.error('Error creating payment:', error);
-    return NextResponse.json(
-      { error: 'Failed to create payment' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to create payment.', 500, 'INTERNAL_SERVER_ERROR');
   }
 }

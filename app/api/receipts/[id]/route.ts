@@ -1,10 +1,8 @@
-// Receipt API routes
-
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+import { successResponse, errorResponse } from '@/lib/api-response';
 
-// GET /api/receipts/[id] - Get a receipt
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -13,7 +11,7 @@ export async function GET(
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
     const receipt = await prisma.receipt.findFirst({
@@ -29,16 +27,15 @@ export async function GET(
     });
 
     if (!receipt) {
-      return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
+      return errorResponse('Receipt not found', 404, 'NOT_FOUND');
     }
 
-    return NextResponse.json({ success: true, data: receipt });
+    const response = successResponse(receipt);
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    return response;
   } catch (error) {
     console.error('Error fetching receipt:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch receipt' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch receipt', 500, 'INTERNAL_SERVER_ERROR');
   }
 }
 

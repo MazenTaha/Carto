@@ -6,26 +6,37 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/utils';
 
-type DeviceItem = {
-  id: string;
-  name: string;
-  quantity: number;
-  price: number;
-  category: string | null;
-  isCollected: boolean;
-};
-
 type DeviceState =
-  | { active: false; cartCode: string; status: string }
+  | {
+      active: false;
+      cart: {
+        cartCode: string;
+        status: string;
+      };
+    }
   | {
       active: true;
-      sessionId: string;
-      status: string;
-      cartCode: string;
+      cart: {
+        cartCode: string;
+        status: string;
+      };
+      session: {
+        id: string;
+        status: string;
+        startedAt: string;
+        endedAt: string | null;
+      };
       list: {
         id: string;
         name: string;
-        items: DeviceItem[];
+        items: Array<{
+          id: string;
+          name: string;
+          quantity: number;
+          price: number;
+          category: string | null;
+          isCollected: boolean;
+        }>;
       };
       receipt: {
         id: string;
@@ -42,6 +53,12 @@ type DeviceState =
         }>;
       } | null;
     };
+
+function getApiErrorMessage(data: any, fallback: string) {
+  if (data?.error?.message) return data.error.message;
+  if (typeof data?.error === 'string') return data.error;
+  return fallback;
+}
 
 export default function DevicePage({ params }: { params: { cartCode: string } }) {
   const storageKey = useMemo(() => `carto_device_secret_${params.cartCode}`, [params.cartCode]);
@@ -68,16 +85,17 @@ export default function DevicePage({ params }: { params: { cartCode: string } })
         headers: {
           Authorization: `Bearer ${deviceSecret.trim()}`,
         },
+        cache: 'no-store',
       });
       const nextData = await response.json();
 
-      if (!response.ok) {
-        throw new Error(nextData.error || 'Could not connect to cart device endpoint');
+      if (!response.ok || nextData?.success === false) {
+        throw new Error(getApiErrorMessage(nextData, 'Could not connect to cart device endpoint.'));
       }
 
-      setData(nextData);
+      setData(nextData.data);
     } catch (err: any) {
-      setError(err.message || 'Could not connect to cart device endpoint');
+      setError(err.message || 'Could not connect to cart device endpoint.');
       setData(null);
     } finally {
       setIsLoading(false);
@@ -107,11 +125,11 @@ export default function DevicePage({ params }: { params: { cartCode: string } })
             <div>
               <h1 className="text-3xl font-black tracking-tight">{params.cartCode}</h1>
               <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">
-                This development page polls the backend with a device secret and shows the list assigned to this cart.
+                This development page polls the backend with a device secret and shows the live list assigned to this cart.
               </p>
             </div>
             <Badge variant={data?.active ? 'success' : 'warning'} className="w-fit">
-              {data?.active ? 'Active session' : data?.status || 'Waiting'}
+              {data?.active ? 'Active session' : data?.cart.status || 'Waiting'}
             </Badge>
           </div>
         </section>

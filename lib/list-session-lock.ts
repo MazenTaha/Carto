@@ -7,7 +7,8 @@ export async function isListActiveOnCart(listId: string) {
   const activeSession = await prisma.cartSession.findFirst({
     where: {
       listId,
-      status: 'ACTIVE',
+      status: { in: ['ACTIVE', 'DISCONNECTED'] },
+      endedAt: null,
     },
     select: { id: true },
   });

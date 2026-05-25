@@ -10,11 +10,32 @@ import { getFirebaseClientAuth } from '@/lib/firebase/client';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Logo } from '@/components/ui/Logo';
 
+type SignInFieldErrors = {
+  email?: string;
+  password?: string;
+};
+
+function readAuthErrorMessage(rawError: string | null | undefined) {
+  if (!rawError) return 'Invalid email or password';
+  if (rawError === 'CredentialsSignin') return 'Invalid email or password';
+
+  try {
+    const parsed = JSON.parse(rawError);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const firstMessage = parsed.find((issue) => typeof issue?.message === 'string')?.message;
+      if (firstMessage) return firstMessage;
+    }
+  } catch {}
+
+  return rawError;
+}
+
 export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<SignInFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isPhoneLoading, setIsPhoneLoading] = useState(false);
@@ -27,23 +48,42 @@ export default function SignInPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
     setIsLoading(true);
 
     try {
-      signInSchema.parse({ email, password });
+      const validation = signInSchema.safeParse({ email, password });
+
+      if (!validation.success) {
+        const nextFieldErrors: SignInFieldErrors = {};
+
+        for (const issue of validation.error.issues) {
+          if (issue.path[0] === 'email' && !nextFieldErrors.email) {
+            nextFieldErrors.email = issue.message;
+          }
+          if (issue.path[0] === 'password' && !nextFieldErrors.password) {
+            nextFieldErrors.password = issue.message;
+          }
+        }
+
+        setFieldErrors(nextFieldErrors);
+        setError('Please fix the highlighted fields and try again.');
+        return;
+      }
+
       const result = await signIn('credentials', {
-        email,
-        password,
+        email: validation.data.email,
+        password: validation.data.password,
         redirect: false,
       });
 
       if (result?.error) {
-        setError(result.error === 'CredentialsSignin' ? 'Invalid email or password' : result.error);
+        setError(readAuthErrorMessage(result.error));
       } else {
         router.push('/dashboard');
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(readAuthErrorMessage(err?.message) || 'An error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -181,14 +221,26 @@ export default function SignInPage() {
           <div className="relative flex items-center">
             <span className="material-symbols-outlined absolute left-4 text-slate-400">mail</span>
             <input
-              className="flex w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 h-14 placeholder:text-slate-400 pl-11 pr-4 text-base font-normal leading-normal transition-all"
+              className={`flex w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/20 border bg-white dark:bg-slate-900 h-14 placeholder:text-slate-400 pl-11 pr-4 text-base font-normal leading-normal transition-all ${
+                fieldErrors.email
+                  ? 'border-red-300 focus:ring-red-100 dark:border-red-500/60'
+                  : 'border-slate-200 dark:border-slate-800'
+              }`}
               placeholder="name@example.com"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (fieldErrors.email) {
+                  setFieldErrors((current) => ({ ...current, email: undefined }));
+                }
+              }}
               required
             />
           </div>
+          {fieldErrors.email && (
+            <p className="mt-2 text-sm text-red-500">{fieldErrors.email}</p>
+          )}
         </label>
 
         <label className="flex flex-col w-full">
@@ -199,11 +251,20 @@ export default function SignInPage() {
           <div className="relative flex items-center">
             <span className="material-symbols-outlined absolute left-4 text-slate-400">lock</span>
             <input
-              className="flex w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 h-14 placeholder:text-slate-400 pl-11 pr-12 text-base font-normal leading-normal transition-all"
+              className={`flex w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/20 border bg-white dark:bg-slate-900 h-14 placeholder:text-slate-400 pl-11 pr-12 text-base font-normal leading-normal transition-all ${
+                fieldErrors.password
+                  ? 'border-red-300 focus:ring-red-100 dark:border-red-500/60'
+                  : 'border-slate-200 dark:border-slate-800'
+              }`}
               placeholder="Enter your password"
               type={showPassword ? "text" : "password"}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (fieldErrors.password) {
+                  setFieldErrors((current) => ({ ...current, password: undefined }));
+                }
+              }}
               required
             />
             <button
@@ -216,6 +277,9 @@ export default function SignInPage() {
               </span>
             </button>
           </div>
+          {fieldErrors.password && (
+            <p className="mt-2 text-sm text-red-500">{fieldErrors.password}</p>
+          )}
         </label>
 
         {error && (

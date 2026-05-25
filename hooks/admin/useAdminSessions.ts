@@ -15,8 +15,12 @@ export function useAdminSessions(params: { status?: string; page?: number; pageS
 
   const { data, error, isLoading } = useSWR<{
     success: boolean;
-    data: AdminSessionRow[];
-    total: number;
+    data: {
+      data: AdminSessionRow[];
+      total: number;
+      page: number;
+      pageSize: number;
+    };
   }>(key, fetcher, { refreshInterval: 5_000 });
 
   async function endSession(sessionId: string) {
@@ -29,8 +33,8 @@ export function useAdminSessions(params: { status?: string; page?: number; pageS
   }
 
   return {
-    sessions: data?.data ?? [],
-    total: data?.total ?? 0,
+    sessions: data?.data?.data ?? [],
+    total: data?.data?.total ?? 0,
     isLoading,
     error,
     endSession,

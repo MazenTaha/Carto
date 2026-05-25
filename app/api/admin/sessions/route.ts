@@ -1,22 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { guardAdminApi } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
+import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
+import { CartSessionService } from '@/lib/services/cart-session.service';
 
-// GET /api/admin/sessions
 export async function GET(req: NextRequest) {
   const guard = await guardAdminApi(req);
   if (guard) return guard;
 
   const { searchParams } = req.nextUrl;
   const statusFilter = searchParams.get('status');
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
-  const pageSize = Math.min(50, parseInt(searchParams.get('pageSize') ?? '20'));
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+  const pageSize = Math.min(50, parseInt(searchParams.get('pageSize') ?? '20', 10));
   const skip = (page - 1) * pageSize;
 
   try {
-    const where: any = statusFilter
-      ? { status: statusFilter }
-      : { status: { in: ['ACTIVE', 'DISCONNECTED', 'CHECKED_OUT', 'COMPLETED'] } };
+    const where = statusFilter
+      ? { status: statusFilter as any }
+      : { status: { in: ['ACTIVE', 'DISCONNECTED', 'CHECKED_OUT', 'COMPLETED'] as const } };
 
     const [sessions, total] = await Promise.all([
       prisma.cartSession.findMany({
@@ -39,62 +40,68 @@ export async function GET(req: NextRequest) {
       prisma.cartSession.count({ where }),
     ]);
 
-    const data = sessions.map((s) => {
-      const started = s.startedAt.getTime();
-      const ended = s.endedAt ? s.endedAt.getTime() : Date.now();
+    const data = sessions.map((session) => {
+      const started = session.startedAt.getTime();
+      const ended = session.endedAt ? session.endedAt.getTime() : Date.now();
+
       return {
-        id: s.id,
-        cartCode: s.cart.cartCode,
-        cartId: s.cartId,
-        userId: s.userId,
-        userEmail: s.user?.email ?? null,
-        userName: s.user?.name ?? null,
-        userImage: s.user?.image ?? null,
-        guestSessionId: s.guestSessionId ?? null,
-        listName: s.shoppingList.name,
-        itemCount: s.shoppingList.items.length,
-        collectedCount: s.shoppingList.items.filter((i) => i.isCollected).length,
-        status: s.status,
-        startedAt: s.startedAt.toISOString(),
-        endedAt: s.endedAt?.toISOString() ?? null,
+        id: session.id,
+        cartCode: session.cart.cartCode,
+        cartId: session.cartId,
+        userId: session.userId,
+        userEmail: session.user?.email ?? null,
+        userName: session.user?.name ?? null,
+        userImage: session.user?.image ?? null,
+        guestSessionId: session.guestSessionId ?? null,
+        listName: session.shoppingList.name,
+        itemCount: session.shoppingList.items.length,
+        collectedCount: session.shoppingList.items.filter((item) => item.isCollected).length,
+        status: session.status,
+        startedAt: session.startedAt.toISOString(),
+        endedAt: session.endedAt?.toISOString() ?? null,
         durationSeconds: Math.floor((ended - started) / 1000),
-        total: s.receipt?.total ?? 0,
-        receiptStatus: s.receipt?.status ?? null,
-        paymentStatus: s.receipt?.paymentStatus ?? null,
+        total: session.receipt?.total ?? 0,
+        receiptStatus: session.receipt?.status ?? null,
+        paymentStatus: session.receipt?.paymentStatus ?? null,
       };
     });
 
-    return NextResponse.json({ success: true, data, total, page, pageSize });
+    return successResponse({
+      data,
+      total,
+      page,
+      pageSize,
+    });
   } catch (error: any) {
     console.error('[admin/sessions GET]', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch sessions' }, { status: 500 });
+    return errorResponse('Failed to fetch sessions.', 500, 'INTERNAL_SERVER_ERROR');
   }
 }
 
-// PATCH /api/admin/sessions — force-end a session
 export async function PATCH(req: NextRequest) {
   const guard = await guardAdminApi(req);
   if (guard) return guard;
 
   try {
     const { sessionId } = await req.json();
+
     if (!sessionId) {
-      return NextResponse.json({ success: false, error: 'sessionId required' }, { status: 400 });
+      return errorResponse('sessionId is required.', 400, 'VALIDATION_ERROR');
     }
 
-    const session = await prisma.cartSession.update({
-      where: { id: sessionId },
-      data: { status: 'COMPLETED', endedAt: new Date() },
+    const result = await CartSessionService.forceFinishSession(sessionId);
+    return successResponse({
+      sessionId,
+      receiptId: result.receiptId,
+      status: result.status,
+      alreadyFinished: result.alreadyFinished,
     });
-
-    await prisma.cart.update({
-      where: { id: session.cartId },
-      data: { status: 'AVAILABLE', qrSessionId: null },
-    });
-
-    return NextResponse.json({ success: true, data: session });
   } catch (error: any) {
+    if (error instanceof ApiErrorResponse) {
+      return errorResponse(error.message, error.statusCode, error.code);
+    }
+
     console.error('[admin/sessions PATCH]', error);
-    return NextResponse.json({ success: false, error: 'Failed to end session' }, { status: 500 });
+    return errorResponse('Failed to end session.', 500, 'INTERNAL_SERVER_ERROR');
   }
 }

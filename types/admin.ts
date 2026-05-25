@@ -5,12 +5,16 @@
 export interface AdminStats {
   totalCarts: number;
   activeSessions: number;
+  completedSessions: number;
   totalUsers: number;
+  totalGuestSessions: number;
+  totalReceipts: number;
   todayRevenue: number;
   cartsOnline: number;
   cartsOffline: number;
   cartsInUse: number;
   cartsAvailable: number;
+  cartsMaintenance: number;
   recentSessions: AdminSessionRow[];
   activityFeed: ActivityEvent[];
 }
@@ -65,13 +69,12 @@ export interface AdminCart {
   cartCode: string;
   bluetoothName: string | null;
   deviceSecret: string | null;
+  hasDeviceSecret?: boolean;
   status: CartStatus;
   lastSeen: string;
   createdAt: string;
   storeId: string;
   storeName?: string;
-  // UI-only mock fields
-  batteryLevel?: number;
   isOnline?: boolean;
   currentSession?: AdminSessionRow | null;
 }
@@ -160,5 +163,5 @@ export interface AnalyticsData {
 export interface AdminApiResponse<T> {
   success: boolean;
   data?: T;
-  error?: string;
+  error?: string | { code: string; message: string };
 }

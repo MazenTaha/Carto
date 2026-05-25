@@ -7,7 +7,7 @@ import { QRModal } from './QRModal';
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import {
-  ShoppingCart, RefreshCw, QrCode, Battery, Wifi, WifiOff,
+  ShoppingCart, RefreshCw, QrCode, Wifi, WifiOff,
   MoreVertical, Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,17 +17,6 @@ interface CartsGridProps {
   onReset: (cartId: string) => Promise<void>;
   onSetStatus: (cartId: string, status: string) => Promise<void>;
   onGenerateQR: (cartId: string) => Promise<any>;
-}
-
-function BatteryIcon({ level }: { level: number }) {
-  const color =
-    level > 60 ? 'text-emerald-500' : level > 25 ? 'text-amber-500' : 'text-red-500';
-  return (
-    <div className={cn('flex items-center gap-1 text-xs font-medium', color)}>
-      <Battery size={13} />
-      {level}%
-    </div>
-  );
 }
 
 export function CartsGrid({ carts, onReset, onSetStatus, onGenerateQR }: CartsGridProps) {
@@ -96,7 +85,16 @@ export function CartsGrid({ carts, onReset, onSetStatus, onGenerateQR }: CartsGr
             {/* Status & Battery */}
             <div className="mt-3 flex items-center justify-between">
               <StatusBadge status={cart.status} pulse={cart.status === 'IN_USE'} />
-              <BatteryIcon level={cart.batteryLevel ?? 85} />
+              <span
+                className={cn(
+                  'rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wider',
+                  cart.hasDeviceSecret
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-amber-50 text-amber-700'
+                )}
+              >
+                {cart.hasDeviceSecret ? 'Device ready' : 'No secret'}
+              </span>
             </div>
 
             {/* Connectivity */}

@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     return successResponse(await getAdminOverviewData());
   } catch (error: any) {
-    console.error('[admin/stats]', error);
-    return errorResponse('Failed to fetch admin stats.', 500, 'INTERNAL_SERVER_ERROR');
+    console.error('[admin/overview]', error);
+    return errorResponse('Failed to fetch admin overview.', 500, 'INTERNAL_SERVER_ERROR');
   }
 }

@@ -1,0 +1,271 @@
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js', but to 'Error: Can't resolve '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in 'C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/api/carts/[cartCode]/active-session/route (expected C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js)
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\handle-externals.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\handle-externals.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\bundle5.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\bundle5.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\webpack.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\webpack.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\define-env-plugin.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\define-env-plugin.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\swc\index.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\swc\index.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w>  at resolve commonjs C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js', but to 'Error: Can't resolve '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in 'C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/api/carts/[cartCode]/active-session/route (expected C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js)
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\handle-externals.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\handle-externals.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\bundle5.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\bundle5.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\webpack.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\webpack.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\define-env-plugin.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\define-env-plugin.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\swc\index.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\swc\index.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w>  at resolve commonjs C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js', but to 'Error: Can't resolve '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in 'C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/api/carts/[cartCode]/active-session/route (expected C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js)
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\flight-client-entry-plugin.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\flight-client-entry-plugin.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack-config.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack-config.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\bundle5.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\bundle5.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\webpack.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\webpack.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\define-env-plugin.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\define-env-plugin.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\swc\index.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\swc\index.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w>  at resolve commonjs C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js', but to 'Error: Can't resolve '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in 'C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/api/carts/[cartCode]/active-session/route (expected C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js)
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\flight-client-entry-plugin.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\flight-client-entry-plugin.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack-config.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack-config.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\bundle5.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\bundle5.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\webpack.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\webpack.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\define-env-plugin.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\define-env-plugin.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\swc\index.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\swc\index.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w>  at resolve commonjs C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+ ⚠ Cross origin request detected from editor-franklin-dimension-kissing.trycloudflare.com to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js', but to 'Error: Can't resolve '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in 'C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/api/carts/[cartCode]/active-session/route (expected C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js)
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\entries.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\entries.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\next-types-plugin\index.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\next-types-plugin\index.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack-config.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack-config.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\bundle5.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\bundle5.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\webpack.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\webpack\webpack.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\define-env-plugin.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\plugins\define-env-plugin.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\swc\index.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\swc\index.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+<w>  at resolve commonjs C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-barrel-loader.js
+Error linking cart: PrismaClientKnownRequestError: 
+Invalid `prisma.cartSession.findFirst()` invocation:
+
+
+The column `cart_sessions.guestSessionId` does not exist in the current database.
+    at Ln.handleRequestError (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:121:7753)
+    at Ln.handleAndLogRequestError (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:121:7061)
+    at Ln.request (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:121:6745)
+    at async l (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async _lib_prisma__WEBPACK_IMPORTED_MODULE_1__.prisma.$transaction.isolationLevel (webpack-internal:///(rsc)/./lib/services/cart-pairing.service.ts:63:41)
+    at async Proxy._transactionWithCallback (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:130:8000)
+    at async CartPairingService.linkCart (webpack-internal:///(rsc)/./lib/services/cart-pairing.service.ts:28:16)
+    at async POST (webpack-internal:///(rsc)/./app/api/cart/link/route.ts:31:29)
+    at async C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:57228
+    at async eT.execute (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:46851)
+    at async eT.handle (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:58760)
+    at async doRender (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:818:17)
+    at async C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\start-server.js:141:13) {
+  code: 'P2022',
+  clientVersion: '5.19.0',
+  meta: { modelName: 'CartSession', column: 'cart_sessions.guestSessionId' }
+}
+Error linking cart: PrismaClientKnownRequestError: 
+Invalid `prisma.cartSession.findFirst()` invocation:
+
+
+The column `cart_sessions.guestSessionId` does not exist in the current database.
+    at Ln.handleRequestError (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:121:7753)
+    at Ln.handleAndLogRequestError (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:121:7061)
+    at Ln.request (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:121:6745)
+    at async l (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async _lib_prisma__WEBPACK_IMPORTED_MODULE_1__.prisma.$transaction.isolationLevel (webpack-internal:///(rsc)/./lib/services/cart-pairing.service.ts:63:41)
+    at async Proxy._transactionWithCallback (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:130:8000)
+    at async CartPairingService.linkCart (webpack-internal:///(rsc)/./lib/services/cart-pairing.service.ts:28:16)
+    at async POST (webpack-internal:///(rsc)/./app/api/cart/link/route.ts:31:29)
+    at async C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:57228
+    at async eT.execute (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:46851)
+    at async eT.handle (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:58760)
+    at async doRender (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:818:17)
+    at async C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\start-server.js:141:13) {
+  code: 'P2022',
+  clientVersion: '5.19.0',
+  meta: { modelName: 'CartSession', column: 'cart_sessions.guestSessionId' }
+}
+Error generating QR payload: PrismaClientKnownRequestError: 
+Invalid `prisma.cart.findUnique()` invocation:
+
+
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 29)
+    at Ln.handleRequestError (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:121:7753)
+    at Ln.handleAndLogRequestError (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:121:7061)
+    at Ln.request (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:121:6745)
+    at async l (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async DeviceAuthService.authenticateDevice (webpack-internal:///(rsc)/./lib/services/device-auth.service.ts:26:22)
+    at async GET (webpack-internal:///(rsc)/./app/api/carts/[cartCode]/qrcode/route.ts:19:22)
+    at async C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:57228
+    at async eT.execute (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:46851)
+    at async eT.handle (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:58760)
+    at async doRender (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1576:40)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\base-server.js:818:17)
+    at async C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\lib\start-server.js:141:13) {
+  code: 'P2024',
+  clientVersion: '5.19.0',
+  meta: { modelName: 'Cart', connection_limit: 29, timeout: 10 }
+}
+<w> [webpack.cache.PackFileCacheStrategy] Restoring pack from C:\Users\LOQ\Downloads\CartoMAIN\.next\cache\webpack\client-development.pack.gz failed: TypeError: Cannot read properties of undefined (reading 'hasStartTime')
+<w> [webpack.cache.PackFileCacheStrategy] Restoring pack from C:\Users\LOQ\Downloads\CartoMAIN\.next\cache\webpack\client-development.pack.gz failed: TypeError: Cannot read properties of undefined (reading 'hasStartTime')
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js', but to 'Error: Can't resolve '../../../../.next/server/app/api/carts/[cartCode]/active-session/route' in 'C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/api/carts/[cartCode]/active-session/route (expected C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\active-session\route.js)
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at resolve commonjs C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/api/carts/[cartCode]/qrcode/route' in C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\qrcode\route.js', but to 'Error: Can't resolve '../../../../.next/server/app/api/carts/[cartCode]/qrcode/route' in 'C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/api/carts/[cartCode]/qrcode/route (expected C:\Users\LOQ\Downloads\CartoMAIN\.next\server\app\api\carts\[cartCode]\qrcode\route.js)
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\require.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\utils.js
+<w>  at file dependencies C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at file C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at resolve commonjs C:\Users\LOQ\Downloads\CartoMAIN\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js

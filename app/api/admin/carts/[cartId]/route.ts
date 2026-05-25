@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import QRCode from 'qrcode';
+import { z } from 'zod';
 import { guardAdminApi } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
-import { z } from 'zod';
-import QRCode from 'qrcode';
+import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
+import { CartPairingService } from '@/lib/services/cart-pairing.service';
+import { CartSessionService } from '@/lib/services/cart-session.service';
 
 const patchSchema = z.object({
   action: z.enum(['reset', 'set_status', 'assign_secret']),
@@ -10,7 +13,6 @@ const patchSchema = z.object({
   deviceSecret: z.string().min(1).max(100).optional(),
 });
 
-// GET /api/admin/carts/[cartId]
 export async function GET(
   req: NextRequest,
   { params }: { params: { cartId: string } }
@@ -36,23 +38,16 @@ export async function GET(
     });
 
     if (!cart) {
-      return NextResponse.json(
-        { success: false, error: 'Cart not found' },
-        { status: 404 }
-      );
+      return errorResponse('Cart not found.', 404, 'NOT_FOUND');
     }
 
-    return NextResponse.json({ success: true, data: cart });
+    return successResponse(cart);
   } catch (error: any) {
     console.error('[admin/carts/[cartId] GET]', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch cart' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch cart.', 500, 'INTERNAL_SERVER_ERROR');
   }
 }
 
-// PATCH /api/admin/carts/[cartId]
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { cartId: string } }
@@ -63,21 +58,27 @@ export async function PATCH(
   try {
     const body = await req.json();
     const parsed = patchSchema.safeParse(body);
+
     if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, error: parsed.error.errors[0].message },
-        { status: 400 }
-      );
+      return errorResponse(parsed.error.errors[0].message, 400, 'VALIDATION_ERROR');
     }
 
     const { action, status, deviceSecret } = parsed.data;
 
     if (action === 'reset') {
-      // End all active sessions and mark cart as AVAILABLE
-      await prisma.cartSession.updateMany({
-        where: { cartId: params.cartId, status: 'ACTIVE' },
-        data: { status: 'DISCONNECTED', endedAt: new Date() },
+      const liveSessions = await prisma.cartSession.findMany({
+        where: {
+          cartId: params.cartId,
+          status: { in: ['ACTIVE', 'DISCONNECTED'] },
+          endedAt: null,
+        },
+        select: { id: true },
       });
+
+      for (const session of liveSessions) {
+        await CartSessionService.forceFinishSession(session.id);
+      }
+
       const cart = await prisma.cart.update({
         where: { id: params.cartId },
         data: {
@@ -85,9 +86,11 @@ export async function PATCH(
           qrSessionId: null,
           pairingCode: null,
           pairingExpiresAt: null,
+          lastSeen: new Date(),
         },
       });
-      return NextResponse.json({ success: true, data: cart });
+
+      return successResponse(cart);
     }
 
     if (action === 'set_status' && status) {
@@ -95,7 +98,7 @@ export async function PATCH(
         where: { id: params.cartId },
         data: { status },
       });
-      return NextResponse.json({ success: true, data: cart });
+      return successResponse(cart);
     }
 
     if (action === 'assign_secret' && deviceSecret) {
@@ -103,23 +106,16 @@ export async function PATCH(
         where: { id: params.cartId },
         data: { deviceSecret },
       });
-      return NextResponse.json({ success: true, data: cart });
+      return successResponse(cart);
     }
 
-    return NextResponse.json(
-      { success: false, error: 'Invalid action or missing parameters' },
-      { status: 400 }
-    );
+    return errorResponse('Invalid action or missing parameters.', 400, 'VALIDATION_ERROR');
   } catch (error: any) {
     console.error('[admin/carts/[cartId] PATCH]', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to update cart' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to update cart.', 500, 'INTERNAL_SERVER_ERROR');
   }
 }
 
-// POST /api/admin/carts/[cartId] — generate QR
 export async function POST(
   req: NextRequest,
   { params }: { params: { cartId: string } }
@@ -130,46 +126,32 @@ export async function POST(
   try {
     const cart = await prisma.cart.findUnique({
       where: { id: params.cartId },
-      select: { cartCode: true, pairingCode: true },
+      select: { cartCode: true },
     });
 
     if (!cart) {
-      return NextResponse.json(
-        { success: false, error: 'Cart not found' },
-        { status: 404 }
-      );
+      return errorResponse('Cart not found.', 404, 'NOT_FOUND');
     }
 
-    // Generate a fresh pairing code
-    const pairingCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 min
-
-    await prisma.cart.update({
-      where: { id: params.cartId },
-      data: { pairingCode, pairingExpiresAt: expiresAt },
-    });
-
-    const payload = JSON.stringify({
-      type: 'cart_pairing',
-      cartCode: cart.cartCode,
-      pairingCode,
-    });
-
-    const qrDataUrl = await QRCode.toDataURL(payload, {
+    const qrPayload = await CartPairingService.generatePairingQr(cart.cartCode);
+    const qrDataUrl = await QRCode.toDataURL(qrPayload.qrValue, {
       errorCorrectionLevel: 'M',
       margin: 2,
       width: 300,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: { qrDataUrl, pairingCode, expiresAt: expiresAt.toISOString() },
+    return successResponse({
+      qrDataUrl,
+      pairingCode: qrPayload.payload.pairingCode,
+      expiresAt: qrPayload.expiresAt,
+      payload: qrPayload.payload,
     });
   } catch (error: any) {
+    if (error instanceof ApiErrorResponse) {
+      return errorResponse(error.message, error.statusCode, error.code);
+    }
+
     console.error('[admin/carts/[cartId] POST]', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to generate QR' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to generate QR.', 500, 'INTERNAL_SERVER_ERROR');
   }
 }
