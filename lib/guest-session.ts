@@ -3,9 +3,7 @@ import { getServerSession } from 'next-auth';
 import type { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
-
-export const GUEST_SESSION_COOKIE = 'guest_session_id';
-export const GUEST_SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+import { GUEST_SESSION_COOKIE, GUEST_SESSION_MAX_AGE } from './guest-session.constants';
 
 export type RequestOwner =
   | { type: 'user'; userId: string }
@@ -22,6 +20,16 @@ export function setGuestSessionCookie(response: NextResponse, guestSessionId: st
     sameSite: 'lax',
     path: '/',
     maxAge: GUEST_SESSION_MAX_AGE,
+  });
+}
+
+export function clearGuestSessionCookie(response: NextResponse) {
+  response.cookies.set(GUEST_SESSION_COOKIE, '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
   });
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { PollingService } from '@/lib/services/polling.service';
+import { CartDeviceService } from '@/lib/services/cart-device.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
 import { prisma } from '@/lib/prisma';
@@ -39,28 +40,17 @@ export async function GET(
     }
 
     const responseData = activeSession
-      ? {
-          active: true,
-          cart: {
+      ? CartDeviceService.buildActivePayload(
+          {
             cartCode: cart.cartCode,
             status: cartStatus,
           },
-          session: {
-            id: activeSession.id,
-            status: activeSession.status,
-            startedAt: activeSession.startedAt,
-            endedAt: activeSession.endedAt,
-          },
-          list: activeSession.shoppingList,
-          receipt: activeSession.receipt,
-        }
-      : {
-          active: false,
-          cart: {
-            cartCode: cart.cartCode,
-            status: cartStatus,
-          },
-        };
+          activeSession
+        )
+      : CartDeviceService.buildWaitingPayload({
+          cartCode: cart.cartCode,
+          status: cartStatus,
+        });
 
     const response = successResponse(responseData);
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

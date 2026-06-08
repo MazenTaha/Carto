@@ -23,7 +23,8 @@ export default async function DashboardPage() {
 
   let stats = { totalSpent: 0, savedLists: 0 };
   let recentLists: ShoppingList[] = [];
-  let userName = owner.type === 'guest' ? 'Guest Shopper' : 'Alex';
+  const isGuest = owner.type === 'guest';
+  let userName = isGuest ? 'Guest Shopper' : 'Alex';
 
   if (process.env.DATABASE_URL) {
     try {
@@ -76,14 +77,20 @@ export default async function DashboardPage() {
           <nav className="ml-4 hidden items-center gap-1 md:flex">
             <Link href="/dashboard" className="rounded-xl bg-primary/10 px-4 py-2 text-sm font-bold text-primary">Dashboard</Link>
             <Link href="/lists" className="rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Lists</Link>
-            <Link href="/history" className="rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">History</Link>
+            {!isGuest && (
+              <Link href="/history" className="rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">History</Link>
+            )}
           </nav>
           <div className="ml-auto flex items-center gap-2">
-            <Badge variant="success" className="hidden sm:inline-flex">Signed in</Badge>
+            <Badge variant={isGuest ? 'muted' : 'success'} className="hidden sm:inline-flex">
+              {isGuest ? 'Guest mode' : 'Signed in'}
+            </Badge>
             <SignOutButton className="hidden sm:inline-flex" />
-            <Link href="/profile" className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-primary/10 hover:text-primary dark:bg-slate-800 dark:text-slate-300" aria-label="Open profile">
-              <span className="material-symbols-outlined">person</span>
-            </Link>
+            {!isGuest && (
+              <Link href="/profile" className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-primary/10 hover:text-primary dark:bg-slate-800 dark:text-slate-300" aria-label="Open profile">
+                <span className="material-symbols-outlined">person</span>
+              </Link>
+            )}
             <SignOutButton variant="icon" className="sm:hidden" />
           </div>
         </div>

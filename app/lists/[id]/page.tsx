@@ -8,6 +8,8 @@ import { purgeExpiredShoppingLists } from '@/lib/list-retention';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { isListActiveOnCart } from '@/lib/list-session-lock';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ListDetailPage({
   params,
 }: {
@@ -55,6 +57,15 @@ export default async function ListDetailPage({
 
     if (list) {
       isLockedForActiveSession = await isListActiveOnCart(list.id);
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('[lists/page]', {
+          listId: list.id,
+          ownerType: owner.type,
+          itemCount: list.items?.length ?? 0,
+          isLockedForActiveSession,
+        });
+      }
     }
   }
 

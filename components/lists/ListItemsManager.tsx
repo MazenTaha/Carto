@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ListItem } from '@/types';
 import { PageContainer } from '@/components/layout/PageContainer';
@@ -10,6 +10,7 @@ import { ProductSearch } from '@/components/lists/ProductSearch';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { cn, formatCurrency } from '@/lib/utils';
 
@@ -21,6 +22,11 @@ interface ListItemsManagerProps {
 }
 
 const activeSessionLockMessage = 'This list is active on a cart. Finish the session before editing it.';
+
+type ApiErrorPayload = {
+  error?: string | { code?: string; message?: string };
+  data?: any;
+};
 
 export function ListItemsManager({
   listId,
@@ -34,9 +40,11 @@ export function ListItemsManager({
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isItemsLoading, setIsItemsLoading] = useState(initialItems.length === 0);
   const [isActivating, setIsActivating] = useState(false);
   const [pendingItemIds, setPendingItemIds] = useState<Set<string>>(new Set());
   const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
+  const itemsRequestInFlightRef = useRef(false);
 
   const markItemPending = (itemId: string) => {
     setPendingItemIds((current) => new Set(current).add(itemId));
@@ -50,16 +58,96 @@ export function ListItemsManager({
     });
   };
 
-  const readErrorMessage = async (response: Response, fallback: string) => {
+  const readErrorPayload = async (response: Response, fallback: string) => {
     try {
-      const data = await response.json();
-      return data.error || fallback;
+      const data: ApiErrorPayload = await response.json();
+      const message = typeof data.error === 'string'
+        ? data.error
+        : data.error?.message || fallback;
+      const code = typeof data.error === 'object' ? data.error?.code : undefined;
+      return {
+        code,
+        message,
+        data: data.data,
+      };
     } catch {
-      return fallback;
+      return {
+        code: undefined,
+        message: fallback,
+        data: undefined,
+      };
     }
   };
 
-  const handleAddItem = async (name: string, category?: string | null) => {
+  const syncItemsFromServer = useCallback(async (options?: { showLoader?: boolean }) => {
+    if (itemsRequestInFlightRef.current) {
+      return false;
+    }
+
+    itemsRequestInFlightRef.current = true;
+    if (options?.showLoader) {
+      setIsItemsLoading(true);
+    }
+
+    try {
+      const response = await fetch(`/api/lists/${listId}/items`, {
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        const payload = await readErrorPayload(response, 'Failed to refresh list items.');
+        throw new Error(payload.message);
+      }
+
+      const data = await response.json();
+      const nextItems = Array.isArray(data?.data) ? data.data : [];
+      setItems(nextItems);
+      return true;
+    } catch (err: any) {
+      setError((current) => current || err.message || 'Failed to refresh list items.');
+      return false;
+    } finally {
+      itemsRequestInFlightRef.current = false;
+      setIsItemsLoading(false);
+    }
+  }, [listId]);
+
+  useEffect(() => {
+    setItems(initialItems);
+    setIsItemsLoading(false);
+  }, [initialItems, listId]);
+
+  useEffect(() => {
+    void syncItemsFromServer({ showLoader: initialItems.length === 0 });
+  }, [initialItems.length, syncItemsFromServer]);
+
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      void syncItemsFromServer();
+    };
+
+    const handlePageShow = () => {
+      void syncItemsFromServer();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void syncItemsFromServer();
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [syncItemsFromServer]);
+
+  const handleAddItem = useCallback(async (name: string, category?: string | null) => {
     const trimmedName = name.trim();
     if (!trimmedName || isLoading) return false;
     if (isLockedForActiveSession) {
@@ -99,13 +187,20 @@ export function ListItemsManager({
       });
 
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, 'Failed to add item'));
+        const payload = await readErrorPayload(response, 'Failed to add item');
+
+        if (payload.code === 'DUPLICATE_LIST_ITEM') {
+          await syncItemsFromServer();
+        }
+
+        throw new Error(payload.message);
       }
 
       const data = await response.json();
       if (data.success && data.data) {
         setItems((current) => current.map((item) => (item.id === optimisticId ? data.data : item)));
         setNotice('Item added.');
+        router.refresh();
       }
       return true;
     } catch (err: any) {
@@ -117,7 +212,7 @@ export function ListItemsManager({
       clearItemPending(optimisticId);
       setIsLoading(false);
     }
-  };
+  }, [isLoading, isLockedForActiveSession, listId, router, syncItemsFromServer]);
 
   const handleUpdateQuantity = async (item: ListItem, delta: number) => {
     if (pendingItemIds.has(item.id)) return;
@@ -142,11 +237,13 @@ export function ListItemsManager({
         body: JSON.stringify({ quantity: newQuantity }),
       });
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, 'Could not update quantity.'));
+        const payload = await readErrorPayload(response, 'Could not update quantity.');
+        throw new Error(payload.message);
       }
       const data = await response.json();
       if (data.success && data.data) {
         setItems((current) => current.map((entry) => (entry.id === item.id ? data.data : entry)));
+        router.refresh();
       }
     } catch (err) {
       setItems((current) => current.map((entry) => (entry.id === item.id ? previousItem : entry)));
@@ -181,11 +278,13 @@ export function ListItemsManager({
         body: JSON.stringify({ isCollected: nextCollected }),
       });
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, 'Could not update item status.'));
+        const payload = await readErrorPayload(response, 'Could not update item status.');
+        throw new Error(payload.message);
       }
       const data = await response.json();
       if (data.success && data.data) {
         setItems((current) => current.map((entry) => (entry.id === item.id ? data.data : entry)));
+        router.refresh();
       }
     } catch (err) {
       setItems((current) => current.map((entry) => (entry.id === item.id ? previousItem : entry)));
@@ -211,9 +310,11 @@ export function ListItemsManager({
         method: 'DELETE',
       });
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, 'Could not delete item.'));
+        const payload = await readErrorPayload(response, 'Could not delete item.');
+        throw new Error(payload.message);
       }
       setNotice('Item deleted.');
+      router.refresh();
     } catch (err) {
       setItems((current) => {
         if (current.some((entry) => entry.id === item.id)) return current;
@@ -422,7 +523,11 @@ export function ListItemsManager({
           {notice && !error && <p className="mt-2 rounded-xl bg-primary/10 px-3 py-2 text-sm font-bold text-primary">{notice}</p>}
         </section>
 
-        {items.length === 0 ? (
+        {isItemsLoading && items.length === 0 ? (
+          <div className="mt-6">
+            <LoadingState label="Loading list items" />
+          </div>
+        ) : items.length === 0 ? (
           <EmptyState
             className="mt-6"
             icon="add_shopping_cart"

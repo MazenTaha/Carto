@@ -138,6 +138,22 @@ export interface Product {
   updatedAt: Date;
 }
 
+export type ProductFinderTab = 'popular' | 'recent' | 'favorites';
+
+export interface ProductSearchResult {
+  id: string;
+  name: string;
+  category: string;
+  emoji: string | null;
+  price: number;
+  popularity: number;
+}
+
+export interface ProductCategorySummary {
+  name: string;
+  count: number;
+}
+
 // ─── User Stats (Analytics) ────────────────────────────────────────────────────
 
 export interface UserStats {

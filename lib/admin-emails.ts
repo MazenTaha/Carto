@@ -1,6 +1,8 @@
 // Simple admin check that can run in Middleware (Edge runtime)
 // without pulling in heavy server-side dependencies like firebase-admin.
 
+const SEEDED_DEV_ADMIN_EMAIL = 'admin@gmail.com';
+
 /**
  * Returns the list of admin emails from the ADMIN_EMAILS environment variable.
  */
@@ -17,8 +19,12 @@ export function getAdminEmails(): string[] {
  */
 export function isAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false;
+  const normalizedEmail = email.toLowerCase();
   const admins = getAdminEmails();
-  // If no admin emails configured, allow any authenticated user (dev mode)
-  if (admins.length === 0) return true;
-  return admins.includes(email.toLowerCase());
+
+  if (admins.length > 0) {
+    return admins.includes(normalizedEmail);
+  }
+
+  return process.env.NODE_ENV !== 'production' && normalizedEmail === SEEDED_DEV_ADMIN_EMAIL;
 }

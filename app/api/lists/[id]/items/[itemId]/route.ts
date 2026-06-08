@@ -1,10 +1,11 @@
 // Individual list item API routes
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { updateListItemSchema } from '@/lib/validations';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { ACTIVE_LIST_LOCK_MESSAGE, isListActiveOnCart } from '@/lib/list-session-lock';
+import { errorResponse, successResponse } from '@/lib/api-response';
 
 // PUT /api/lists/[id]/items/[itemId] - Update an item
 export async function PUT(
@@ -18,7 +19,7 @@ export async function PUT(
     const validatedData = updateListItemSchema.parse(body);
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
     const list = await prisma.shoppingList.findFirst({
@@ -30,14 +31,11 @@ export async function PUT(
     });
 
     if (!list) {
-      return NextResponse.json({ error: 'List not found' }, { status: 404 });
+      return errorResponse('List not found', 404, 'NOT_FOUND');
     }
 
     if (await isListActiveOnCart(params.id)) {
-      return NextResponse.json(
-        { error: ACTIVE_LIST_LOCK_MESSAGE },
-        { status: 409 }
-      );
+      return errorResponse(ACTIVE_LIST_LOCK_MESSAGE, 409, 'LIST_ACTIVE_ON_CART');
     }
 
     const existingItem = await prisma.listItem.findFirst({
@@ -46,7 +44,7 @@ export async function PUT(
     });
 
     if (!existingItem) {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      return errorResponse('Item not found', 404, 'NOT_FOUND');
     }
 
     const item = await prisma.listItem.update({
@@ -61,24 +59,18 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({ success: true, data: item });
+    return successResponse(item);
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: error.errors[0].message },
-        { status: 400 }
-      );
+      return errorResponse(error.errors[0].message, 400, 'VALIDATION_ERROR');
     }
 
     if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      return errorResponse('Item not found', 404, 'NOT_FOUND');
     }
 
     console.error('Error updating item:', error);
-    return NextResponse.json(
-      { error: 'Failed to update item' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to update item', 500, 'INTERNAL_SERVER_ERROR');
   }
 }
 
@@ -91,7 +83,7 @@ export async function DELETE(
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
     const list = await prisma.shoppingList.findFirst({
@@ -103,14 +95,11 @@ export async function DELETE(
     });
 
     if (!list) {
-      return NextResponse.json({ error: 'List not found' }, { status: 404 });
+      return errorResponse('List not found', 404, 'NOT_FOUND');
     }
 
     if (await isListActiveOnCart(params.id)) {
-      return NextResponse.json(
-        { error: ACTIVE_LIST_LOCK_MESSAGE },
-        { status: 409 }
-      );
+      return errorResponse(ACTIVE_LIST_LOCK_MESSAGE, 409, 'LIST_ACTIVE_ON_CART');
     }
 
     const item = await prisma.listItem.findFirst({
@@ -119,23 +108,20 @@ export async function DELETE(
     });
 
     if (!item) {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      return errorResponse('Item not found', 404, 'NOT_FOUND');
     }
 
     await prisma.listItem.delete({
       where: { id: item.id },
     });
 
-    return NextResponse.json({ success: true });
+    return successResponse({ deleted: true });
   } catch (error: any) {
     if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      return errorResponse('Item not found', 404, 'NOT_FOUND');
     }
 
     console.error('Error deleting item:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete item' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to delete item', 500, 'INTERNAL_SERVER_ERROR');
   }
 }

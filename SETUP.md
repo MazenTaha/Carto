@@ -23,12 +23,16 @@ Create a `.env` file in the root directory with the following variables:
 DATABASE_URL="postgresql://user:password@localhost:5432/carto?schema=public"
 
 # NextAuth
+AUTH_SECRET="your-secret-key-here"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key-here"
 
 # Google OAuth
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# Admin allowlist
+ADMIN_EMAILS="admin@example.com"
 
 # Firebase client SDK (browser phone OTP)
 NEXT_PUBLIC_FIREBASE_API_KEY="your-firebase-api-key"
@@ -67,6 +71,8 @@ npm run db:generate
 ```bash
 npm run db:push
 ```
+
+Set either `AUTH_SECRET` or `NEXTAUTH_SECRET`; `AUTH_SECRET` is preferred. Only `NEXT_PUBLIC_*` variables belong in client-side bundles.
 
 Alternatively, use migrations:
 ```bash

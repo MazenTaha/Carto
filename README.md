@@ -52,10 +52,12 @@ cp .env.example .env
 Required authentication variables:
 
 ```env
+AUTH_SECRET="your-secret-key-here"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key-here"
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
+ADMIN_EMAILS="admin@example.com"
 NEXT_PUBLIC_FIREBASE_API_KEY="your-firebase-api-key"
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
 NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-firebase-project-id"
@@ -64,6 +66,8 @@ FIREBASE_PROJECT_ID="your-firebase-project-id"
 FIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com"
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
+
+Set either `AUTH_SECRET` or `NEXTAUTH_SECRET`; `AUTH_SECRET` is preferred. Only variables prefixed with `NEXT_PUBLIC_` should be used in browser code.
 
 4. Set up the database:
 ```bash

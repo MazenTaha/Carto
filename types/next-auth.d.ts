@@ -10,6 +10,8 @@ declare module 'next-auth' {
       name: string | null;
       phoneNumber?: string | null;
       image?: string | null;
+      role?: 'ADMIN' | 'USER';
+      provider?: string | null;
     };
   }
 
@@ -19,6 +21,8 @@ declare module 'next-auth' {
     name: string | null;
     phoneNumber?: string | null;
     image?: string | null;
+    role?: 'ADMIN' | 'USER';
+    provider?: string | null;
   }
 }
 
@@ -29,6 +33,8 @@ declare module 'next-auth/jwt' {
     name: string | null;
     phoneNumber?: string | null;
     image?: string | null;
+    role?: 'ADMIN' | 'USER';
+    provider?: string | null;
   }
 }
 

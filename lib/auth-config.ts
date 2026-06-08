@@ -8,12 +8,16 @@ import { normalizeEgyptianMobileNumber } from './phone';
 import { phoneAuthVerifySchema, signInSchema } from './validations';
 import { verifyFirebaseIdToken } from './firebase/admin';
 import { getPrismaConnectivityMessage } from './prisma-errors';
+import { isAdminEmail } from './admin-emails';
+import { getAuthSecret } from './auth-secret';
 
 const SEEDED_ADMIN_EMAIL = 'admin@gmail.com';
 const SEEDED_ADMIN_PASSWORD = 'Admin_1';
+const authSecret = getAuthSecret();
+const canUseSeededAdmin = process.env.NODE_ENV !== 'production';
 
 function isSeededAdminCredentials(email: string, password: string) {
-  return email === SEEDED_ADMIN_EMAIL && password === SEEDED_ADMIN_PASSWORD;
+  return canUseSeededAdmin && email === SEEDED_ADMIN_EMAIL && password === SEEDED_ADMIN_PASSWORD;
 }
 
 const googleProviders = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -199,6 +203,8 @@ export const authOptions: NextAuthOptions = {
           token.name = dbUser.name;
           token.phoneNumber = dbUser.phoneNumber;
           token.image = dbUser.image;
+          token.role = isAdminEmail(dbUser.email) ? 'ADMIN' : 'USER';
+          token.provider = 'google';
         }
 
         return token;
@@ -210,6 +216,10 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name;
         token.phoneNumber = user.phoneNumber;
         token.image = user.image;
+        token.role = isAdminEmail(user.email ?? null) ? 'ADMIN' : 'USER';
+        token.provider = account?.provider ?? token.provider ?? null;
+      } else if (!token.role) {
+        token.role = isAdminEmail((token.email as string | null | undefined) ?? null) ? 'ADMIN' : 'USER';
       }
       return token;
     },
@@ -220,10 +230,12 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name as string | null;
         session.user.phoneNumber = token.phoneNumber as string | null | undefined;
         session.user.image = token.image as string | null | undefined;
+        session.user.role = (token.role as 'ADMIN' | 'USER' | undefined) ?? 'USER';
+        session.user.provider = (token.provider as string | null | undefined) ?? null;
       }
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production',
+  secret: authSecret,
 };
 

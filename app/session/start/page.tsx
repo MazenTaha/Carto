@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, Suspense, useCallback, useRef } from 'react';
+import { useState, Suspense, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Header } from '@/components/layout/Header';
@@ -18,6 +18,12 @@ function cn(...inputs: ClassValue[]) {
 }
 
 type CartQrPayload = z.infer<typeof cartQrPayloadSchema>;
+
+type SelectedListSummary = {
+  id: string;
+  name: string;
+  items?: Array<{ id: string }>;
+};
 
 function getApiErrorMessage(data: any, fallback: string) {
   if (data?.error?.message) return data.error.message;
@@ -50,7 +56,47 @@ function StartSessionContent() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [scannedCart, setScannedCart] = useState<CartQrPayload | null>(null);
+  const [selectedList, setSelectedList] = useState<SelectedListSummary | null>(null);
+  const [isListLoading, setIsListLoading] = useState(false);
   const linkInFlightRef = useRef(false);
+
+  useEffect(() => {
+    if (!listId) return;
+    const currentListId = listId;
+
+    const controller = new AbortController();
+    setIsListLoading(true);
+
+    async function fetchSelectedList() {
+      try {
+        const response = await fetch(`/api/lists/${encodeURIComponent(currentListId)}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.success) {
+          throw new Error(getApiErrorMessage(data, 'Could not load the selected shopping list.'));
+        }
+
+        if (!controller.signal.aborted) {
+          setSelectedList(data.data);
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+        if (!controller.signal.aborted) {
+          setError(err.message || 'Could not load the selected shopping list.');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsListLoading(false);
+        }
+      }
+    }
+
+    void fetchSelectedList();
+    return () => controller.abort();
+  }, [listId]);
 
   const linkCart = useCallback(async (cartCode: string, pairingCode: string) => {
     if (!listId) {
@@ -151,6 +197,18 @@ function StartSessionContent() {
           </p>
         </div>
 
+        <div className="w-full max-w-sm">
+          <div className="rounded-xl border border-primary/20 bg-white dark:bg-slate-900 p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Selected shopping list</p>
+            <p className="mt-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+              {isListLoading ? 'Loading list...' : selectedList?.name || 'Selected list'}
+            </p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {selectedList?.items?.length ?? 0} item{(selectedList?.items?.length ?? 0) === 1 ? '' : 's'} ready to send to the cart
+            </p>
+          </div>
+        </div>
+
         <QrScanner
           onDetected={(raw) => {
             setError('');
@@ -165,9 +223,7 @@ function StartSessionContent() {
             setScannedCart(result.cart);
             setManualCartCode(result.cart.cartCode);
             setManualPairingCode(result.cart.pairingCode);
-            // The phone does not connect to the Raspberry Pi. This request asks
-            // the backend to bind the selected list to the cart identity in the QR.
-            void linkCart(result.cart.cartCode, result.cart.pairingCode);
+            return true;
           }}
         />
 
@@ -201,6 +257,9 @@ function StartSessionContent() {
                   <span className="text-slate-500">Cart code</span>
                   <span className="font-semibold text-slate-900 dark:text-slate-100">{scannedCart.cartCode}</span>
                 </div>
+                <div className="rounded-lg bg-primary/5 px-3 py-2 text-primary">
+                  Send <span className="font-bold">{selectedList?.name || 'this list'}</span> to Cart <span className="font-bold">{scannedCart.cartCode}</span>?
+                </div>
               </div>
             )}
           </div>
@@ -213,7 +272,7 @@ function StartSessionContent() {
             disabled={isLoading}
             className="w-full flex cursor-pointer touch-manipulation items-center justify-center rounded-xl h-14 bg-primary text-white text-base font-bold shadow-lg shadow-primary/30 active:scale-[0.97] transition-transform duration-150 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
           >
-            {isLoading ? "Connecting..." : "Connect to Cart"}
+            {isLoading ? "Connecting..." : scannedCart ? `Send List to ${scannedCart.cartCode}` : "Connect to Cart"}
           </button>
           <label className="mt-4 block text-left text-xs font-bold uppercase tracking-wider text-slate-500">
             Manual cart code
@@ -241,7 +300,7 @@ function StartSessionContent() {
             />
           </label>
           <p className="text-center text-slate-400 text-xs mt-4">
-            The cart will show the selected list after the link succeeds.
+            The backend will assign this list to the cart. The Raspberry Pi screen will fetch it after the link succeeds.
           </p>
           {error && <p className="text-red-500 text-xs text-center mt-2">{error}</p>}
         </div>

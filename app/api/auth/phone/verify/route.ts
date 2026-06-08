@@ -1,8 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyFirebaseIdToken } from '@/lib/firebase/admin';
 import { normalizeEgyptianMobileNumber } from '@/lib/phone';
 import { phoneAuthVerifySchema } from '@/lib/validations';
+import { errorResponse, successResponse } from '@/lib/api-response';
+
+function readPhoneVerifyError(error: any) {
+  const message = String(error?.message || '');
+
+  if (message.includes('Firebase Admin environment variables are not configured')) {
+    return { code: 'FIREBASE_ADMIN_NOT_CONFIGURED', message: 'Phone login is not configured on the server yet.' };
+  }
+
+  if (message.includes('argument-error') || message.includes('Firebase ID token')) {
+    return { code: 'INVALID_PHONE_VERIFICATION', message: 'Invalid phone verification. Please request a new code and try again.' };
+  }
+
+  return { code: 'PHONE_VERIFICATION_FAILED', message: 'Could not verify that phone number.' };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,10 +27,7 @@ export async function POST(request: NextRequest) {
     const phoneNumber = normalizeEgyptianMobileNumber(decodedToken.phone_number || '');
 
     if (!phoneNumber) {
-      return NextResponse.json(
-        { error: 'Invalid phone verification' },
-        { status: 400 }
-      );
+      return errorResponse('Invalid phone verification. Please request a new code and try again.', 400, 'INVALID_PHONE_VERIFICATION');
     }
 
     const user = await prisma.user.upsert({
@@ -31,25 +43,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        userId: user.id,
-        phoneNumber: user.phoneNumber,
-      },
+    return successResponse({
+      userId: user.id,
+      phoneNumber: user.phoneNumber,
     });
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Invalid phone verification' },
-        { status: 400 }
-      );
+      return errorResponse('Invalid phone verification. Please request a new code and try again.', 400, 'VALIDATION_ERROR');
     }
 
     console.error('Phone verification error:', error);
-    return NextResponse.json(
-      { error: 'Invalid phone verification' },
-      { status: 401 }
-    );
+    const authError = readPhoneVerifyError(error);
+    return errorResponse(authError.message, 401, authError.code);
   }
 }

@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { isAdminEmail } from '@/lib/admin-emails';
+import { getAuthSecret } from '@/lib/auth-secret';
+import { GUEST_SESSION_COOKIE } from '@/lib/guest-session.constants';
+
+const USER_ONLY_PATHS = ['/history', '/profile'];
+
+function isUserOnlyPath(pathname: string) {
+  return USER_ONLY_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production',
+    secret: getAuthSecret(),
   });
 
-  // ─── Admin routes ────────────────────────────────────────────────────────────
+  const hasGuestSession = Boolean(request.cookies.get(GUEST_SESSION_COOKIE)?.value);
+
   if (pathname.startsWith('/admin')) {
     if (!token?.id) {
       const signInUrl = new URL('/auth/signin', request.url);
@@ -29,9 +38,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ─── Consumer app routes ─────────────────────────────────────────────────────
   if (token?.id) {
     return NextResponse.next();
+  }
+
+  if (hasGuestSession && !isUserOnlyPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (hasGuestSession && isUserOnlyPath(pathname)) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   const signInUrl = new URL('/auth/signin', request.url);

@@ -1,5 +1,5 @@
 
-> carto@0.1.0 dev
+> carto@0.1.0 dev:lan
 > next dev -H 0.0.0.0 -p 3000
 
   ▲ Next.js 14.2.35
@@ -10,3 +10,65 @@
  ✓ Starting...
 > [PWA] PWA support is disabled
 > [PWA] PWA support is disabled
+ ✓ Ready in 2.6s
+ ○ Compiling /api/carts/[cartCode]/qrcode ...
+ ✓ Compiled /api/carts/[cartCode]/qrcode in 1284ms (108 modules)
+ ✓ Compiled (370 modules)
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."lastSeen" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."cartId", "public"."cart_sessions"."userId", "public"."cart_sessions"."guestSessionId", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."startedAt", "public"."cart_sessions"."endedAt", "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" IN (CAST($2::text AS "public"."SessionStatus"),CAST($3::text AS "public"."SessionStatus")) AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $4 OFFSET $5
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name" FROM "public"."shopping_lists" WHERE "public"."shopping_lists"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."list_items"."id", "public"."list_items"."name", "public"."list_items"."quantity", "public"."list_items"."price", "public"."list_items"."category", "public"."list_items"."isCollected", "public"."list_items"."collectedAt", "public"."list_items"."listId" FROM "public"."list_items" WHERE "public"."list_items"."listId" IN ($1) ORDER BY "public"."list_items"."id" ASC OFFSET $2
+prisma:query SELECT "public"."receipts"."id", "public"."receipts"."status"::text, "public"."receipts"."paymentStatus"::text, "public"."receipts"."paymentMethod"::text, "public"."receipts"."subtotal", "public"."receipts"."tax", "public"."receipts"."total", "public"."receipts"."lockedAt", "public"."receipts"."paymentId", "public"."receipts"."sessionId" FROM "public"."receipts" WHERE "public"."receipts"."sessionId" IN ($1) OFFSET $2
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."receipt_items"."id", "public"."receipt_items"."name", "public"."receipt_items"."quantity", "public"."receipt_items"."price", "public"."receipt_items"."category", "public"."receipt_items"."scannedAt", "public"."receipt_items"."receiptId" FROM "public"."receipt_items" WHERE "public"."receipt_items"."receiptId" IN ($1) ORDER BY "public"."receipt_items"."scannedAt" DESC OFFSET $2
+ GET /api/carts/CART-001/status 200 in 4490ms
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query BEGIN
+prisma:query SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."cart_sessions"."id" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" IN (CAST($2::text AS "public"."SessionStatus"),CAST($3::text AS "public"."SessionStatus")) AND "public"."cart_sessions"."endedAt" IS NULL) LIMIT $4 OFFSET $5
+prisma:query ROLLBACK
+ GET /api/carts/CART-001/qrcode 409 in 5217ms
+ ✓ Compiled in 212ms
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1206ms (217 modules)
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 6.4s (962 modules)
+prisma:query SELECT 1
+prisma:query DELETE FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."permanentDeleteAt" <= $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL)
+prisma:query SELECT 1
+prisma:query SELECT 1
+ ✓ Compiled in 993ms (328 modules)
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."shopping_lists"."id" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) OFFSET $2) AS "sub"
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) ORDER BY "public"."shopping_lists"."updatedAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT SUM("total") FROM (SELECT "public"."receipts"."total" FROM "public"."receipts" WHERE ("public"."receipts"."userId" = $1 AND "public"."receipts"."guestSessionId" IS NULL AND "public"."receipts"."status" = CAST($2::text AS "public"."ReceiptStatus")) OFFSET $3) AS "sub"
+prisma:query SELECT "public"."list_items"."id", "public"."list_items"."isCollected", "public"."list_items"."listId" FROM "public"."list_items" WHERE "public"."list_items"."listId" IN ($1,$2) OFFSET $3
+ GET /dashboard 200 in 7795ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 599ms (638 modules)
+prisma:query DELETE FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."permanentDeleteAt" <= $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL)
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) ORDER BY "public"."shopping_lists"."updatedAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."shopping_lists"."id" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) OFFSET $2) AS "sub"
+prisma:query SELECT SUM("total") FROM (SELECT "public"."receipts"."total" FROM "public"."receipts" WHERE ("public"."receipts"."userId" = $1 AND "public"."receipts"."guestSessionId" IS NULL AND "public"."receipts"."status" = CAST($2::text AS "public"."ReceiptStatus")) OFFSET $3) AS "sub"
+prisma:query SELECT "public"."list_items"."id", "public"."list_items"."isCollected", "public"."list_items"."listId" FROM "public"."list_items" WHERE "public"."list_items"."listId" IN ($1,$2) OFFSET $3
+ GET /dashboard?_rsc=syt8b 200 in 427ms
+ GET /api/auth/session 200 in 1601ms
+ GET /api/auth/session 200 in 49ms
+ ✓ Compiled in 450ms (634 modules)
+prisma:query SELECT 1
+prisma:query DELETE FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."permanentDeleteAt" <= $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL)
+prisma:query SELECT 1
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) ORDER BY "public"."shopping_lists"."updatedAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT 1
+prisma:query SELECT SUM("total") FROM (SELECT "public"."receipts"."total" FROM "public"."receipts" WHERE ("public"."receipts"."userId" = $1 AND "public"."receipts"."guestSessionId" IS NULL AND "public"."receipts"."status" = CAST($2::text AS "public"."ReceiptStatus")) OFFSET $3) AS "sub"
+prisma:query SELECT "public"."list_items"."id", "public"."list_items"."isCollected", "public"."list_items"."listId" FROM "public"."list_items" WHERE "public"."list_items"."listId" IN ($1,$2) OFFSET $3
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."shopping_lists"."id" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) OFFSET $2) AS "sub"
+ GET /dashboard?_rsc=syt8b 200 in 617ms
+ ✓ Compiled /api/auth/[...nextauth] in 490ms (638 modules)
+ GET /api/auth/session 200 in 762ms
+prisma:query DELETE FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."permanentDeleteAt" <= $1 AND "public"."shopping_lists"."userId" = $2 AND "public"."shopping_lists"."guestSessionId" IS NULL)
+prisma:query SELECT "public"."shopping_lists"."id", "public"."shopping_lists"."name", "public"."shopping_lists"."userId", "public"."shopping_lists"."guestSessionId", "public"."shopping_lists"."createdAt", "public"."shopping_lists"."updatedAt" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) ORDER BY "public"."shopping_lists"."updatedAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."list_items"."id", "public"."list_items"."isCollected", "public"."list_items"."listId" FROM "public"."list_items" WHERE "public"."list_items"."listId" IN ($1,$2) OFFSET $3
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."shopping_lists"."id" FROM "public"."shopping_lists" WHERE ("public"."shopping_lists"."userId" = $1 AND "public"."shopping_lists"."guestSessionId" IS NULL AND "public"."shopping_lists"."deletedAt" IS NULL) OFFSET $2) AS "sub"
+prisma:query SELECT SUM("total") FROM (SELECT "public"."receipts"."total" FROM "public"."receipts" WHERE ("public"."receipts"."userId" = $1 AND "public"."receipts"."guestSessionId" IS NULL AND "public"."receipts"."status" = CAST($2::text AS "public"."ReceiptStatus")) OFFSET $3) AS "sub"
+ GET /dashboard?_rsc=syt8b 200 in 1921ms

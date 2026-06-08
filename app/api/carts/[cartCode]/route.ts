@@ -1,7 +1,6 @@
-// Cart lookup by QR code (cartCode)
-
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { successResponse, errorResponse } from '@/lib/api-response';
 
 // GET /api/carts/[cartCode] - Look up a physical cart by its QR code
 export async function GET(
@@ -11,33 +10,44 @@ export async function GET(
     try {
         const cart = await prisma.cart.findUnique({
             where: { cartCode: params.cartCode },
-            include: {
-                store: true,
+            select: {
+                id: true,
+                cartCode: true,
+                bluetoothName: true,
+                status: true,
+                lastSeen: true,
+                createdAt: true,
+                updatedAt: true,
+                store: {
+                    select: {
+                        id: true,
+                        name: true,
+                        location: true,
+                        currency: true,
+                        taxRate: true,
+                        logo: true,
+                    },
+                },
             },
         });
 
         if (!cart) {
-            return NextResponse.json(
-                { error: 'Cart not found. Please scan a valid QR code.' },
-                { status: 404 }
-            );
+            return errorResponse('Cart not found. Please scan a valid QR code.', 404, 'CART_NOT_FOUND');
         }
 
         if (cart.status === 'MAINTENANCE' || cart.status === 'OFFLINE') {
-            return NextResponse.json(
-                { error: `Cart is currently ${cart.status.toLowerCase()}. Please try another cart.` },
-                { status: 400 }
+            return errorResponse(
+                `Cart is currently ${cart.status.toLowerCase()}. Please try another cart.`,
+                409,
+                `CART_${cart.status}`
             );
         }
 
-        const safeCart = { ...cart, pairingCode: undefined, deviceSecret: undefined };
-
-        return NextResponse.json({ success: true, data: safeCart });
+        const response = successResponse(cart);
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        return response;
     } catch (error) {
         console.error('Error looking up cart:', error);
-        return NextResponse.json(
-            { error: 'Failed to look up cart' },
-            { status: 500 }
-        );
+        return errorResponse('Failed to look up cart', 500, 'INTERNAL_SERVER_ERROR');
     }
 }

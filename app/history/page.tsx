@@ -5,12 +5,13 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatCurrency } from '@/lib/utils';
-import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 
 export default async function HistoryPage() {
-  const owner = process.env.DATABASE_URL ? await requireUserOrGuest() : null;
+  const session = process.env.DATABASE_URL ? await getServerSession(authOptions) : null;
 
-  if (!owner) {
+  if (!session?.user?.id) {
     redirect('/auth/signin');
   }
 
@@ -21,7 +22,7 @@ export default async function HistoryPage() {
       const { prisma } = await import('@/lib/prisma');
       receipts = await prisma.receipt.findMany({
         where: {
-          ...ownerWhere(owner),
+          userId: session.user.id,
           status: 'PAID',
         },
         select: {

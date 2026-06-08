@@ -1,11 +1,12 @@
 // Individual list API routes
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createListSchema, updateListSchema } from '@/lib/validations';
 import { getPermanentDeleteAt, purgeExpiredShoppingLists } from '@/lib/list-retention';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { ACTIVE_LIST_LOCK_MESSAGE, isListActiveOnCart } from '@/lib/list-session-lock';
+import { errorResponse, successResponse } from '@/lib/api-response';
 
 // GET /api/lists/[id] - Get a specific list
 export async function GET(
@@ -16,7 +17,7 @@ export async function GET(
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
     const list = await prisma.shoppingList.findFirst({
@@ -31,16 +32,21 @@ export async function GET(
     });
 
     if (!list) {
-      return NextResponse.json({ error: 'List not found' }, { status: 404 });
+      return errorResponse('List not found', 404, 'NOT_FOUND');
     }
 
-    return NextResponse.json({ success: true, data: list });
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('[lists GET]', {
+        listId: params.id,
+        ownerType: owner.type,
+        itemCount: list.items.length,
+      });
+    }
+
+    return successResponse(list);
   } catch (error) {
     console.error('Error fetching list:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch list' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch list', 500, 'INTERNAL_SERVER_ERROR');
   }
 }
 
@@ -56,7 +62,7 @@ export async function PUT(
     const validatedData = updateListSchema.parse(body);
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
     const list = await prisma.shoppingList.findFirst({
@@ -69,14 +75,11 @@ export async function PUT(
     });
 
     if (!list) {
-      return NextResponse.json({ error: 'List not found' }, { status: 404 });
+      return errorResponse('List not found', 404, 'NOT_FOUND');
     }
 
     if (await isListActiveOnCart(params.id)) {
-      return NextResponse.json(
-        { error: ACTIVE_LIST_LOCK_MESSAGE },
-        { status: 409 }
-      );
+      return errorResponse(ACTIVE_LIST_LOCK_MESSAGE, 409, 'LIST_ACTIVE_ON_CART');
     }
 
     const updatedList = await prisma.shoppingList.update({
@@ -92,20 +95,14 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({ success: true, data: updatedList });
+    return successResponse(updatedList);
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: error.errors[0].message },
-        { status: 400 }
-      );
+      return errorResponse(error.errors[0].message, 400, 'VALIDATION_ERROR');
     }
 
     console.error('Error updating list:', error);
-    return NextResponse.json(
-      { error: 'Failed to update list' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to update list', 500, 'INTERNAL_SERVER_ERROR');
   }
 }
 
@@ -118,7 +115,7 @@ export async function DELETE(
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
     const ownerFilter = ownerWhere(owner);
@@ -133,14 +130,11 @@ export async function DELETE(
     });
 
     if (!list) {
-      return NextResponse.json({ error: 'List not found' }, { status: 404 });
+      return errorResponse('List not found', 404, 'NOT_FOUND');
     }
 
     if (await isListActiveOnCart(params.id)) {
-      return NextResponse.json(
-        { error: ACTIVE_LIST_LOCK_MESSAGE },
-        { status: 409 }
-      );
+      return errorResponse(ACTIVE_LIST_LOCK_MESSAGE, 409, 'LIST_ACTIVE_ON_CART');
     }
 
     const deletedAt = new Date();
@@ -154,12 +148,9 @@ export async function DELETE(
       },
     });
 
-    return NextResponse.json({ success: true, data: { deletedAt, permanentDeleteAt } });
+    return successResponse({ deletedAt, permanentDeleteAt });
   } catch (error) {
     console.error('Error deleting list:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete list' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to delete list', 500, 'INTERNAL_SERVER_ERROR');
   }
 }

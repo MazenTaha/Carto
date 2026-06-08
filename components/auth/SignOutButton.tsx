@@ -10,7 +10,10 @@ interface SignOutButtonProps {
 
 export function SignOutButton({ className, variant = 'outline' }: SignOutButtonProps) {
   const handleSignOut = async () => {
-    await signOut({ redirect: false });
+    await Promise.allSettled([
+      signOut({ redirect: false }),
+      fetch('/api/auth/guest', { method: 'DELETE' }),
+    ]);
     // Force a local redirect to ensure we stay on the current domain
     window.location.href = '/auth/signin';
   };

@@ -1,9 +1,10 @@
 // Sign up API route
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
 import { signUpSchema } from '@/lib/validations';
+import { errorResponse, successResponse } from '@/lib/api-response';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,10 +17,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'Unable to create account with these details' },
-        { status: 400 }
-      );
+      return errorResponse('An account with that email already exists.', 409, 'EMAIL_IN_USE');
     }
 
     const hashedPassword = await hashPassword(validatedData.password);
@@ -38,23 +36,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      { success: true, data: user },
-      { status: 201 }
-    );
+    return successResponse(user, 201);
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: error.errors[0]?.message || 'Invalid signup details' },
-        { status: 400 }
-      );
+      return errorResponse(error.errors[0]?.message || 'Invalid signup details', 400, 'VALIDATION_ERROR');
+    }
+
+    if (error?.code === 'P2002') {
+      return errorResponse('An account with that email already exists.', 409, 'EMAIL_IN_USE');
     }
 
     console.error('Signup error:', error);
-    return NextResponse.json(
-      { error: 'Unable to create account with these details' },
-      { status: 500 }
-    );
+    return errorResponse('Unable to create account with these details', 500, 'SIGNUP_FAILED');
   }
 }
 
