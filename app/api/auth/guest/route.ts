@@ -1,9 +1,8 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-config';
 import {
   clearGuestSessionCookie,
   clearLegacyGuestCookies,
   createGuestSession,
+  getAuthenticatedUserId,
   getGuestSession,
   setGuestSessionCookie,
 } from '@/lib/guest-session';
@@ -11,9 +10,9 @@ import { errorResponse, successResponse } from '@/lib/api-response';
 
 export async function POST() {
   try {
-    const session = await getServerSession(authOptions);
+    const userId = await getAuthenticatedUserId();
 
-    if (session?.user?.id) {
+    if (userId) {
       return successResponse({
         guestSessionId: null,
         reused: false,

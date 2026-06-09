@@ -80,11 +80,30 @@ export async function getGuestSession() {
   return guestSession;
 }
 
-export async function requireUserOrGuest(): Promise<RequestOwner | null> {
-  const session = await getServerSession(authOptions);
+export async function getAuthenticatedUserId() {
+  try {
+    const session = await getServerSession(authOptions);
+    return session?.user?.id ?? null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const digest = typeof error === 'object' && error !== null && 'digest' in error
+      ? String((error as { digest?: string }).digest ?? '')
+      : '';
+    const isDynamicServerUsage = digest === 'DYNAMIC_SERVER_USAGE' || message.includes('Dynamic server usage');
 
-  if (session?.user?.id) {
-    return { type: 'user', userId: session.user.id };
+    if (!isDynamicServerUsage) {
+      console.error('Failed to read authenticated session. Falling back to guest session lookup.', error);
+    }
+
+    return null;
+  }
+}
+
+export async function requireUserOrGuest(): Promise<RequestOwner | null> {
+  const userId = await getAuthenticatedUserId();
+
+  if (userId) {
+    return { type: 'user', userId };
   }
 
   const guestSession = await getGuestSession();

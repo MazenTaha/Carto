@@ -6609,3 +6609,13 @@ prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."sta
  GET / 500 in 237ms
  GET / 404 in 452ms
  GET / 404 in 457ms
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."deviceSecret" FROM "public"."carts" WHERE ("public"."carts"."cartCode" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."carts" SET "lastSeen" = $1, "updatedAt" = $2 WHERE ("public"."carts"."id" = $3 AND 1=1) RETURNING "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."bluetoothName", "public"."carts"."pairingCode", "public"."carts"."deviceSecret", "public"."carts"."pairingExpiresAt", "public"."carts"."qrSessionId", "public"."carts"."storeId", "public"."carts"."status"::text, "public"."carts"."lastSeen", "public"."carts"."createdAt", "public"."carts"."updatedAt"
+prisma:query SELECT "public"."carts"."id", "public"."carts"."cartCode", "public"."carts"."status"::text, "public"."carts"."lastSeen" FROM "public"."carts" WHERE ("public"."carts"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."cart_sessions"."id" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" IN (CAST($2::text AS "public"."SessionStatus"),CAST($3::text AS "public"."SessionStatus")) AND "public"."cart_sessions"."endedAt" IS NULL AND "public"."cart_sessions"."startedAt" < $4) OFFSET $5
+prisma:query SELECT "public"."cart_sessions"."id" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" IN (CAST($2::text AS "public"."SessionStatus"),CAST($3::text AS "public"."SessionStatus")) AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $4 OFFSET $5
+prisma:query SELECT "public"."cart_sessions"."id", "public"."cart_sessions"."status"::text, "public"."cart_sessions"."startedAt", "public"."cart_sessions"."endedAt", "public"."cart_sessions"."listId" FROM "public"."cart_sessions" WHERE ("public"."cart_sessions"."cartId" = $1 AND "public"."cart_sessions"."status" IN (CAST($2::text AS "public"."SessionStatus"),CAST($3::text AS "public"."SessionStatus")) AND "public"."cart_sessions"."endedAt" IS NULL) ORDER BY "public"."cart_sessions"."startedAt" DESC LIMIT $4 OFFSET $5
+ GET /api/carts/CART-001/active-session 200 in 2003ms
+ ✓ Compiled in 3.2s (869 modules)
+ ✓ Compiled in 1470ms (624 modules)
+ ✓ Compiled in 544ms (869 modules)
