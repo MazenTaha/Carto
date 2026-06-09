@@ -3,6 +3,7 @@
 import { AdminSessionRow } from '@/types/admin';
 import { StatusBadge } from '@/components/admin/shared/StatusBadge';
 import { ConfirmDialog } from '@/components/admin/shared/ConfirmDialog';
+import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
 import { useState } from 'react';
 import { formatDistanceToNow, formatDistance } from 'date-fns';
 import { ShoppingCart, User, Clock, DollarSign, StopCircle, ChevronDown, ChevronRight } from 'lucide-react';
@@ -39,7 +40,7 @@ export function SessionsLiveTable({ sessions, onEndSession }: SessionsLiveTableP
       <div className="space-y-2">
         {sessions.map((s) => {
           const isExpanded = expanded === s.id;
-          const isActive = s.status === 'ACTIVE';
+          const isActive = isActiveCartSessionStatus(s.status);
           return (
             <div
               key={s.id}

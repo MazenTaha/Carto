@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { successResponse, errorResponse } from '@/lib/api-response';
+import { CartConnectionService } from '@/lib/services/cart-connection.service';
 
 // GET /api/carts/[cartCode] - Look up a physical cart by its QR code
 export async function GET(
@@ -8,6 +9,8 @@ export async function GET(
     { params }: { params: { cartCode: string } }
 ) {
     try {
+        await CartConnectionService.reconcileCartByCode(params.cartCode);
+
         const cart = await prisma.cart.findUnique({
             where: { cartCode: params.cartCode },
             select: {

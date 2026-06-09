@@ -69,8 +69,8 @@ export default async function DashboardPage() {
 
   return (
     <PageContainer maxWidth="lg">
-      <header className="-mx-4 sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90 sm:mx-0 sm:rounded-b-2xl sm:px-5">
-        <div className="mx-auto flex max-w-6xl items-center gap-4">
+      <header className="sticky top-0 z-40 -mx-4 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90 sm:-mx-5 sm:rounded-b-2xl sm:px-5 lg:-mx-6">
+        <div className="mx-auto flex w-full min-w-0 max-w-6xl items-center gap-4">
           <Link href="/dashboard" aria-label="Go to Carto home" className="flex items-center rounded-xl transition hover:opacity-80">
             <Logo width={104} height={38} />
           </Link>
@@ -96,9 +96,9 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      <main className="flex-1 pb-28 pt-6 md:pb-10">
-        <section className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
-          <div className="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-soft md:p-8">
+      <main className="flex-1 w-full min-w-0 max-w-full overflow-x-hidden pb-28 pt-6 md:pb-10">
+        <section className="grid w-full min-w-0 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.9fr)]">
+          <div className="w-full max-w-full overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-soft md:p-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
                 <Badge variant="success" className="bg-white/10 text-white ring-white/15">Smart cart ready</Badge>
@@ -119,7 +119,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-primary/15 bg-primary/10 p-5 shadow-card">
+          <div className="w-full max-w-full rounded-3xl border border-primary/15 bg-primary/10 p-5 shadow-card">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Next step</p>
@@ -138,7 +138,7 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="mt-5 grid gap-3 sm:grid-cols-2">
+        <section className="mt-5 grid w-full min-w-0 gap-3 sm:grid-cols-2">
           <MetricCard
             icon="format_list_bulleted"
             label="Saved Lists"
@@ -155,8 +155,8 @@ export default async function DashboardPage() {
           />
         </section>
 
-        <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
+        <section className="mt-6 grid w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
+          <div className="w-full min-w-0 max-w-full rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Recent Lists</h2>
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
                 actionHref="/lists/new"
               />
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid w-full min-w-0 gap-3 sm:grid-cols-2">
                 {recentLists.map((list) => {
                   const totalItems = list.items?.length || 0;
                   const collectedItems = list.items?.filter((item: any) => item.isCollected).length || 0;
@@ -184,7 +184,7 @@ export default async function DashboardPage() {
                     <Link
                       key={list.id}
                       href={`/lists/${list.id}`}
-                      className="group rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-primary/30 hover:bg-white hover:shadow-card dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
+                    className="group block w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-primary/30 hover:bg-white hover:shadow-card dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -201,7 +201,7 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          <aside className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
+          <aside className="w-full min-w-0 max-w-full rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
             <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Quick Actions</h2>
             <div className="mt-4 space-y-3">
               <Link href="/lists/new" className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-primary/30 hover:bg-primary/5 dark:border-slate-800">

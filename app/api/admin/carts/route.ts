@@ -1,20 +1,26 @@
 import { NextRequest } from 'next/server';
 import { guardAdminApi } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
+import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { successResponse, errorResponse } from '@/lib/api-response';
+import { CartSessionService } from '@/lib/services/cart-session.service';
+import { CartConnectionService } from '@/lib/services/cart-connection.service';
 
 export async function GET(req: NextRequest) {
   const guard = await guardAdminApi(req);
   if (guard) return guard;
 
   try {
+    await CartSessionService.expireStaleSessions();
+    await CartConnectionService.reconcileFleetCarts();
+
     const carts = await prisma.cart.findMany({
       orderBy: { lastSeen: 'desc' },
       include: {
         store: { select: { name: true } },
         sessions: {
           where: {
-            status: { in: ['ACTIVE', 'DISCONNECTED'] },
+            status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
             endedAt: null,
           },
           take: 1,

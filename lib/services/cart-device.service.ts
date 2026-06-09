@@ -1,7 +1,9 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { ApiErrorResponse } from '../api-response';
 import { calculateTax } from '../utils';
+import { CartSessionService } from './cart-session.service';
 
 const activeDeviceSessionSelect = {
   id: true,
@@ -119,7 +121,7 @@ async function findActiveSession(
   return tx.cartSession.findFirst({
     where: {
       cartId,
-      status: { in: ['ACTIVE', 'DISCONNECTED'] },
+      status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
       endedAt: null,
     },
     select: activeDeviceSessionSelect,
@@ -203,7 +205,7 @@ export class CartDeviceService {
     return prisma.cartSession.findFirst({
       where: {
         cartId,
-        status: { in: ['ACTIVE', 'DISCONNECTED'] },
+        status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
         endedAt: null,
       },
       select: activeDeviceSessionSelect,
@@ -216,6 +218,7 @@ export class CartDeviceService {
       status: 'waiting' as const,
       active: false,
       cartCode: cart.cartCode,
+      cartStatus: cart.status,
       cart: {
         cartCode: cart.cartCode,
         status: cart.status,
@@ -231,6 +234,7 @@ export class CartDeviceService {
       status: 'active' as const,
       active: true,
       cartCode: cart.cartCode,
+      cartStatus: cart.status,
       cartSessionId: session.id,
       sessionId: session.id,
       receiptId: session.receipt?.id ?? null,
@@ -381,72 +385,41 @@ export class CartDeviceService {
   }
 
   public static async checkout(cartId: string) {
-    return prisma.$transaction(async (tx) => {
-      const session = await findActiveSession(tx, cartId);
+    const session = await this.getActiveSession(cartId);
 
-      if (!session) {
-        throw new ApiErrorResponse('No active cart session is available for this cart.', 404, 'NO_ACTIVE_SESSION');
-      }
+    if (!session) {
+      throw new ApiErrorResponse('No active cart session is available for this cart.', 404, 'NO_ACTIVE_SESSION');
+    }
 
-      const receipt = session.receipt;
-      if (!receipt) {
-        throw new ApiErrorResponse('No active receipt exists for this cart session.', 409, 'RECEIPT_NOT_FOUND');
-      }
+    const receipt = session.receipt;
+    if (!receipt) {
+      throw new ApiErrorResponse('No active receipt exists for this cart session.', 409, 'RECEIPT_NOT_FOUND');
+    }
 
-      const { subtotal, tax, total } = await recalculateReceiptTotals(tx, receipt.id);
-      const now = new Date();
-      const paymentId = receipt.paymentId || `pi_device_mock_${Date.now()}`;
-
-      await tx.receipt.update({
-        where: { id: receipt.id },
-        data: {
-          status: 'PAID',
-          lockedAt: receipt.lockedAt ?? now,
-          subtotal,
-          tax,
-          total,
-          paymentId,
-          paymentStatus: 'COMPLETED',
-        },
-      });
-
-      await tx.cartSession.update({
-        where: { id: session.id },
-        data: {
-          status: 'CHECKED_OUT',
-          endedAt: now,
-        },
-      });
-
-      await tx.cart.update({
-        where: { id: cartId },
-        data: {
-          status: 'AVAILABLE',
-          pairingCode: null,
-          pairingExpiresAt: null,
-          qrSessionId: null,
-          lastSeen: now,
-        },
-      });
-
-      const updatedReceipt = await tx.receipt.findUnique({
-        where: { id: receipt.id },
-        include: {
-          items: {
-            orderBy: { scannedAt: 'desc' },
-          },
-        },
-      });
-
-      return {
-        cartSessionId: session.id,
-        receiptId: receipt.id,
-        items: updatedReceipt?.items ?? [],
-        subtotal,
-        tax,
-        total,
-        paymentStatus: 'MOCK_PAID' as const,
-      };
+    const paymentId = receipt.paymentId || `pi_device_mock_${Date.now()}`;
+    const checkout = await CartSessionService.completeCheckout(session.id, {
+      paymentId,
+      paymentMethod: receipt.paymentMethod,
     });
+
+    const updatedReceipt = await prisma.receipt.findUnique({
+      where: { id: receipt.id },
+      include: {
+        items: {
+          orderBy: { scannedAt: 'desc' },
+        },
+      },
+    });
+
+    return {
+      cartSessionId: session.id,
+      receiptId: receipt.id,
+      items: updatedReceipt?.items ?? [],
+      subtotal: updatedReceipt?.subtotal ?? 0,
+      tax: updatedReceipt?.tax ?? 0,
+      total: updatedReceipt?.total ?? 0,
+      paymentStatus: 'MOCK_PAID' as const,
+      status: checkout.status,
+    };
   }
 }

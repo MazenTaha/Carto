@@ -27,7 +27,7 @@ function getCameraErrorMessage(error: unknown): string {
   }
 
   if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-    return 'No camera was found on this device. You can enter the cart details manually below.';
+    return 'No camera was found on this device. Open this page on a phone or tablet with a working camera and try again.';
   }
 
   if (name === 'NotReadableError' || name === 'TrackStartError') {
@@ -39,7 +39,7 @@ function getCameraErrorMessage(error: unknown): string {
   }
 
   if (name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
-    return 'This camera does not support the requested mode. Try again or enter the cart details manually.';
+    return 'This camera does not support the requested mode. Try again and let the browser switch to another camera.';
   }
 
   return 'Failed to start camera scanner. Check camera permissions, HTTPS, and browser support.';
@@ -209,7 +209,7 @@ export function QrScanner({
             : status === 'scanning'
               ? 'Align the cart QR inside the frame'
               : status === 'found'
-                ? 'QR code detected'
+                ? 'QR code detected. Review before connecting.'
                 : 'Camera will start automatically'}
         </div>
       </div>
@@ -229,7 +229,7 @@ export function QrScanner({
             onClick={() => stop()}
             className="h-12 flex-1 rounded-2xl bg-slate-950 text-white font-bold transition-transform active:scale-95 dark:bg-slate-700"
           >
-            Stop
+            Pause camera
           </button>
         )}
       </div>

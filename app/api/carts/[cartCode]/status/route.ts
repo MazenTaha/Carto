@@ -3,6 +3,7 @@ import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { CartDeviceService } from '@/lib/services/cart-device.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { prisma } from '@/lib/prisma';
+import { CartConnectionService } from '@/lib/services/cart-connection.service';
 
 function setNoStoreHeaders(response: Response) {
   response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -14,12 +15,13 @@ function setNoStoreHeaders(response: Response) {
 export async function GET(
   request: NextRequest,
   { params }: { params: { cartCode: string } }
-) {
+  ) {
   try {
     const bearerToken = DeviceAuthService.getBearerToken(request);
 
     if (bearerToken) {
       const cart = await DeviceAuthService.authenticateDevice(request, params.cartCode);
+      const reconciliation = await CartConnectionService.reconcileCartById(cart.id);
       const activeSession = await CartDeviceService.getActiveSession(cart.id);
       const persistedCart = await prisma.cart.findUnique({
         where: { id: cart.id },
@@ -29,7 +31,7 @@ export async function GET(
       return setNoStoreHeaders(
         successResponse({
           cartCode: cart.cartCode,
-          status: activeSession ? 'IN_USE' : cart.status,
+          status: activeSession ? 'IN_USE' : reconciliation?.cart.status ?? cart.status,
           activeSessionId: activeSession?.id ?? null,
           receiptId: activeSession?.receipt?.id ?? null,
           hasActiveSession: Boolean(activeSession),
@@ -38,6 +40,7 @@ export async function GET(
       );
     }
 
+    const reconciliation = await CartConnectionService.reconcileCartByCode(params.cartCode);
     const cart = await prisma.cart.findUnique({
       where: { cartCode: params.cartCode.trim() },
       select: {
@@ -57,8 +60,8 @@ export async function GET(
     return setNoStoreHeaders(
       successResponse({
         cartCode: cart.cartCode,
-        status: activeSession ? 'IN_USE' : cart.status,
-        isAvailable: !activeSession && cart.status === 'AVAILABLE',
+        status: activeSession ? 'IN_USE' : reconciliation?.cart.status ?? cart.status,
+        isAvailable: !activeSession && (reconciliation?.cart.status ?? cart.status) === 'AVAILABLE',
         hasActiveSession: Boolean(activeSession),
       })
     );

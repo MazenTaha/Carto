@@ -16,8 +16,8 @@ export function BottomNav() {
     return pathname?.startsWith(href);
   };
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-warm-border/45 bg-white/92 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_rgba(114,47,55,0.12)] backdrop-blur-xl dark:border-warm-border/45 dark:bg-white/92 md:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 w-full max-w-full overflow-x-hidden border-t border-warm-border/45 bg-white/92 px-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_rgba(114,47,55,0.12)] backdrop-blur-xl dark:border-warm-border/45 dark:bg-white/92 md:hidden">
+      <div className="mx-auto grid w-full max-w-md grid-cols-4 gap-1 px-1">
         {navItems.map((item) => {
           const active = isActive(item.href);
           return (

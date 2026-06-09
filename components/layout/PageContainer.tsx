@@ -19,7 +19,7 @@ export function PageContainer({ children, maxWidth = 'md', className }: PageCont
   return (
     <div
       className={cn(
-        'relative mx-auto flex min-h-screen w-full flex-col overflow-x-hidden bg-background-light text-slate-900 dark:bg-background-light dark:text-slate-900 sm:px-4 lg:px-6',
+        'relative mx-auto flex min-h-screen w-full min-w-0 max-w-full flex-col overflow-x-hidden bg-background-light px-4 text-slate-900 dark:bg-background-light dark:text-slate-900 sm:px-5 lg:px-6',
         maxWidthClass,
         className
       )}

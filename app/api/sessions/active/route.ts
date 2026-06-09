@@ -3,7 +3,9 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { errorResponse, successResponse } from '@/lib/api-response';
+import { CartConnectionService } from '@/lib/services/cart-connection.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,10 +18,11 @@ export async function GET(request: NextRequest) {
       return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
-    const cartSession = await prisma.cartSession.findFirst({
+    let cartSession = await prisma.cartSession.findFirst({
       where: {
         ...ownerWhere(owner),
-        status: { in: ['ACTIVE', 'DISCONNECTED'] },
+        status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
+        endedAt: null,
       },
       select: {
         id: true,
@@ -113,6 +116,27 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { startedAt: 'desc' },
     });
+
+    if (cartSession?.cart?.cartCode) {
+      const reconciliation = await CartConnectionService.reconcileCartByCode(cartSession.cart.cartCode);
+
+      if (reconciliation?.activeSessionClosed) {
+        const response = successResponse(null);
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        return response;
+      }
+
+      if (reconciliation) {
+        cartSession = {
+          ...cartSession,
+          cart: {
+            ...cartSession.cart,
+            status: reconciliation.cart.status,
+            lastSeen: reconciliation.cart.lastSeen,
+          },
+        };
+      }
+    }
 
     if (!cartSession) {
       const response = successResponse(null);

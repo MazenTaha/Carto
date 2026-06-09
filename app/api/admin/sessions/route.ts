@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { guardAdminApi } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
+import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { CartSessionService } from '@/lib/services/cart-session.service';
 
@@ -15,9 +16,11 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * pageSize;
 
   try {
+    await CartSessionService.expireStaleSessions();
+
     const where = statusFilter
       ? { status: statusFilter as any }
-      : { status: { in: ['ACTIVE', 'DISCONNECTED', 'CHECKED_OUT', 'COMPLETED'] as const } };
+      : { status: { in: [...ACTIVE_CART_SESSION_STATUSES, 'CHECKED_OUT', 'COMPLETED'] as const } };
 
     const [sessions, total] = await Promise.all([
       prisma.cartSession.findMany({

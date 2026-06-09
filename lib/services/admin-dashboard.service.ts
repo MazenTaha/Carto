@@ -1,5 +1,8 @@
 import type { ActivityEvent } from '@/types/admin';
 import { prisma } from '@/lib/prisma';
+import { ACTIVE_CART_SESSION_STATUSES, isActiveCartSessionStatus } from '@/lib/cart-session-status';
+import { CartSessionService } from './cart-session.service';
+import { CartConnectionService } from './cart-connection.service';
 
 function buildRecentSession(session: any) {
   const started = new Date(session.startedAt).getTime();
@@ -24,6 +27,9 @@ function buildRecentSession(session: any) {
 }
 
 export async function getAdminOverviewData() {
+  await CartSessionService.expireStaleSessions();
+  await CartConnectionService.reconcileFleetCarts();
+
   const [
     totalCarts,
     totalUsers,
@@ -42,7 +48,7 @@ export async function getAdminOverviewData() {
     prisma.receipt.count(),
     prisma.cartSession.count({
       where: {
-        status: { in: ['ACTIVE', 'DISCONNECTED'] },
+        status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
         endedAt: null,
       },
     }),
@@ -56,7 +62,7 @@ export async function getAdminOverviewData() {
     }),
     prisma.cartSession.findMany({
       where: {
-        status: { in: ['ACTIVE', 'DISCONNECTED', 'COMPLETED', 'CHECKED_OUT'] },
+        status: { in: [...ACTIVE_CART_SESSION_STATUSES, 'COMPLETED', 'CHECKED_OUT'] },
       },
       take: 10,
       orderBy: { startedAt: 'desc' },
@@ -113,9 +119,9 @@ export async function getAdminOverviewData() {
   const activityFeed: ActivityEvent[] = [
     ...recentSessions.slice(0, 5).map((session): ActivityEvent => ({
       id: `session-${session.id}`,
-      type: session.status === 'ACTIVE' || session.status === 'DISCONNECTED' ? 'session_started' : 'session_ended',
+      type: isActiveCartSessionStatus(session.status) ? 'session_started' : 'session_ended',
       message:
-        session.status === 'ACTIVE' || session.status === 'DISCONNECTED'
+        isActiveCartSessionStatus(session.status)
           ? `Cart ${session.cartCode} linked${session.userEmail ? ` by ${session.userEmail}` : ' by guest'}`
           : `Session on cart ${session.cartCode} ended`,
       timestamp: session.endedAt ?? session.startedAt,

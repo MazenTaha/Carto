@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ConfirmationResult, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import type { ConfirmationResult, RecaptchaVerifier } from 'firebase/auth';
 import { egyptianPhoneInputSchema, signInSchema } from '@/lib/validations';
 import { getFirebaseClientAuth } from '@/lib/firebase/client';
 import { PageContainer } from '@/components/layout/PageContainer';
@@ -219,9 +219,7 @@ function SignInContent() {
 
   const getRecaptchaVerifier = (auth: ReturnType<typeof getFirebaseClientAuth>) => {
     if (!recaptchaVerifierRef.current) {
-      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'phone-recaptcha', {
-        size: 'invisible',
-      });
+      throw new Error('Phone verification is not initialized yet.');
     }
 
     return recaptchaVerifierRef.current;
@@ -245,6 +243,14 @@ function SignInContent() {
       }
 
       const auth = getFirebaseClientAuth();
+      const { RecaptchaVerifier, signInWithPhoneNumber } = await import('firebase/auth');
+
+      if (!recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'phone-recaptcha', {
+          size: 'invisible',
+        });
+      }
+
       const verifier = getRecaptchaVerifier(auth);
       const result = await signInWithPhoneNumber(auth, parsed.data.phoneNumber, verifier);
       setConfirmationResult(result);

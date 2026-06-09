@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { PollingService } from '@/lib/services/polling.service';
 import { CartDeviceService } from '@/lib/services/cart-device.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
-import { prisma } from '@/lib/prisma';
+import { CartConnectionService } from '@/lib/services/cart-connection.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,30 +14,9 @@ export async function GET(
 ) {
   try {
     const cart = await DeviceAuthService.authenticateDevice(request, params.cartCode);
+    const reconciliation = await CartConnectionService.reconcileCartById(cart.id);
     const activeSession = await PollingService.getActiveSession(cart.id);
-    let cartStatus = cart.status;
-
-    if (activeSession && cartStatus !== 'IN_USE') {
-      await prisma.cart.update({
-        where: { id: cart.id },
-        data: { status: 'IN_USE', lastSeen: new Date() },
-      });
-      cartStatus = 'IN_USE';
-    }
-
-    if (!activeSession && cartStatus === 'IN_USE') {
-      await prisma.cart.update({
-        where: { id: cart.id },
-        data: {
-          status: 'AVAILABLE',
-          pairingCode: null,
-          pairingExpiresAt: null,
-          qrSessionId: null,
-          lastSeen: new Date(),
-        },
-      });
-      cartStatus = 'AVAILABLE';
-    }
+    const cartStatus = reconciliation?.cart.status ?? cart.status;
 
     const responseData = activeSession
       ? CartDeviceService.buildActivePayload(

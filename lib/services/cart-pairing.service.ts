@@ -2,7 +2,9 @@ import { randomInt } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { RequestOwner, ownerCreateData, ownerWhere } from '@/lib/guest-session';
+import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { ApiErrorResponse } from '../api-response';
+import { CartConnectionService } from './cart-connection.service';
 
 export interface LinkCartParams {
   cartCode: string;
@@ -41,7 +43,7 @@ export class CartPairingService {
     const liveSession = await tx.cartSession.findFirst({
       where: {
         cartId: cart.id,
-        status: { in: ['ACTIVE', 'DISCONNECTED'] },
+        status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
         endedAt: null,
       },
       select: { id: true },
@@ -60,6 +62,8 @@ export class CartPairingService {
   }
 
   public static async generatePairingQr(cartCode: string) {
+    await CartConnectionService.reconcileCartByCode(cartCode);
+
     return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const cart = await tx.cart.findUnique({
         where: { cartCode },
@@ -133,6 +137,8 @@ export class CartPairingService {
     const ownerFilter = ownerWhere(owner);
     const ownerData = ownerCreateData(owner);
 
+    await CartConnectionService.reconcileCartByCode(params.cartCode);
+
     return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const now = new Date();
 
@@ -164,7 +170,7 @@ export class CartPairingService {
       const existingCartSession = await tx.cartSession.findFirst({
         where: {
           cartId: cart.id,
-          status: { in: ['ACTIVE', 'DISCONNECTED'] },
+          status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
           endedAt: null,
         },
         select: {
@@ -220,7 +226,7 @@ export class CartPairingService {
       const previousOwnerSessions = await tx.cartSession.findMany({
         where: {
           ...ownerFilter,
-          status: { in: ['ACTIVE', 'DISCONNECTED'] },
+          status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
         },
         select: {
           id: true,

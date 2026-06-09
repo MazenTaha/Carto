@@ -10,14 +10,34 @@ const STORAGE_KEY = 'carto_device_simulator_config';
 
 type DeviceResponse =
   | {
+      status: 'waiting';
       active: false;
+      cartCode: string;
+      cartStatus: string;
       cart: {
         cartCode: string;
         status: string;
       };
     }
   | {
+      status: 'active';
       active: true;
+      cartCode: string;
+      cartStatus: string;
+      cartSessionId: string;
+      receiptId: string | null;
+      shoppingList: {
+        id: string;
+        name: string;
+        items: Array<{
+          id: string;
+          name: string;
+          quantity: number;
+          price: number;
+          category: string | null;
+          checked: boolean;
+        }>;
+      };
       cart: {
         cartCode: string;
         status: string;
@@ -94,6 +114,7 @@ export default function DeviceSimulatorPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [lastPollAt, setLastPollAt] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     try {
@@ -136,13 +157,14 @@ export default function DeviceSimulatorPage() {
     isLoading: isDeviceLoading,
     mutate: refreshDevice,
   } = useSWR<DeviceResponse>(activeSessionKey, jsonFetcher, {
-    refreshInterval: 2500,
-    dedupingInterval: 1500,
+    refreshInterval: 2000,
+    dedupingInterval: 750,
     revalidateOnFocus: true,
+    revalidateIfStale: true,
     onSuccess: () => setLastPollAt(new Date().toISOString()),
   });
 
-  const cartStatus = deviceData?.cart?.status ?? 'OFFLINE';
+  const cartStatus = deviceData?.cartStatus ?? deviceData?.cart?.status ?? 'OFFLINE';
   const isActive = deviceData?.active === true;
 
   const qrKey = useMemo(
@@ -183,6 +205,32 @@ export default function DeviceSimulatorPage() {
   const handleDisconnect = () => {
     setIsConnected(false);
     setLastPollAt(null);
+  };
+
+  const handleResetCart = async () => {
+    if (!trimmedCartCode || isResetting) return;
+
+    setIsResetting(true);
+
+    try {
+      const response = await fetch(`/api/carts/${encodeURIComponent(trimmedCartCode)}/reset`, {
+        method: 'POST',
+        cache: 'no-store',
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(getApiErrorMessage(data, 'Could not reset this cart.'));
+      }
+
+      setLastPollAt(null);
+      await refreshDevice();
+      await refreshQr();
+    } catch (error: any) {
+      window.alert(error.message || 'Could not reset this cart.');
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const connectionLabel = !isConnected
@@ -304,6 +352,16 @@ export default function DeviceSimulatorPage() {
                 >
                   Refresh QR
                 </button>
+                {process.env.NODE_ENV !== 'production' && (
+                  <button
+                    type="button"
+                    onClick={() => void handleResetCart()}
+                    disabled={!isConnected || isResetting}
+                    className="col-span-2 rounded-xl border border-amber-300 bg-amber-50 py-2.5 text-sm font-semibold text-amber-900 transition-colors hover:bg-amber-100 disabled:opacity-50 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
+                  >
+                    {isResetting ? 'Resetting Cart...' : 'Reset Cart'}
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -319,7 +377,8 @@ export default function DeviceSimulatorPage() {
                 <p>&gt; Screen mode: {isActive ? 'ACTIVE SESSION' : cartStatus === 'AVAILABLE' ? 'PAIRING QR' : cartStatus}</p>
                 {qrData && !isActive && <p>&gt; QR refreshed until {new Date(qrData.expiresAt).toLocaleTimeString()}</p>}
                 {isQrLoading && !qrData && <p>&gt; Requesting fresh pairing QR...</p>}
-                {deviceData?.active && <p>&gt; Session {deviceData.session.id.slice(-6).toUpperCase()} pushed to device screen</p>}
+                {deviceData?.active && <p>&gt; Session {(deviceData.cartSessionId || deviceData.session.id).slice(-6).toUpperCase()} pushed to device screen</p>}
+                {isResetting && <p>&gt; Resetting cart lifecycle from simulator...</p>}
               </>
             )}
           </div>

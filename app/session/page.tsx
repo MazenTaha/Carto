@@ -12,6 +12,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useSessionStore } from '@/store/session-store';
 import { calculateProgress, formatCurrency } from '@/lib/utils';
+import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
 import { ListItem } from '@/types';
 
 type SessionFetchResult = 'live' | 'stopped' | 'missing' | 'error';
@@ -81,7 +82,7 @@ function SessionContent() {
           const items: ListItem[] = data.data.session.shoppingList.items;
           updateProgress(items.length, items.filter((item) => item.isCollected).length);
         }
-        return data.data.session.status === 'ACTIVE' || data.data.session.status === 'DISCONNECTED' ? 'live' : 'stopped';
+        return isActiveCartSessionStatus(data.data.session.status) ? 'live' : 'stopped';
       }
       return 'missing';
     } catch (err) {
@@ -133,7 +134,7 @@ function SessionContent() {
           const items = data.data.session.shoppingList.items;
           updateProgress(items.length, items.filter((item: any) => item.isCollected).length);
         }
-        return data.data.session.status === 'ACTIVE' || data.data.session.status === 'DISCONNECTED' ? 'live' : 'stopped';
+        return isActiveCartSessionStatus(data.data.session.status) ? 'live' : 'stopped';
       }
       return 'missing';
     } catch (err) {
@@ -176,7 +177,7 @@ function SessionContent() {
   }, [sessionId, fetchSession, fetchActiveSession]);
 
   const handleFinishShopping = async () => {
-    if (!session || isFinishing || (session.status !== 'ACTIVE' && session.status !== 'DISCONNECTED')) return;
+    if (!session || isFinishing || !isActiveCartSessionStatus(session.status)) return;
     setIsFinishing(true);
     try {
       const response = await fetch(`/api/sessions/${session.id}/finish`, { method: 'POST' });
@@ -219,7 +220,7 @@ function SessionContent() {
   }
 
   const progressData = calculateProgress(progress.total, progress.collected);
-  const isSessionLive = session.status === 'ACTIVE' || session.status === 'DISCONNECTED';
+  const isSessionLive = isActiveCartSessionStatus(session.status);
   const remainingItems: ListItem[] = session.shoppingList?.items?.filter((item: ListItem) => !item.isCollected) || [];
   const collectedItems: ListItem[] = session.shoppingList?.items?.filter((item: ListItem) => item.isCollected) || [];
 

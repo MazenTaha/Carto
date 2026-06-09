@@ -342,11 +342,14 @@ export function ListItemsManager({
   const renderItem = (item: ListItem, isCollected: boolean) => (
     (() => {
       const isPending = pendingItemIds.has(item.id);
+      const itemMeta = [item.category || 'General', item.price ? formatCurrency(item.price) : null]
+        .filter(Boolean)
+        .join(' | ');
       return (
     <article
       key={item.id}
       className={cn(
-        'flex items-center gap-3 rounded-2xl border bg-white p-3 shadow-sm transition dark:bg-slate-900 sm:p-4',
+        'flex min-h-[92px] w-full max-w-full items-center gap-3 rounded-2xl border bg-white p-3 shadow-sm transition dark:bg-slate-900 sm:p-4',
         isPending && 'opacity-70',
         isCollected
           ? 'border-slate-100 opacity-70 dark:border-slate-800'
@@ -368,19 +371,16 @@ export function ListItemsManager({
         <span className="material-symbols-outlined text-[20px]">check</span>
       </button>
 
-      <div className="min-w-0 flex-1">
-        <h3 className={cn('truncate text-base font-bold text-slate-950 dark:text-slate-100', isCollected && 'line-through')}>
+      <div className="min-w-0 flex-1 self-center">
+        <h3 className={cn('break-words text-base font-bold leading-5 text-slate-950 dark:text-slate-100', isCollected && 'line-through')}>
           {item.name}
         </h3>
-        <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
-          {item.category || 'General'}
-          {item.price ? ` • ${formatCurrency(item.price)}` : ''}
-        </p>
+        <p className="mt-1 text-xs font-medium text-slate-500">{itemMeta}</p>
       </div>
 
       {!isCollected ? (
-        <div className="flex shrink-0 items-center gap-2">
-          <div className="flex items-center rounded-full bg-slate-100 p-1 dark:bg-slate-800">
+        <div className="ml-auto flex w-[122px] shrink-0 items-center justify-end gap-2 self-center">
+          <div className="flex h-11 flex-1 items-center rounded-full bg-slate-100 p-1 dark:bg-slate-800">
             <button
               type="button"
               onClick={() => handleUpdateQuantity(item, -1)}
@@ -390,7 +390,7 @@ export function ListItemsManager({
             >
               <span className="material-symbols-outlined text-[18px]">remove</span>
             </button>
-            <span className="w-7 text-center text-sm font-black">{item.quantity}</span>
+            <span className="min-w-[1.75rem] text-center text-sm font-black">{item.quantity}</span>
             <button
               type="button"
               onClick={() => handleUpdateQuantity(item, 1)}
@@ -405,14 +405,18 @@ export function ListItemsManager({
             type="button"
             onClick={() => handleDeleteItem(item)}
             disabled={isPending || isLockedForActiveSession}
-            className="flex size-10 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-red-500/10"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-red-500/10"
             aria-label={`Delete ${item.name}`}
           >
             <span className="material-symbols-outlined text-[20px]">delete</span>
           </button>
         </div>
       ) : (
-        <Badge variant="success">{item.quantity} collected</Badge>
+        <div className="ml-auto flex w-[122px] shrink-0 justify-end self-center">
+          <Badge variant="success" className="w-full justify-center text-center">
+            {item.quantity} collected
+          </Badge>
+        </div>
       )}
     </article>
       );

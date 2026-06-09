@@ -1,21 +1,8 @@
 import type { Config } from "tailwindcss";
+import colors from "tailwindcss/colors.js";
 
 const brandBrown = "#722F37";
 const white = "#FFFFFF";
-
-const warmScale = {
-  50: white,
-  100: white,
-  200: brandBrown,
-  300: brandBrown,
-  400: brandBrown,
-  500: brandBrown,
-  600: brandBrown,
-  700: brandBrown,
-  800: brandBrown,
-  900: brandBrown,
-  950: brandBrown,
-};
 
 const config: Config = {
   content: [
@@ -43,18 +30,18 @@ const config: Config = {
         "warm-muted": brandBrown,
         "warm-border": brandBrown,
         white,
-        black: brandBrown,
-        slate: warmScale,
-        gray: warmScale,
-        zinc: warmScale,
-        neutral: warmScale,
-        stone: warmScale,
-        emerald: warmScale,
-        green: warmScale,
-        teal: warmScale,
-        cyan: warmScale,
-        blue: warmScale,
-        red: warmScale,
+        black: "#0F172A",
+        slate: colors.slate,
+        gray: colors.gray,
+        zinc: colors.zinc,
+        neutral: colors.neutral,
+        stone: colors.stone,
+        emerald: colors.emerald,
+        green: colors.green,
+        teal: colors.teal,
+        cyan: colors.cyan,
+        blue: colors.blue,
+        red: colors.red,
       },
       fontFamily: {
         display: ["var(--font-inter)", "Inter", "sans-serif"],

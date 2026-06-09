@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { createPaymentSchema } from '@/lib/validations';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { successResponse, errorResponse } from '@/lib/api-response';
+import { CartSessionService } from '@/lib/services/cart-session.service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -74,46 +75,29 @@ export async function POST(request: NextRequest) {
       paymentUrl = null;
     }
 
-    const cartSession = await prisma.$transaction(async (tx) => {
-      await tx.receipt.update({
-        where: { id: receiptId },
-        data: {
-          paymentStatus: 'PROCESSING',
-          paymentMethod,
-        },
-      });
-
-      await tx.receipt.update({
-        where: { id: receiptId },
-        data: {
-          paymentId: mockPaymentId,
-          status: 'PAID',
-          paymentStatus: 'COMPLETED',
-        },
-      });
-
-      return tx.cartSession.update({
-        where: { id: sessionId },
-        data: {
-          status: 'CHECKED_OUT',
-          endedAt: new Date(),
-        },
-        select: {
-          cartId: true,
-        },
-      });
-    });
-
-    await prisma.cart.updateMany({
-      where: { id: cartSession.cartId },
+    await prisma.receipt.update({
+      where: { id: receiptId },
       data: {
-        status: 'AVAILABLE',
-        pairingCode: null,
-        pairingExpiresAt: null,
-        qrSessionId: null,
-        lastSeen: new Date(),
+        paymentStatus: 'PROCESSING',
+        paymentMethod,
       },
     });
+
+    const cartSession = await CartSessionService.completeCheckout(sessionId, {
+      paymentId: mockPaymentId,
+      paymentMethod,
+    });
+
+    const finalizedReceipt = await prisma.receipt.findUnique({
+      where: { id: receiptId },
+      select: {
+        total: true,
+      },
+    });
+
+    if (!finalizedReceipt) {
+      return errorResponse('Receipt not found after payment.', 404, 'NOT_FOUND');
+    }
 
     if (owner.type === 'guest') {
       return successResponse({
@@ -127,7 +111,7 @@ export async function POST(request: NextRequest) {
     });
 
     const newTotalOrders = (currentStats?.totalOrders || 0) + 1;
-    const newTotalSpent = (currentStats?.totalSpent || 0) + receipt.total;
+    const newTotalSpent = (currentStats?.totalSpent || 0) + finalizedReceipt.total;
     const newAverage = newTotalSpent / newTotalOrders;
 
     await prisma.userStats.upsert({
@@ -140,8 +124,8 @@ export async function POST(request: NextRequest) {
       create: {
         userId: owner.userId,
         totalOrders: 1,
-        totalSpent: receipt.total,
-        averageBasketValue: receipt.total,
+        totalSpent: finalizedReceipt.total,
+        averageBasketValue: finalizedReceipt.total,
       },
     });
 
@@ -189,12 +173,13 @@ export async function POST(request: NextRequest) {
         userId: owner.userId,
         type: 'PAYMENT_SUCCESS',
         title: 'Payment Successful',
-        message: `Your payment of $${receipt.total.toFixed(2)} has been processed successfully.`,
+        message: `Your payment of $${finalizedReceipt.total.toFixed(2)} has been processed successfully.`,
         data: {
           receiptId,
           sessionId,
           paymentId: mockPaymentId,
-          total: receipt.total,
+          total: finalizedReceipt.total,
+          cartSessionStatus: cartSession.status,
         },
       },
     });

@@ -8,14 +8,34 @@ import { formatCurrency } from '@/lib/utils';
 
 type DeviceState =
   | {
+      status?: 'waiting';
       active: false;
+      cartCode?: string;
+      cartStatus?: string;
       cart: {
         cartCode: string;
         status: string;
       };
     }
   | {
+      status?: 'active';
       active: true;
+      cartCode?: string;
+      cartStatus?: string;
+      cartSessionId?: string;
+      receiptId?: string | null;
+      shoppingList?: {
+        id: string;
+        name: string;
+        items: Array<{
+          id: string;
+          name: string;
+          quantity: number;
+          price: number;
+          category: string | null;
+          checked: boolean;
+        }>;
+      };
       cart: {
         cartCode: string;
         status: string;
@@ -107,7 +127,7 @@ export default function DevicePage({ params }: { params: { cartCode: string } })
 
     window.localStorage.setItem(storageKey, deviceSecret.trim());
     void fetchActiveSession();
-    const interval = setInterval(fetchActiveSession, 3000);
+    const interval = setInterval(fetchActiveSession, 2000);
 
     return () => clearInterval(interval);
   }, [deviceSecret, fetchActiveSession, storageKey]);
@@ -115,6 +135,7 @@ export default function DevicePage({ params }: { params: { cartCode: string } })
   const collectedCount = data?.active
     ? data.list.items.filter((item) => item.isCollected).length
     : 0;
+  const cartStatus = data?.cartStatus ?? data?.cart.status ?? 'Waiting';
 
   return (
     <PageContainer maxWidth="lg">
@@ -129,7 +150,7 @@ export default function DevicePage({ params }: { params: { cartCode: string } })
               </p>
             </div>
             <Badge variant={data?.active ? 'success' : 'warning'} className="w-fit">
-              {data?.active ? 'Active session' : data?.cart.status || 'Waiting'}
+              {data?.active ? 'Active session' : cartStatus}
             </Badge>
           </div>
         </section>

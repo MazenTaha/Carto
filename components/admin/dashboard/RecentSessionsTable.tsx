@@ -2,6 +2,7 @@ import { AdminSessionRow } from '@/types/admin';
 import { StatusBadge } from '@/components/admin/shared/StatusBadge';
 import { formatDistanceToNow } from 'date-fns';
 import { ShoppingCart, User } from 'lucide-react';
+import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
 
 interface RecentSessionsTableProps {
   sessions: AdminSessionRow[];
@@ -57,7 +58,10 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
               </td>
               <td className="py-3 pr-4 max-w-[140px] truncate text-slate-600">{s.listName}</td>
               <td className="py-3 pr-4">
-                <StatusBadge status={s.status} pulse={s.status === 'ACTIVE'} />
+                <StatusBadge
+                  status={s.status}
+                  pulse={isActiveCartSessionStatus(s.status)}
+                />
               </td>
               <td className="py-3 pr-4 text-slate-500 text-xs">
                 {s.durationSeconds != null ? formatDuration(s.durationSeconds) : '—'}

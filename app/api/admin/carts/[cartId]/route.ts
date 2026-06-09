@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { CartPairingService } from '@/lib/services/cart-pairing.service';
 import { CartSessionService } from '@/lib/services/cart-session.service';
+import { CartConnectionService } from '@/lib/services/cart-connection.service';
 
 const patchSchema = z.object({
   action: z.enum(['reset', 'set_status', 'assign_secret']),
@@ -21,6 +22,8 @@ export async function GET(
   if (guard) return guard;
 
   try {
+    await CartConnectionService.reconcileCartById(params.cartId);
+
     const cart = await prisma.cart.findUnique({
       where: { id: params.cartId },
       include: {
@@ -66,31 +69,8 @@ export async function PATCH(
     const { action, status, deviceSecret } = parsed.data;
 
     if (action === 'reset') {
-      const liveSessions = await prisma.cartSession.findMany({
-        where: {
-          cartId: params.cartId,
-          status: { in: ['ACTIVE', 'DISCONNECTED'] },
-          endedAt: null,
-        },
-        select: { id: true },
-      });
-
-      for (const session of liveSessions) {
-        await CartSessionService.forceFinishSession(session.id);
-      }
-
-      const cart = await prisma.cart.update({
-        where: { id: params.cartId },
-        data: {
-          status: 'AVAILABLE',
-          qrSessionId: null,
-          pairingCode: null,
-          pairingExpiresAt: null,
-          lastSeen: new Date(),
-        },
-      });
-
-      return successResponse(cart);
+      const result = await CartSessionService.resetCartById(params.cartId);
+      return successResponse(result);
     }
 
     if (action === 'set_status' && status) {

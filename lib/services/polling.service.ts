@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 
 export class PollingService {
   /**
@@ -9,7 +10,7 @@ export class PollingService {
     const activeSession = await prisma.cartSession.findFirst({
       where: {
         cartId,
-        status: { in: ['ACTIVE', 'DISCONNECTED'] },
+        status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
         endedAt: null,
       },
       select: {
