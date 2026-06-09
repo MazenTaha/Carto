@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { CartDeviceService } from '@/lib/services/cart-device.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
+import { applyDeviceApiHeaders, handleDeviceOptions } from '@/lib/device-api-http';
 
 const addCartItemSchema = z.object({
   productId: z.string().min(1).optional(),
@@ -15,11 +16,8 @@ const addCartItemSchema = z.object({
   path: ['name'],
 });
 
-function setNoStoreHeaders(response: Response) {
-  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  response.headers.set('Pragma', 'no-cache');
-  response.headers.set('Expires', '0');
-  return response;
+export function OPTIONS(request: NextRequest) {
+  return handleDeviceOptions(request, ['POST']);
 }
 
 export async function POST(
@@ -39,7 +37,8 @@ export async function POST(
     const parsed = addCartItemSchema.parse(body);
     const session = await CartDeviceService.addReceiptItem(cart.id, parsed);
 
-    return setNoStoreHeaders(
+    return applyDeviceApiHeaders(
+      request,
       successResponse(
         CartDeviceService.buildActivePayload(
           {
@@ -48,18 +47,19 @@ export async function POST(
           },
           session
         )
-      )
+      ),
+      ['POST', 'OPTIONS']
     );
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return errorResponse(error.errors[0]?.message || 'Invalid item payload.', 400, 'VALIDATION_ERROR');
+      return applyDeviceApiHeaders(request, errorResponse(error.errors[0]?.message || 'Invalid item payload.', 400, 'VALIDATION_ERROR'), ['POST', 'OPTIONS']);
     }
 
     if (error instanceof ApiErrorResponse) {
-      return errorResponse(error.message, error.statusCode, error.code);
+      return applyDeviceApiHeaders(request, errorResponse(error.message, error.statusCode, error.code), ['POST', 'OPTIONS']);
     }
 
     console.error('Error adding cart item:', error);
-    return errorResponse('Failed to add cart item.', 500, 'INTERNAL_SERVER_ERROR');
+    return applyDeviceApiHeaders(request, errorResponse('Failed to add cart item.', 500, 'INTERNAL_SERVER_ERROR'), ['POST', 'OPTIONS']);
   }
 }

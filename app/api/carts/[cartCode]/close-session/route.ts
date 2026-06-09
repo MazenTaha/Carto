@@ -3,12 +3,10 @@ import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { CartDeviceService } from '@/lib/services/cart-device.service';
 import { CartSessionService } from '@/lib/services/cart-session.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
+import { applyDeviceApiHeaders, handleDeviceOptions } from '@/lib/device-api-http';
 
-function setNoStoreHeaders(response: Response) {
-  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  response.headers.set('Pragma', 'no-cache');
-  response.headers.set('Expires', '0');
-  return response;
+export function OPTIONS(request: NextRequest) {
+  return handleDeviceOptions(request, ['POST']);
 }
 
 export async function POST(
@@ -20,18 +18,21 @@ export async function POST(
     const activeSession = await CartDeviceService.getActiveSession(cart.id);
 
     if (!activeSession) {
-      return setNoStoreHeaders(
+      return applyDeviceApiHeaders(
+        request,
         successResponse({
           cartCode: cart.cartCode,
           sessionClosed: false,
           status: 'waiting',
-        })
+        }),
+        ['POST', 'OPTIONS']
       );
     }
 
     const result = await CartSessionService.forceFinishSession(activeSession.id);
 
-    return setNoStoreHeaders(
+    return applyDeviceApiHeaders(
+      request,
       successResponse({
         cartCode: cart.cartCode,
         cartSessionId: activeSession.id,
@@ -39,14 +40,15 @@ export async function POST(
         status: result.status,
         alreadyFinished: result.alreadyFinished,
         sessionClosed: true,
-      })
+      }),
+      ['POST', 'OPTIONS']
     );
   } catch (error) {
     if (error instanceof ApiErrorResponse) {
-      return errorResponse(error.message, error.statusCode, error.code);
+      return applyDeviceApiHeaders(request, errorResponse(error.message, error.statusCode, error.code), ['POST', 'OPTIONS']);
     }
 
     console.error('Error closing cart session:', error);
-    return errorResponse('Failed to close cart session.', 500, 'INTERNAL_SERVER_ERROR');
+    return applyDeviceApiHeaders(request, errorResponse('Failed to close cart session.', 500, 'INTERNAL_SERVER_ERROR'), ['POST', 'OPTIONS']);
   }
 }

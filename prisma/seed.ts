@@ -6,6 +6,10 @@ const prisma = new PrismaClient()
 
 const ADMIN_EMAIL = 'admin@gmail.com'
 const ADMIN_PASSWORD = 'Admin_1'
+const DEMO_CART_CODE = 'CART-001'
+const DEMO_DEVICE_SECRET = 'dev-device-secret'
+const DEMO_STORE_ID = 'dev-carto-store'
+const ACTIVE_SESSION_STATUSES = ['ACTIVE', 'DISCONNECTED']
 
 // Curated product dataset - 300+ generic grocery items
 const products = [
@@ -1552,6 +1556,7 @@ async function main() {
 
     let count = 0
     let skipped = 0
+    const now = new Date()
 
     const adminPasswordHash = await bcrypt.hash(ADMIN_PASSWORD, 12)
     await prisma.user.upsert({
@@ -1590,39 +1595,83 @@ async function main() {
     }
 
     const store = await prisma.store.upsert({
-        where: { id: 'dev-carto-store' },
+        where: { id: DEMO_STORE_ID },
         update: {},
         create: {
-            id: 'dev-carto-store',
+            id: DEMO_STORE_ID,
             name: 'Carto Demo Store',
             location: 'Development seed',
         },
     })
 
-    await prisma.cart.upsert({
-        where: { cartCode: 'CART-001' },
-        update: {
-            pairingCode: '123456',
-            deviceSecret: 'dev-device-secret',
-            status: 'AVAILABLE',
-            storeId: store.id,
-            lastSeen: new Date(),
-        },
-        create: {
-            cartCode: 'CART-001',
-            bluetoothName: 'Carto-CART-001',
-            pairingCode: '123456',
-            deviceSecret: 'dev-device-secret',
-            storeId: store.id,
-            status: 'AVAILABLE',
-            lastSeen: new Date(),
-        },
+    const existingCart = await prisma.cart.findUnique({
+        where: { cartCode: DEMO_CART_CODE },
+        select: { id: true },
+    })
+
+    const activeSessionIds = existingCart
+        ? (await prisma.cartSession.findMany({
+            where: {
+                cartId: existingCart.id,
+                status: { in: ACTIVE_SESSION_STATUSES },
+                endedAt: null,
+            },
+            select: { id: true },
+        })).map((session) => session.id)
+        : []
+
+    await prisma.$transaction(async (tx) => {
+        if (activeSessionIds.length > 0) {
+            await tx.cartSession.updateMany({
+                where: { id: { in: activeSessionIds } },
+                data: {
+                    status: 'COMPLETED',
+                    endedAt: now,
+                },
+            })
+
+            await tx.receipt.updateMany({
+                where: {
+                    sessionId: { in: activeSessionIds },
+                    status: 'DRAFT',
+                },
+                data: {
+                    status: 'LOCKED',
+                },
+            })
+        }
+
+        await tx.cart.upsert({
+            where: { cartCode: DEMO_CART_CODE },
+            update: {
+                bluetoothName: `Carto-${DEMO_CART_CODE}`,
+                pairingCode: null,
+                pairingExpiresAt: null,
+                qrSessionId: null,
+                deviceSecret: DEMO_DEVICE_SECRET,
+                status: 'AVAILABLE',
+                storeId: store.id,
+                lastSeen: now,
+            },
+            create: {
+                cartCode: DEMO_CART_CODE,
+                bluetoothName: `Carto-${DEMO_CART_CODE}`,
+                pairingCode: null,
+                pairingExpiresAt: null,
+                qrSessionId: null,
+                deviceSecret: DEMO_DEVICE_SECRET,
+                storeId: store.id,
+                status: 'AVAILABLE',
+                lastSeen: now,
+            },
+        })
     })
 
     const totalCount = await prisma.product.count()
     console.log(`Seeding finished. Added ${count} new products, skipped ${skipped} duplicates.`)
     console.log(`Total unique products in database: ${totalCount}`)
     console.log(`Admin test account ready: ${ADMIN_EMAIL}`)
+    console.log(`Demo cart ready: ${DEMO_CART_CODE}`)
 }
 
 main()

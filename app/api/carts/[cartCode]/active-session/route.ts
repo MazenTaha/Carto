@@ -5,8 +5,13 @@ import { CartDeviceService } from '@/lib/services/cart-device.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
+import { applyDeviceApiHeaders, handleDeviceOptions } from '@/lib/device-api-http';
 
 export const dynamic = 'force-dynamic';
+
+export function OPTIONS(request: NextRequest) {
+  return handleDeviceOptions(request, ['GET']);
+}
 
 export async function GET(
   request: NextRequest,
@@ -31,23 +36,18 @@ export async function GET(
           status: cartStatus,
         });
 
-    const response = successResponse(responseData);
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Expires', '0');
-
-    return response;
+    return applyDeviceApiHeaders(request, successResponse(responseData), ['GET', 'OPTIONS']);
   } catch (error) {
     if (error instanceof ApiErrorResponse) {
-      return errorResponse(error.message, error.statusCode, error.code);
+      return applyDeviceApiHeaders(request, errorResponse(error.message, error.statusCode, error.code), ['GET', 'OPTIONS']);
     }
 
     const databaseMessage = getPrismaConnectivityMessage(error);
     if (databaseMessage) {
-      return errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
+      return applyDeviceApiHeaders(request, errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE'), ['GET', 'OPTIONS']);
     }
 
     console.error('Error fetching device active session:', error);
-    return errorResponse('Failed to fetch active session', 500, 'INTERNAL_SERVER_ERROR');
+    return applyDeviceApiHeaders(request, errorResponse('Failed to fetch active session', 500, 'INTERNAL_SERVER_ERROR'), ['GET', 'OPTIONS']);
   }
 }

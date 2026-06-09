@@ -2,12 +2,10 @@ import { NextRequest } from 'next/server';
 import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { CartDeviceService } from '@/lib/services/cart-device.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
+import { applyDeviceApiHeaders, handleDeviceOptions } from '@/lib/device-api-http';
 
-function setNoStoreHeaders(response: Response) {
-  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  response.headers.set('Pragma', 'no-cache');
-  response.headers.set('Expires', '0');
-  return response;
+export function OPTIONS(request: NextRequest) {
+  return handleDeviceOptions(request, ['POST']);
 }
 
 export async function POST(
@@ -18,7 +16,8 @@ export async function POST(
     const cart = await DeviceAuthService.authenticateDevice(request, params.cartCode);
     const checkout = await CartDeviceService.checkout(cart.id);
 
-    return setNoStoreHeaders(
+    return applyDeviceApiHeaders(
+      request,
       successResponse({
         cartCode: cart.cartCode,
         cartSessionId: checkout.cartSessionId,
@@ -29,14 +28,15 @@ export async function POST(
         total: checkout.total,
         paymentStatus: checkout.paymentStatus,
         note: 'Mock device checkout only. Replace with real payment confirmation before production use.',
-      })
+      }),
+      ['POST', 'OPTIONS']
     );
   } catch (error) {
     if (error instanceof ApiErrorResponse) {
-      return errorResponse(error.message, error.statusCode, error.code);
+      return applyDeviceApiHeaders(request, errorResponse(error.message, error.statusCode, error.code), ['POST', 'OPTIONS']);
     }
 
     console.error('Error checking out cart session:', error);
-    return errorResponse('Failed to checkout cart session.', 500, 'INTERNAL_SERVER_ERROR');
+    return applyDeviceApiHeaders(request, errorResponse('Failed to checkout cart session.', 500, 'INTERNAL_SERVER_ERROR'), ['POST', 'OPTIONS']);
   }
 }

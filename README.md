@@ -180,6 +180,36 @@ npx prisma migrate dev
 
 Use `npx prisma db push` only for throwaway/demo environments.
 
+### Create Real Admin Logins In Production
+
+Admin access in production is controlled by `ADMIN_EMAILS`, and the corresponding users must also exist in the database with real passwords.
+
+Set these environment variables in the shell that points to your production database:
+
+```env
+ADMIN_EMAILS="admin1@example.com,admin2@example.com"
+ADMIN_SEED_PASSWORD="set-a-real-temporary-password-here"
+```
+
+Then run:
+
+```bash
+npm run db:seed:admins
+```
+
+This upserts a real database user for each email in `ADMIN_EMAILS` and assigns the password from `ADMIN_SEED_PASSWORD`.
+
+On Vercel, make sure these are also set:
+
+```env
+DATABASE_URL="..."
+NEXTAUTH_URL="https://your-deployed-app.vercel.app"
+AUTH_SECRET="..."
+ADMIN_EMAILS="admin1@example.com,admin2@example.com"
+```
+
+Only `ADMIN_EMAILS` needs to stay in Vercel after seeding. `ADMIN_SEED_PASSWORD` is only needed when you intentionally create or rotate admin passwords through the script.
+
 ## License
 
 This project is created for academic purposes.

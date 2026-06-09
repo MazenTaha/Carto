@@ -4,12 +4,10 @@ import { CartDeviceService } from '@/lib/services/cart-device.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { prisma } from '@/lib/prisma';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
+import { applyDeviceApiHeaders, handleDeviceOptions } from '@/lib/device-api-http';
 
-function setNoStoreHeaders(response: Response) {
-  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  response.headers.set('Pragma', 'no-cache');
-  response.headers.set('Expires', '0');
-  return response;
+export function OPTIONS(request: NextRequest) {
+  return handleDeviceOptions(request, ['GET']);
 }
 
 export async function GET(
@@ -28,7 +26,8 @@ export async function GET(
         select: { lastSeen: true },
       });
 
-      return setNoStoreHeaders(
+      return applyDeviceApiHeaders(
+        request,
         successResponse({
           cartCode: cart.cartCode,
           status: activeSession ? 'IN_USE' : reconciliation?.cart.status ?? cart.status,
@@ -36,7 +35,8 @@ export async function GET(
           receiptId: activeSession?.receipt?.id ?? null,
           hasActiveSession: Boolean(activeSession),
           lastSeen: persistedCart?.lastSeen.toISOString() ?? null,
-        })
+        }),
+        ['GET', 'OPTIONS']
       );
     }
 
@@ -57,20 +57,22 @@ export async function GET(
 
     const activeSession = await CartDeviceService.getActiveSession(cart.id);
 
-    return setNoStoreHeaders(
+    return applyDeviceApiHeaders(
+      request,
       successResponse({
         cartCode: cart.cartCode,
         status: activeSession ? 'IN_USE' : reconciliation?.cart.status ?? cart.status,
         isAvailable: !activeSession && (reconciliation?.cart.status ?? cart.status) === 'AVAILABLE',
         hasActiveSession: Boolean(activeSession),
-      })
+      }),
+      ['GET', 'OPTIONS']
     );
   } catch (error) {
     if (error instanceof ApiErrorResponse) {
-      return errorResponse(error.message, error.statusCode, error.code);
+      return applyDeviceApiHeaders(request, errorResponse(error.message, error.statusCode, error.code), ['GET', 'OPTIONS']);
     }
 
     console.error('Error fetching cart status:', error);
-    return errorResponse('Failed to fetch cart status.', 500, 'INTERNAL_SERVER_ERROR');
+    return applyDeviceApiHeaders(request, errorResponse('Failed to fetch cart status.', 500, 'INTERNAL_SERVER_ERROR'), ['GET', 'OPTIONS']);
   }
 }
