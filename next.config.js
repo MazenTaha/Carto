@@ -65,6 +65,11 @@ const nextConfig = {
     serverComponentsExternalPackages: ['firebase-admin'],
   },
   webpack: (config, { isServer }) => {
+    if (process.env.NODE_ENV === 'development') {
+      // Keep dev startup resilient when the local drive is low on space.
+      config.cache = false;
+    }
+
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,

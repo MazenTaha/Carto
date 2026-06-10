@@ -15,9 +15,16 @@ const SEEDED_ADMIN_EMAIL = 'admin@gmail.com';
 const SEEDED_ADMIN_PASSWORD = 'Admin_1';
 const authSecret = getAuthSecret();
 const canUseSeededAdmin = process.env.NODE_ENV !== 'production';
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 function isSeededAdminCredentials(email: string, password: string) {
   return canUseSeededAdmin && email === SEEDED_ADMIN_EMAIL && password === SEEDED_ADMIN_PASSWORD;
+}
+
+function logCredentialsFailure(reason: string) {
+  if (isDevelopment) {
+    console.warn(`[auth] Credentials login rejected: ${reason}`);
+  }
 }
 
 const googleProviders = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -42,10 +49,12 @@ export const authOptions: NextAuthOptions = {
         const parsed = signInSchema.safeParse(credentials);
 
         if (!parsed.success) {
+          logCredentialsFailure('invalid_signin_payload');
           throw new Error('Invalid email or password');
         }
 
         if (!process.env.DATABASE_URL) {
+          logCredentialsFailure('database_url_missing');
           throw new Error('Invalid email or password');
         }
 
@@ -68,7 +77,13 @@ export const authOptions: NextAuthOptions = {
             });
           }
 
+          if (!user) {
+            logCredentialsFailure(`user_not_found:${parsed.data.email}`);
+            throw new Error('Invalid email or password');
+          }
+
           if (!user?.password) {
+            logCredentialsFailure(`password_hash_missing:${user.id}`);
             throw new Error('Invalid email or password');
           }
 
@@ -84,6 +99,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (!isValid) {
+            logCredentialsFailure(`bcrypt_compare_failed:${user.id}`);
             throw new Error('Invalid email or password');
           }
 
@@ -97,8 +113,14 @@ export const authOptions: NextAuthOptions = {
         } catch (error: any) {
           const databaseMessage = getPrismaConnectivityMessage(error);
           if (databaseMessage) {
+            logCredentialsFailure('database_error');
             throw new Error(databaseMessage);
           }
+
+          if (isDevelopment && error instanceof Error && error.message !== 'Invalid email or password') {
+            console.warn('[auth] Unexpected credentials authorize error:', error.message);
+          }
+
           throw new Error('Invalid email or password');
         }
       },

@@ -7,6 +7,7 @@ import {
   setGuestSessionCookie,
 } from '@/lib/guest-session';
 import { errorResponse, successResponse } from '@/lib/api-response';
+import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
 
 export async function POST() {
   try {
@@ -16,6 +17,7 @@ export async function POST() {
       return successResponse({
         guestSessionId: null,
         reused: false,
+        redirectTo: '/dashboard',
       });
     }
 
@@ -25,6 +27,7 @@ export async function POST() {
     const response = successResponse({
       guestSessionId: guestSession.id,
       reused: Boolean(existingGuestSession),
+      redirectTo: '/dashboard',
     });
 
     setGuestSessionCookie(response, guestSession.id);
@@ -32,8 +35,19 @@ export async function POST() {
 
     return response;
   } catch (error) {
-    console.error('Error creating guest session:', error);
-    return errorResponse('Could not start guest mode.', 500, 'GUEST_SESSION_ERROR');
+    const databaseMessage = getPrismaConnectivityMessage(error);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error creating guest session:', error);
+    } else {
+      console.error('Error creating guest session.');
+    }
+
+    if (databaseMessage) {
+      return errorResponse('Could not start guest mode. Please try again.', 503, 'DATABASE_UNAVAILABLE');
+    }
+
+    return errorResponse('Could not start guest mode. Please try again.', 500, 'GUEST_SESSION_CREATE_FAILED');
   }
 }
 

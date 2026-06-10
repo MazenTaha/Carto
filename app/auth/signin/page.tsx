@@ -206,12 +206,12 @@ function SignInContent() {
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(readApiErrorMessage(data, 'Could not start guest mode.'));
+        throw new Error(readApiErrorMessage(data, 'Could not start guest mode. Please try again.'));
       }
 
       router.push(guestCallbackUrl);
     } catch (err: any) {
-      setError(err?.message || 'Could not start guest mode.');
+      setError(err?.message || 'Could not start guest mode. Please try again.');
     } finally {
       setIsGuestLoading(false);
     }
