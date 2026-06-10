@@ -3,6 +3,9 @@ import { linkCartSchema } from '@/lib/validations';
 import { requireUserOrGuest } from '@/lib/guest-session';
 import { CartPairingService } from '@/lib/services/cart-pairing.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
+import { getPrismaConnectivityMessage, logSafeDatabaseError } from '@/lib/prisma-errors';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,7 +54,13 @@ export async function POST(request: NextRequest) {
       return errorResponse('Cart link is being processed. Please try again.', 409, 'CART_LINK_CONFLICT');
     }
 
-    console.error('Error linking cart:', error);
+    const databaseMessage = getPrismaConnectivityMessage(error);
+    if (databaseMessage) {
+      logSafeDatabaseError('cart/link POST', error);
+      return errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
+    }
+
+    console.error('Error linking cart:', { message: 'Unexpected cart link failure.' });
     return errorResponse('Failed to link cart', 500, 'INTERNAL_SERVER_ERROR');
   }
 }

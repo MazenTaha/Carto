@@ -9,6 +9,7 @@ import { egyptianPhoneInputSchema, signInSchema } from '@/lib/validations';
 import { getFirebaseClientAuth } from '@/lib/firebase/client';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Logo } from '@/components/ui/Logo';
+import type { DemoAuthReadiness } from '@/types/auth-readiness';
 
 type SignInFieldErrors = {
   email?: string;
@@ -45,6 +46,7 @@ function readApiErrorMessage(payload: any, fallback: string) {
 function readAuthErrorMessage(rawError: string | null | undefined) {
   if (!rawError) return 'Invalid email or password';
   if (rawError === 'CredentialsSignin') return 'Invalid email or password';
+  if (rawError === 'DATABASE_UNAVAILABLE') return 'This deployment cannot sign users in until its database is configured and reachable.';
   if (rawError === 'SessionRequired') return 'Please sign in to continue.';
   if (rawError === 'AccessDenied') return 'You do not have permission to open that page.';
   if (rawError === 'OAuthAccountNotLinked') return 'This email is already linked to another sign-in method.';
@@ -58,6 +60,74 @@ function readAuthErrorMessage(rawError: string | null | undefined) {
   } catch {}
 
   return rawError;
+}
+
+function formatReadinessWarning(code: string) {
+  switch (code) {
+    case 'DATABASE_URL_MISSING':
+      return 'DATABASE_URL is missing on the deployment.';
+    case 'DATABASE_CONNECTION_FAILED':
+      return 'The deployment cannot connect to its production database.';
+    case 'DATABASE_SCHEMA_NOT_READY':
+      return 'The production database schema is not ready yet. Run Prisma migrations.';
+    case 'NEXTAUTH_URL_MISSING':
+      return 'NEXTAUTH_URL is missing on the deployment.';
+    case 'NEXTAUTH_URL_MISMATCH':
+      return 'NEXTAUTH_URL does not match the deployed site origin.';
+    case 'NEXTAUTH_SECRET_MISSING':
+      return 'NEXTAUTH_SECRET is missing on the deployment.';
+    case 'AUTH_SECRET_MISSING':
+      return 'AUTH_SECRET is missing on the deployment.';
+    case 'ADMIN_EMAILS_MISSING':
+      return 'ADMIN_EMAILS is empty on the deployment.';
+    case 'ADMIN_EMAIL_NOT_ALLOWED':
+      return 'ADMIN_EMAILS does not include admin@gmail.com.';
+    case 'ADMIN_USER_MISSING_IN_PRODUCTION_DB':
+      return 'The admin user does not exist in the production database.';
+    case 'ADMIN_PASSWORD_HASH_MISSING':
+      return 'The admin user exists in production but is missing its password hash.';
+    case 'GUEST_SESSION_TABLE_MISSING':
+      return 'The GuestSession table is not reachable in production.';
+    case 'GOOGLE_AUTH_NOT_CONFIGURED':
+      return 'Google sign-in is not configured on the deployment.';
+    case 'FIREBASE_CLIENT_CONFIG_MISSING':
+      return 'The Firebase client env vars are missing on the deployment.';
+    case 'FIREBASE_ADMIN_CONFIG_MISSING':
+      return 'The Firebase admin env vars are missing on the deployment.';
+    default:
+      return code;
+  }
+}
+
+function getCredentialsUnavailableMessage(readiness: DemoAuthReadiness | null) {
+  if (!readiness) return 'Credentials sign-in is not available on this deployment yet.';
+  if (!readiness.database.hasDatabaseUrl) return 'This deployment is missing DATABASE_URL, so email sign-in cannot work yet.';
+  if (readiness.database.connection === 'error') return 'This deployment cannot reach its database or its schema is not ready yet.';
+  if (!readiness.auth.hasNextAuthUrl) return 'This deployment is missing NEXTAUTH_URL, so auth redirects may fail.';
+  if (!readiness.auth.hasAnyAuthSecret) return 'This deployment is missing AUTH_SECRET and NEXTAUTH_SECRET, so auth sessions cannot work yet.';
+  return 'Credentials sign-in is not available on this deployment yet.';
+}
+
+function getGuestUnavailableMessage(readiness: DemoAuthReadiness | null) {
+  if (!readiness) return 'Guest mode is not available on this deployment yet.';
+  if (!readiness.database.hasDatabaseUrl) return 'This deployment is missing DATABASE_URL, so guest mode cannot work yet.';
+  if (readiness.database.connection === 'error') return 'This deployment cannot reach its database or its schema is not ready yet.';
+  return 'Guest mode is not available on this deployment yet.';
+}
+
+function getGoogleUnavailableMessage(readiness: DemoAuthReadiness | null) {
+  if (!readiness) return 'Google sign-in is not configured on this deployment yet.';
+  if (!readiness.auth.googleConfigured) return 'Google sign-in is disabled because GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing.';
+  if (readiness.database.connection !== 'ok') return getCredentialsUnavailableMessage(readiness);
+  return 'Google sign-in is not configured on this deployment yet.';
+}
+
+function getPhoneUnavailableMessage(readiness: DemoAuthReadiness | null) {
+  if (!readiness) return 'Phone sign-in is not configured on this deployment yet.';
+  if (!readiness.auth.firebaseClientConfigured) return 'Phone sign-in is disabled because NEXT_PUBLIC_FIREBASE_* variables are missing.';
+  if (!readiness.auth.firebaseAdminConfigured) return 'Phone sign-in is disabled because the server-side FIREBASE_* admin variables are missing.';
+  if (readiness.database.connection !== 'ok') return getCredentialsUnavailableMessage(readiness);
+  return 'Phone sign-in is not configured on this deployment yet.';
 }
 
 function readFirebasePhoneError(error: any) {
@@ -101,6 +171,7 @@ function SignInContent() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const [authReadiness, setAuthReadiness] = useState<DemoAuthReadiness | null>(null);
 
   useEffect(() => {
     const queryError = searchParams.get('error');
@@ -116,10 +187,47 @@ function SignInContent() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadAuthReadiness() {
+      try {
+        const response = await fetch('/api/demo/auth-readiness', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        const payload = await response.json().catch(() => null);
+
+        if (!ignore && payload?.success === true) {
+          setAuthReadiness(payload.data as DemoAuthReadiness);
+        }
+      } catch {}
+    }
+
+    void loadAuthReadiness();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const providers = authReadiness?.auth.providers;
+  const credentialsEnabled = providers?.credentials ?? true;
+  const guestEnabled = providers?.guest ?? true;
+  const googleEnabled = providers?.google ?? true;
+  const phoneEnabled = providers?.phone ?? true;
+  const deploymentWarnings = authReadiness?.warnings ?? [];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setFieldErrors({});
+
+    if (!credentialsEnabled) {
+      setError(getCredentialsUnavailableMessage(authReadiness));
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -150,7 +258,11 @@ function SignInContent() {
       });
 
       if (result?.error) {
-        setError(readAuthErrorMessage(result.error));
+        setError(
+          result.error === 'CredentialsSignin' && !credentialsEnabled
+            ? getCredentialsUnavailableMessage(authReadiness)
+            : readAuthErrorMessage(result.error)
+        );
       } else {
         router.push(callbackUrl);
       }
@@ -193,12 +305,20 @@ function SignInContent() {
 
   const handleGoogleSignIn = async () => {
     setError('');
+    if (!googleEnabled) {
+      setError(getGoogleUnavailableMessage(authReadiness));
+      return;
+    }
     setIsGoogleLoading(true);
     await signIn('google', { callbackUrl });
   };
 
   const handleContinueAsGuest = async () => {
     setError('');
+    if (!guestEnabled) {
+      setError(getGuestUnavailableMessage(authReadiness));
+      return;
+    }
     setIsGuestLoading(true);
 
     try {
@@ -235,6 +355,11 @@ function SignInContent() {
     setIsPhoneLoading(true);
 
     try {
+      if (!phoneEnabled) {
+        setError(getPhoneUnavailableMessage(authReadiness));
+        return;
+      }
+
       const parsed = egyptianPhoneInputSchema.safeParse({ phoneNumber });
 
       if (!parsed.success) {
@@ -327,6 +452,17 @@ function SignInContent() {
         <p className="mt-2 text-base text-slate-500 dark:text-slate-400">Sign in to access your saved lists and history.</p>
       </div>
 
+      {deploymentWarnings.length > 0 && (
+        <div className="mx-6 mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+          <p className="font-bold">Deployment auth setup needs attention</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {deploymentWarnings.slice(0, 4).map((warning) => (
+              <li key={warning}>{formatReadinessWarning(warning)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4 px-6">
         <label className="flex w-full flex-col">
           <p className="pb-2 text-sm font-medium leading-normal text-slate-700 dark:text-slate-300">Email Address</p>
@@ -403,10 +539,12 @@ function SignInContent() {
         <div className="flex flex-col gap-3 pt-4">
           <button
             type="submit"
-            disabled={isLoading || isGoogleLoading || isGuestLoading || isPhoneLoading}
+            disabled={isLoading || isGoogleLoading || isGuestLoading || isPhoneLoading || !credentialsEnabled}
             className="flex h-14 w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-primary px-5 text-base font-bold leading-normal tracking-[0.015em] text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-50"
           >
-            <span className="truncate">{isLoading ? 'Signing In...' : 'Sign In'}</span>
+            <span className="truncate">
+              {isLoading ? 'Signing In...' : credentialsEnabled ? 'Sign In' : 'Email Sign-In Unavailable'}
+            </span>
           </button>
         </div>
       </form>
@@ -421,7 +559,7 @@ function SignInContent() {
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          disabled={isLoading || isGoogleLoading || isGuestLoading || isPhoneLoading}
+          disabled={isLoading || isGoogleLoading || isGuestLoading || isPhoneLoading || !googleEnabled}
           className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -438,7 +576,7 @@ function SignInContent() {
         <button
           type="button"
           onClick={handleContinueAsGuest}
-          disabled={isLoading || isGoogleLoading || isGuestLoading || isPhoneLoading}
+          disabled={isLoading || isGoogleLoading || isGuestLoading || isPhoneLoading || !guestEnabled}
           className="group flex w-full items-center justify-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 py-4 text-emerald-700 transition-all hover:bg-emerald-100 hover:shadow-sm disabled:opacity-50 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
         >
           <span className="material-symbols-outlined text-xl transition-transform group-hover:scale-110">shopping_bag</span>
@@ -473,6 +611,11 @@ function SignInContent() {
       <div className="w-full px-6 pt-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Egyptian mobile number</p>
+          {!phoneEnabled && (
+            <p className="mt-2 text-sm text-amber-600 dark:text-amber-300">
+              {getPhoneUnavailableMessage(authReadiness)}
+            </p>
+          )}
           <div className="mt-3 flex flex-col gap-3">
             <input
               className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition focus:ring-2 focus:ring-primary/20 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
@@ -480,7 +623,7 @@ function SignInContent() {
               inputMode="tel"
               value={phoneNumber}
               onChange={(event) => setPhoneNumber(event.target.value)}
-              disabled={Boolean(confirmationResult) || isPhoneLoading}
+              disabled={Boolean(confirmationResult) || isPhoneLoading || !phoneEnabled}
             />
             {confirmationResult && (
               <input
@@ -495,7 +638,7 @@ function SignInContent() {
             <button
               type="button"
               onClick={confirmationResult ? handleVerifyPhoneOtp : handleSendPhoneOtp}
-              disabled={isLoading || isGoogleLoading || isGuestLoading || isPhoneLoading}
+              disabled={isLoading || isGoogleLoading || isGuestLoading || isPhoneLoading || !phoneEnabled}
               className="flex h-12 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-50 dark:bg-primary"
             >
               {isPhoneLoading ? 'Checking...' : confirmationResult ? 'Verify Code' : 'Send Code'}

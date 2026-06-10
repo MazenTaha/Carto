@@ -55,7 +55,7 @@ export const authOptions: NextAuthOptions = {
 
         if (!process.env.DATABASE_URL) {
           logCredentialsFailure('database_url_missing');
-          throw new Error('Invalid email or password');
+          throw new Error('DATABASE_UNAVAILABLE');
         }
 
         try {
@@ -117,7 +117,7 @@ export const authOptions: NextAuthOptions = {
             if (isDevelopment) {
               console.warn('[auth] Credentials login database issue:', databaseMessage);
             }
-            throw new Error('Invalid email or password');
+            throw new Error('DATABASE_UNAVAILABLE');
           }
 
           if (isDevelopment && error instanceof Error && error.message !== 'Invalid email or password') {

@@ -3,11 +3,12 @@ import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { PollingService } from '@/lib/services/polling.service';
 import { CartDeviceService } from '@/lib/services/cart-device.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
-import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
+import { getPrismaConnectivityMessage, logSafeDatabaseError } from '@/lib/prisma-errors';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
 import { applyDeviceApiHeaders, handleDeviceOptions } from '@/lib/device-api-http';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export function OPTIONS(request: NextRequest) {
   return handleDeviceOptions(request, ['GET']);
@@ -44,10 +45,11 @@ export async function GET(
 
     const databaseMessage = getPrismaConnectivityMessage(error);
     if (databaseMessage) {
+      logSafeDatabaseError('carts/[cartCode]/active-session GET', error);
       return applyDeviceApiHeaders(request, errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE'), ['GET', 'OPTIONS']);
     }
 
-    console.error('Error fetching device active session:', error);
+    console.error('Error fetching device active session:', { message: 'Unexpected device active-session failure.' });
     return applyDeviceApiHeaders(request, errorResponse('Failed to fetch active session', 500, 'INTERNAL_SERVER_ERROR'), ['GET', 'OPTIONS']);
   }
 }

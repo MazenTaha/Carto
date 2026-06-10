@@ -7,7 +7,9 @@ import {
   setGuestSessionCookie,
 } from '@/lib/guest-session';
 import { errorResponse, successResponse } from '@/lib/api-response';
-import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
+import { getPrismaConnectivityMessage, logSafeDatabaseError } from '@/lib/prisma-errors';
+
+export const runtime = 'nodejs';
 
 export async function POST() {
   try {
@@ -44,7 +46,8 @@ export async function POST() {
     }
 
     if (databaseMessage) {
-      return errorResponse('Could not start guest mode. Please try again.', 503, 'DATABASE_UNAVAILABLE');
+      logSafeDatabaseError('auth/guest POST', error);
+      return errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
     }
 
     return errorResponse('Could not start guest mode. Please try again.', 500, 'GUEST_SESSION_CREATE_FAILED');

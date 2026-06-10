@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signUpSchema } from '@/lib/validations';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Logo } from '@/components/ui/Logo';
+import type { DemoAuthReadiness } from '@/types/auth-readiness';
 
 type SignUpFieldErrors = {
   name?: string;
@@ -33,7 +34,62 @@ function readAuthErrorMessage(rawError: string | null | undefined) {
     return 'Could not sign you in automatically. Please sign in with your new account.';
   }
 
+  if (rawError === 'DATABASE_UNAVAILABLE') {
+    return 'This deployment cannot sign users in until its database is configured and reachable.';
+  }
+
   return rawError;
+}
+
+function formatReadinessWarning(code: string) {
+  switch (code) {
+    case 'DATABASE_URL_MISSING':
+      return 'DATABASE_URL is missing on the deployment.';
+    case 'DATABASE_CONNECTION_FAILED':
+      return 'The deployment cannot connect to its production database.';
+    case 'DATABASE_SCHEMA_NOT_READY':
+      return 'The production database schema is not ready yet. Run Prisma migrations.';
+    case 'NEXTAUTH_URL_MISSING':
+      return 'NEXTAUTH_URL is missing on the deployment.';
+    case 'NEXTAUTH_URL_MISMATCH':
+      return 'NEXTAUTH_URL does not match the deployed site origin.';
+    case 'NEXTAUTH_SECRET_MISSING':
+      return 'NEXTAUTH_SECRET is missing on the deployment.';
+    case 'AUTH_SECRET_MISSING':
+      return 'AUTH_SECRET is missing on the deployment.';
+    case 'ADMIN_EMAILS_MISSING':
+      return 'ADMIN_EMAILS is empty on the deployment.';
+    case 'ADMIN_EMAIL_NOT_ALLOWED':
+      return 'ADMIN_EMAILS does not include admin@gmail.com.';
+    case 'ADMIN_USER_MISSING_IN_PRODUCTION_DB':
+      return 'The admin user does not exist in the production database.';
+    case 'ADMIN_PASSWORD_HASH_MISSING':
+      return 'The admin user exists in production but is missing its password hash.';
+    case 'GUEST_SESSION_TABLE_MISSING':
+      return 'The GuestSession table is not reachable in production.';
+    case 'GOOGLE_AUTH_NOT_CONFIGURED':
+      return 'Google sign-in is not configured on the deployment.';
+    case 'FIREBASE_CLIENT_CONFIG_MISSING':
+      return 'The Firebase client env vars are missing on the deployment.';
+    case 'FIREBASE_ADMIN_CONFIG_MISSING':
+      return 'The Firebase admin env vars are missing on the deployment.';
+    default:
+      return code;
+  }
+}
+
+function getSignUpUnavailableMessage(readiness: DemoAuthReadiness | null) {
+  if (!readiness) return 'Account creation is not available on this deployment yet.';
+  if (!readiness.database.hasDatabaseUrl) return 'This deployment is missing DATABASE_URL, so account creation cannot work yet.';
+  if (readiness.database.connection === 'error') return 'This deployment cannot reach its database or its schema is not ready yet.';
+  return 'Account creation is not available on this deployment yet.';
+}
+
+function getGoogleUnavailableMessage(readiness: DemoAuthReadiness | null) {
+  if (!readiness) return 'Google sign-in is not configured on this deployment yet.';
+  if (!readiness.auth.googleConfigured) return 'Google sign-in is disabled because GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing.';
+  if (readiness.database.connection !== 'ok') return getSignUpUnavailableMessage(readiness);
+  return 'Google sign-in is not configured on this deployment yet.';
 }
 
 function SignUpContent() {
@@ -49,11 +105,47 @@ function SignUpContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [authReadiness, setAuthReadiness] = useState<DemoAuthReadiness | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadAuthReadiness() {
+      try {
+        const response = await fetch('/api/demo/auth-readiness', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        const payload = await response.json().catch(() => null);
+
+        if (!ignore && payload?.success === true) {
+          setAuthReadiness(payload.data as DemoAuthReadiness);
+        }
+      } catch {}
+    }
+
+    void loadAuthReadiness();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const providers = authReadiness?.auth.providers;
+  const credentialsEnabled = providers?.credentials ?? true;
+  const googleEnabled = providers?.google ?? true;
+  const deploymentWarnings = authReadiness?.warnings ?? [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setFieldErrors({});
+
+    if (!credentialsEnabled) {
+      setError(getSignUpUnavailableMessage(authReadiness));
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -112,6 +204,10 @@ function SignUpContent() {
 
   const handleGoogleSignIn = async () => {
     setError('');
+    if (!googleEnabled) {
+      setError(getGoogleUnavailableMessage(authReadiness));
+      return;
+    }
     setIsGoogleLoading(true);
     await signIn('google', { callbackUrl });
   };
@@ -133,6 +229,17 @@ function SignUpContent() {
         <h1 className="text-left text-[32px] font-bold leading-tight tracking-tight text-slate-900 dark:text-slate-100">Create Account</h1>
         <p className="mt-2 text-base text-slate-500 dark:text-slate-400">Join Carto and simplify your shopping experience.</p>
       </div>
+
+      {deploymentWarnings.length > 0 && (
+        <div className="mx-6 mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+          <p className="font-bold">Deployment auth setup needs attention</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {deploymentWarnings.slice(0, 4).map((warning) => (
+              <li key={warning}>{formatReadinessWarning(warning)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4 px-6">
         <label className="flex w-full flex-col">
@@ -231,15 +338,17 @@ function SignUpContent() {
         <div className="flex flex-col gap-3 pt-4">
           <button
             type="submit"
-            disabled={isLoading || isGoogleLoading}
+            disabled={isLoading || isGoogleLoading || !credentialsEnabled}
             className="flex h-14 w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-primary px-5 text-base font-bold leading-normal tracking-[0.015em] text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-50"
           >
-            <span className="truncate">{isLoading ? 'Creating...' : 'Sign Up'}</span>
+            <span className="truncate">
+              {isLoading ? 'Creating...' : credentialsEnabled ? 'Sign Up' : 'Account Creation Unavailable'}
+            </span>
           </button>
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            disabled={isLoading || isGoogleLoading}
+            disabled={isLoading || isGoogleLoading || !googleEnabled}
             className="flex h-14 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl border border-slate-200 bg-white px-5 text-base font-semibold leading-normal text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800/50"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">

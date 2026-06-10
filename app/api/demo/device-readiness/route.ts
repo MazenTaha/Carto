@@ -1,10 +1,12 @@
 import { successResponse } from '@/lib/api-response';
+import { getAppRuntimeEnvironment, getSafeDatabaseUrlInfo } from '@/lib/database-url-info';
 import { prisma } from '@/lib/prisma';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
-import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
+import { getSafeDatabaseErrorDetails, logSafeDatabaseError } from '@/lib/prisma-errors';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 const DEMO_ADMIN_EMAIL = 'admin@gmail.com';
 
 function setNoStoreHeaders(response: Response) {
@@ -33,10 +35,22 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const cartCode = searchParams.get('cartCode')?.trim().toUpperCase() || 'CART-001';
   const warnings: string[] = [];
+  const runtimeEnvironment = getAppRuntimeEnvironment();
+  const hasDatabaseUrl = Boolean(process.env.DATABASE_URL?.trim());
 
   const data = {
     backend: 'ok' as const,
-    database: process.env.DATABASE_URL ? ('ok' as 'ok' | 'error' | 'missing') : ('missing' as 'ok' | 'error' | 'missing'),
+    runtime: runtimeEnvironment,
+    database: {
+      hasDatabaseUrl,
+      connection: (hasDatabaseUrl ? 'ok' : 'missing') as 'ok' | 'error' | 'missing',
+      prismaErrorCode: null as string | null,
+      prismaErrorName: null as string | null,
+      prismaErrorMessageSafe: null as string | null,
+      runtime: runtimeEnvironment,
+      nodeEnv: process.env.NODE_ENV || 'development',
+      dbUrlInfo: getSafeDatabaseUrlInfo(),
+    },
     cart: {
       exists: false,
       cartCode,
@@ -58,7 +72,7 @@ export async function GET(request: Request) {
     warnings,
   };
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl) {
     warnings.push('DATABASE_URL is not configured on the server.');
     warnings.push('Until DATABASE_URL is set and redeployed, the Vercel demo backend cannot serve cart/device state.');
 
@@ -142,9 +156,13 @@ export async function GET(request: Request) {
       warnings.push('CART_DEVICE_ALLOWED_ORIGINS is not configured. This is fine for native/server device clients, but Expo Web or browser-based device clients may need it.');
     }
   } catch (error) {
-    const databaseMessage = getPrismaConnectivityMessage(error);
-    data.database = 'error';
-    warnings.push(databaseMessage || 'Database query failed while checking demo readiness.');
+    const safeError = getSafeDatabaseErrorDetails(error);
+    logSafeDatabaseError('demo/device-readiness GET', error);
+    data.database.connection = 'error';
+    data.database.prismaErrorCode = safeError.code;
+    data.database.prismaErrorName = safeError.name;
+    data.database.prismaErrorMessageSafe = safeError.messageSafe;
+    warnings.push(safeError.messageSafe || 'Database query failed while checking demo readiness.');
   }
 
   return setNoStoreHeaders(successResponse(data));

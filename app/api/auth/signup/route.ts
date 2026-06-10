@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
 import { signUpSchema } from '@/lib/validations';
 import { errorResponse, successResponse } from '@/lib/api-response';
+import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,6 +45,11 @@ export async function POST(request: NextRequest) {
 
     if (error?.code === 'P2002') {
       return errorResponse('An account with that email already exists.', 409, 'EMAIL_IN_USE');
+    }
+
+    const databaseMessage = getPrismaConnectivityMessage(error);
+    if (databaseMessage) {
+      return errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
     }
 
     console.error('Signup error:', error);
