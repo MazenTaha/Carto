@@ -7,7 +7,9 @@ import { signUpSchema } from '@/lib/validations';
 import { errorResponse, successResponse } from '@/lib/api-response';
 import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const revalidate = 0;
 
 export async function POST(request: NextRequest) {
   try {

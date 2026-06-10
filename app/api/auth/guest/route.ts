@@ -9,7 +9,9 @@ import {
 import { errorResponse, successResponse } from '@/lib/api-response';
 import { getPrismaConnectivityMessage, logSafeDatabaseError } from '@/lib/prisma-errors';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const revalidate = 0;
 
 export async function POST() {
   try {

@@ -102,7 +102,11 @@ function formatReadinessWarning(code: string) {
 function getCredentialsUnavailableMessage(readiness: DemoAuthReadiness | null) {
   if (!readiness) return 'Credentials sign-in is not available on this deployment yet.';
   if (!readiness.database.hasDatabaseUrl) return 'This deployment is missing DATABASE_URL, so email sign-in cannot work yet.';
-  if (readiness.database.connection === 'error') return 'This deployment cannot reach its database or its schema is not ready yet.';
+  if (readiness.database.connection === 'error') {
+    return readiness.database.prismaErrorMessageSafe
+      ? `Database connection failed: ${readiness.database.prismaErrorMessageSafe}`
+      : 'This deployment cannot reach its database or its schema is not ready yet.';
+  }
   if (!readiness.auth.hasNextAuthUrl) return 'This deployment is missing NEXTAUTH_URL, so auth redirects may fail.';
   if (!readiness.auth.hasAnyAuthSecret) return 'This deployment is missing AUTH_SECRET and NEXTAUTH_SECRET, so auth sessions cannot work yet.';
   return 'Credentials sign-in is not available on this deployment yet.';
@@ -111,7 +115,11 @@ function getCredentialsUnavailableMessage(readiness: DemoAuthReadiness | null) {
 function getGuestUnavailableMessage(readiness: DemoAuthReadiness | null) {
   if (!readiness) return 'Guest mode is not available on this deployment yet.';
   if (!readiness.database.hasDatabaseUrl) return 'This deployment is missing DATABASE_URL, so guest mode cannot work yet.';
-  if (readiness.database.connection === 'error') return 'This deployment cannot reach its database or its schema is not ready yet.';
+  if (readiness.database.connection === 'error') {
+    return readiness.database.prismaErrorMessageSafe
+      ? `Database connection failed: ${readiness.database.prismaErrorMessageSafe}`
+      : 'This deployment cannot reach its database or its schema is not ready yet.';
+  }
   return 'Guest mode is not available on this deployment yet.';
 }
 
@@ -275,8 +283,18 @@ function SignInContent() {
 
   const handleAdminQuickAccess = async (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+
+    if (authReadiness && authReadiness.database.connection !== 'ok') {
+      setError(
+        authReadiness.database.prismaErrorMessageSafe
+          ? `Database connection failed: ${authReadiness.database.prismaErrorMessageSafe}`
+          : 'Database connection failed. Admin account cannot be accessed.'
+      );
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const result = await signIn('credentials', {
@@ -287,11 +305,19 @@ function SignInContent() {
       });
 
       if (result?.error) {
-        setError(
-          result.error === 'CredentialsSignin'
-            ? 'Admin account not found or password incorrect. Try restarting the dev server.'
-            : readAuthErrorMessage(result.error)
-        );
+        if (authReadiness && authReadiness.database.connection !== 'ok') {
+          setError(
+            authReadiness.database.prismaErrorMessageSafe
+              ? `Database connection failed: ${authReadiness.database.prismaErrorMessageSafe}`
+              : 'Database connection failed.'
+          );
+        } else {
+          setError(
+            result.error === 'CredentialsSignin'
+              ? 'Admin account not found or password incorrect. Try restarting the dev server.'
+              : readAuthErrorMessage(result.error)
+          );
+        }
       } else {
         router.push('/admin');
       }

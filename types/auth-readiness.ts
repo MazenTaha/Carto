@@ -20,6 +20,19 @@ export type DemoAuthReadiness = {
     dbUrlInfo: SafeDatabaseUrlInfo;
     userTableReachable: boolean;
     guestSessionTableReachable: boolean;
+    rawConnectionOk?: boolean;
+    currentDatabase?: string | null;
+    currentSchema?: string | null;
+    tablesExist?: {
+      users: boolean;
+      guest_sessions: boolean;
+      carts: boolean;
+    };
+    prismaModelChecks?: {
+      userModelOk: boolean;
+      guestSessionModelOk: boolean;
+      cartModelOk: boolean;
+    };
   };
   auth: {
     hasNextAuthUrl: boolean;

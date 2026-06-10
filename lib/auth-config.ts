@@ -18,7 +18,7 @@ const canUseSeededAdmin = process.env.NODE_ENV !== 'production';
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 function isSeededAdminCredentials(email: string, password: string) {
-  return canUseSeededAdmin && email === SEEDED_ADMIN_EMAIL && password === SEEDED_ADMIN_PASSWORD;
+  return canUseSeededAdmin && email.toLowerCase() === SEEDED_ADMIN_EMAIL && password === SEEDED_ADMIN_PASSWORD;
 }
 
 function logCredentialsFailure(reason: string) {
@@ -60,13 +60,14 @@ export const authOptions: NextAuthOptions = {
 
         try {
           const { prisma } = await import('./prisma');
+          const email = parsed.data.email.toLowerCase();
           let user = await prisma.user.findUnique({
-            where: { email: parsed.data.email },
+            where: { email },
           });
 
           // Keep the local seeded admin login working even after DB resets or
           // partial seeds. This avoids a confusing "invalid password" loop in dev.
-          if (!user && isSeededAdminCredentials(parsed.data.email, parsed.data.password)) {
+          if (!user && isSeededAdminCredentials(email, parsed.data.password)) {
             const password = await hashPassword(SEEDED_ADMIN_PASSWORD);
             user = await prisma.user.create({
               data: {
@@ -78,7 +79,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (!user) {
-            logCredentialsFailure(`user_not_found:${parsed.data.email}`);
+            logCredentialsFailure(`user_not_found:${email}`);
             throw new Error('Invalid email or password');
           }
 
@@ -89,7 +90,7 @@ export const authOptions: NextAuthOptions = {
 
           let isValid = await verifyPassword(parsed.data.password, user.password);
 
-          if (!isValid && isSeededAdminCredentials(parsed.data.email, parsed.data.password)) {
+          if (!isValid && isSeededAdminCredentials(email, parsed.data.password)) {
             const password = await hashPassword(SEEDED_ADMIN_PASSWORD);
             user = await prisma.user.update({
               where: { id: user.id },

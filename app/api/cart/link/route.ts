@@ -5,7 +5,9 @@ import { CartPairingService } from '@/lib/services/cart-pairing.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { getPrismaConnectivityMessage, logSafeDatabaseError } from '@/lib/prisma-errors';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const revalidate = 0;
 
 export async function POST(request: NextRequest) {
   try {

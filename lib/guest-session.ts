@@ -14,9 +14,10 @@ export function getGuestSessionExpiresAt() {
 }
 
 export function setGuestSessionCookie(response: NextResponse, guestSessionId: string) {
+  const isSecure = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
   response.cookies.set(GUEST_SESSION_COOKIE, guestSessionId, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecure,
     sameSite: 'lax',
     path: '/',
     maxAge: GUEST_SESSION_MAX_AGE,
@@ -24,9 +25,10 @@ export function setGuestSessionCookie(response: NextResponse, guestSessionId: st
 }
 
 export function clearGuestSessionCookie(response: NextResponse) {
+  const isSecure = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
   response.cookies.set(GUEST_SESSION_COOKIE, '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecure,
     sameSite: 'lax',
     path: '/',
     maxAge: 0,
@@ -34,10 +36,11 @@ export function clearGuestSessionCookie(response: NextResponse) {
 }
 
 export function clearLegacyGuestCookies(response: NextResponse) {
+  const isSecure = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
   for (const name of ['guest_mode', 'carto_guest_id', 'carto_guest_key']) {
     response.cookies.set(name, '', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure,
       sameSite: 'lax',
       path: '/',
       maxAge: 0,

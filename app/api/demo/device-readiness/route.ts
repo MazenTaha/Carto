@@ -7,6 +7,7 @@ import { getSafeDatabaseErrorDetails, logSafeDatabaseError } from '@/lib/prisma-
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const revalidate = 0;
 const DEMO_ADMIN_EMAIL = 'admin@gmail.com';
 
 function setNoStoreHeaders(response: Response) {

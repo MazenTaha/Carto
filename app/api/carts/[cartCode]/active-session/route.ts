@@ -9,6 +9,7 @@ import { applyDeviceApiHeaders, handleDeviceOptions } from '@/lib/device-api-htt
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const revalidate = 0;
 
 export function OPTIONS(request: NextRequest) {
   return handleDeviceOptions(request, ['GET']);

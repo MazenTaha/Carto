@@ -8,6 +8,7 @@ import type { DemoAuthReadiness } from '@/types/auth-readiness';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const revalidate = 0;
 
 const DEMO_ADMIN_EMAIL = 'admin@gmail.com';
 
@@ -42,10 +43,12 @@ function hasConfiguredFirebaseAdmin() {
 function normalizeOrigin(value: string | null | undefined) {
   if (!value) return null;
 
+  let cleaned = value.trim().toLowerCase().replace(/\/+$/, '');
+
   try {
-    return new URL(value).origin;
+    return new URL(cleaned).origin.replace(/\/+$/, '');
   } catch {
-    return null;
+    return cleaned;
   }
 }
 
@@ -127,6 +130,7 @@ export async function GET(request: Request) {
   const nodeEnv = process.env.NODE_ENV || 'development';
   const deploymentOrigin = new URL(request.url).origin;
   const configuredNextAuthOrigin = normalizeOrigin(process.env.NEXTAUTH_URL);
+  const normalizedDeploymentOrigin = normalizeOrigin(deploymentOrigin);
   const hasNextAuthSecret = Boolean(process.env.NEXTAUTH_SECRET?.trim());
   const hasAuthSecret = Boolean(process.env.AUTH_SECRET?.trim());
   const hasAnyAuthSecret = hasNextAuthSecret || hasAuthSecret;
@@ -149,10 +153,23 @@ export async function GET(request: Request) {
       dbUrlInfo: getSafeDatabaseUrlInfo(),
       userTableReachable: false,
       guestSessionTableReachable: false,
+      rawConnectionOk: false,
+      currentDatabase: null,
+      currentSchema: null,
+      tablesExist: {
+        users: false,
+        guest_sessions: false,
+        carts: false,
+      },
+      prismaModelChecks: {
+        userModelOk: false,
+        guestSessionModelOk: false,
+        cartModelOk: false,
+      },
     },
     auth: {
       hasNextAuthUrl: Boolean(configuredNextAuthOrigin),
-      nextAuthUrlMatchesDeployment: configuredNextAuthOrigin === deploymentOrigin,
+      nextAuthUrlMatchesDeployment: configuredNextAuthOrigin === normalizedDeploymentOrigin,
       hasNextAuthSecret,
       hasAuthSecret,
       hasAnyAuthSecret,
@@ -188,24 +205,74 @@ export async function GET(request: Request) {
   };
 
   if (hasDatabaseUrl) {
+    // 1. Direct Raw Connection check
     try {
-      const adminUser = await prisma.user.findUnique({
-        where: { email: DEMO_ADMIN_EMAIL },
-        select: {
-          id: true,
-          password: true,
-        },
-      });
-
-      data.database.userTableReachable = true;
-      data.auth.adminUserExists = Boolean(adminUser);
-      data.auth.adminHasPasswordHash = Boolean(adminUser?.password);
+      const rawRes = await prisma.$queryRaw<Array<{ ok: number }>>`SELECT 1 as ok`;
+      if (rawRes && rawRes[0]?.ok === 1) {
+        data.database.rawConnectionOk = true;
+      }
     } catch (error) {
-      logSafeDatabaseError('demo/auth-readiness user-check', error);
+      logSafeDatabaseError('demo/auth-readiness raw-connection-check', error);
       applyDatabaseError(data, error, data.warnings);
     }
 
     if (data.database.connection !== 'error') {
+      // 2. Current DB identity
+      try {
+        const identity = await prisma.$queryRaw<Array<{ current_database: string; current_schema: string }>>`
+          SELECT current_database() as current_database, current_schema() as current_schema
+        `;
+        if (identity && identity[0]) {
+          data.database.currentDatabase = identity[0].current_database;
+          data.database.currentSchema = identity[0].current_schema;
+        }
+      } catch (error) {
+        logSafeDatabaseError('demo/auth-readiness db-identity', error);
+      }
+
+      // 3. Table existence check
+      try {
+        const tables = await prisma.$queryRaw<Array<{ table_name: string }>>`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = current_schema() 
+            AND table_name IN ('users', 'guest_sessions', 'carts')
+        `;
+        const existingNames = tables.map((t) => t.table_name);
+        data.database.tablesExist = {
+          users: existingNames.includes('users'),
+          guest_sessions: existingNames.includes('guest_sessions'),
+          carts: existingNames.includes('carts'),
+        };
+      } catch (error) {
+        logSafeDatabaseError('demo/auth-readiness table-existence-check', error);
+      }
+
+      // 4. Prisma model checks
+      // User model
+      try {
+        const adminUser = await prisma.user.findUnique({
+          where: { email: DEMO_ADMIN_EMAIL },
+          select: {
+            id: true,
+            password: true,
+          },
+        });
+
+        data.database.userTableReachable = true;
+        if (data.database.prismaModelChecks) {
+          data.database.prismaModelChecks.userModelOk = true;
+        }
+        data.auth.adminUserExists = Boolean(adminUser);
+        data.auth.adminHasPasswordHash = Boolean(adminUser?.password);
+      } catch (error) {
+        logSafeDatabaseError('demo/auth-readiness user-model-check', error);
+        if (data.database.prismaModelChecks) {
+          data.database.prismaModelChecks.userModelOk = false;
+        }
+      }
+
+      // GuestSession model
       try {
         await prisma.guestSession.findFirst({
           select: { id: true },
@@ -213,8 +280,15 @@ export async function GET(request: Request) {
 
         data.database.guestSessionTableReachable = true;
         data.guest.guestSessionModelReachable = true;
+        if (data.database.prismaModelChecks) {
+          data.database.prismaModelChecks.guestSessionModelOk = true;
+        }
       } catch (error) {
         const safeError = getSafeDatabaseErrorDetails(error);
+
+        if (data.database.prismaModelChecks) {
+          data.database.prismaModelChecks.guestSessionModelOk = false;
+        }
 
         if (safeError.connectivityCode === 'DATABASE_SCHEMA_NOT_READY') {
           data.database.prismaErrorCode = safeError.code;
@@ -222,8 +296,23 @@ export async function GET(request: Request) {
           data.database.prismaErrorMessageSafe = safeError.messageSafe;
           data.warnings.push('GUEST_SESSION_TABLE_MISSING');
         } else {
-          logSafeDatabaseError('demo/auth-readiness guest-session-check', error);
+          logSafeDatabaseError('demo/auth-readiness guest-session-model-check', error);
           applyDatabaseError(data, error, data.warnings);
+        }
+      }
+
+      // Cart model
+      try {
+        await prisma.cart.findFirst({
+          select: { id: true },
+        });
+        if (data.database.prismaModelChecks) {
+          data.database.prismaModelChecks.cartModelOk = true;
+        }
+      } catch (error) {
+        logSafeDatabaseError('demo/auth-readiness cart-model-check', error);
+        if (data.database.prismaModelChecks) {
+          data.database.prismaModelChecks.cartModelOk = false;
         }
       }
     }
