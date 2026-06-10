@@ -1,13 +1,11 @@
-const { config } = require('dotenv');
-const { getSafeDatabaseUrlInfo } = require('../lib/database-url-info');
+import { config as loadEnv } from 'dotenv';
+import { getSafeDatabaseUrlInfo } from '../lib/database-url-info';
 
-config({ path: '.env', quiet: true });
+process.env.DOTENV_CONFIG_QUIET = 'true';
+loadEnv({ path: '.env' });
 
-const databaseUrl = process.env.DATABASE_URL?.trim();
+const info = getSafeDatabaseUrlInfo(process.env.DATABASE_URL);
 
-if (!databaseUrl) {
-  console.error('DATABASE_URL is missing from .env');
-  process.exit(1);
-}
+console.log(JSON.stringify(info, null, 2));
 
-console.log(JSON.stringify(getSafeDatabaseUrlInfo(databaseUrl), null, 2));
+export {};

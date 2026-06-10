@@ -1,6 +1,7 @@
-
 import { PrismaClient } from '@prisma/client';
-require('dotenv').config();
+import { config as loadEnv } from 'dotenv';
+
+loadEnv();
 
 const prisma = new PrismaClient();
 
@@ -23,3 +24,5 @@ async function main() {
 }
 
 main();
+
+export {};

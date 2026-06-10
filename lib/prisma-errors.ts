@@ -35,7 +35,11 @@ function getErrorCode(error: unknown): string | null {
 function sanitizeRawMessage(message: string) {
   const singleLine = message.replace(/\s+/g, ' ').trim();
   const redactedUrl = singleLine.replace(/postgres(?:ql)?:\/\/[^\s'"`]+/gi, '[redacted-database-url]');
-  return redactedUrl.length > 180 ? `${redactedUrl.slice(0, 177)}...` : redactedUrl;
+  const redactedUser = redactedUrl
+    .replace(/\b(for|user)\s+[`'"]?([a-z0-9._-]+)[`'"]?/gi, '$1 [redacted-user]')
+    .replace(/\b(role|username)\s+[`'"]?([a-z0-9._-]+)[`'"]?/gi, '$1 [redacted-user]');
+
+  return redactedUser.length > 180 ? `${redactedUser.slice(0, 177)}...` : redactedUser;
 }
 
 export function getPrismaConnectivityCode(error: unknown): PrismaConnectivityCode | null {
@@ -112,6 +116,12 @@ export function getSafeDatabaseErrorDetails(error: unknown): SafeDatabaseErrorDe
       break;
     case 'P1003':
       messageSafe = 'The configured database does not exist.';
+      break;
+    case 'P1011':
+      messageSafe = 'Database TLS or SSL negotiation failed.';
+      break;
+    case 'P1017':
+      messageSafe = 'Database connection was closed by the server.';
       break;
     case 'P1010':
       messageSafe = 'Database access was denied for this connection.';

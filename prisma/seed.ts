@@ -1,6 +1,8 @@
 import { PrismaClient, SessionStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import 'dotenv/config';
+import { config as loadEnv } from 'dotenv';
+
+loadEnv({ path: '.env' });
 
 const prisma = new PrismaClient()
 

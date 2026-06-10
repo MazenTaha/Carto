@@ -7,6 +7,8 @@ import { signUpSchema } from '@/lib/validations';
 import { errorResponse, successResponse } from '@/lib/api-response';
 import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
 
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

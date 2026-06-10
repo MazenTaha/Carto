@@ -16,11 +16,11 @@
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:fingerprint": "ts-node scripts/db-url-fingerprint.ts",
+    "db:fingerprint": "tsx scripts/db-url-fingerprint.ts",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "db:seed:admins": "ts-node --esm prisma/seed-admins.ts",
+    "db:seed:admins": "tsx prisma/seed-admins.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -63,9 +63,10 @@
     "prisma": "^5.19.0",
     "tailwindcss": "^3.4.4",
     "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
     "typescript": "^5.5.0"
   },
   "prisma": {
-    "seed": "ts-node --esm prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts"
   }
 }
