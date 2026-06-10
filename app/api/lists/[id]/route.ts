@@ -8,6 +8,8 @@ import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { ACTIVE_LIST_LOCK_MESSAGE, isListActiveOnCart } from '@/lib/list-session-lock';
 import { errorResponse, successResponse } from '@/lib/api-response';
 
+export const runtime = "nodejs";
+
 // GET /api/lists/[id] - Get a specific list
 export async function GET(
   request: NextRequest,

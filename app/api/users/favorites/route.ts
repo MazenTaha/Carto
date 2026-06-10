@@ -6,6 +6,8 @@ import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 import { addFavoriteSchema } from '@/lib/validations';
 
+export const runtime = "nodejs";
+
 // GET /api/users/favorites - List user's favorite products
 export async function GET(request: NextRequest) {
     try {

@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+
+export const runtime = "nodejs";
 import { prisma } from '@/lib/prisma';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { successResponse, errorResponse } from '@/lib/api-response';

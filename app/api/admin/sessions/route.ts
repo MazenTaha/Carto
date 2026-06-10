@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+
+export const runtime = "nodejs";
 import { guardAdminApi } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';

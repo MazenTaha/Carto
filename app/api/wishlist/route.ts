@@ -6,6 +6,8 @@ import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 import { createWishlistItemSchema } from '@/lib/validations';
 
+export const runtime = "nodejs";
+
 // GET /api/wishlist - Get user's wishlist with items
 export async function GET(request: NextRequest) {
     try {

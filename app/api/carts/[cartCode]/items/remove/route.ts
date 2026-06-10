@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+
+export const runtime = "nodejs";
 import { z } from 'zod';
 import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { CartDeviceService } from '@/lib/services/cart-device.service';

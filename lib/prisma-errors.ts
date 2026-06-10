@@ -38,8 +38,15 @@ function sanitizeRawMessage(message: string) {
   const redactedUser = redactedUrl
     .replace(/\b(for|user)\s+[`'"]?([a-z0-9._-]+)[`'"]?/gi, '$1 [redacted-user]')
     .replace(/\b(role|username)\s+[`'"]?([a-z0-9._-]+)[`'"]?/gi, '$1 [redacted-user]');
+  const redactedSecrets = redactedUser
+    .replace(/\b(password|secret|token|key|deviceSecret)\b\s*[:=]\s*[^,\s)]+/gi, '$1=[redacted]')
+    .replace(/\b(auth|credential)s?\b\s*[:=]\s*[^,\s)]+/gi, '$1=[redacted]');
 
-  return redactedUser.length > 180 ? `${redactedUser.slice(0, 177)}...` : redactedUser;
+  return redactedSecrets.length > 180 ? `${redactedSecrets.slice(0, 177)}...` : redactedSecrets;
+}
+
+function looksDatabaseRelated(message: string) {
+  return /database|postgres|prisma|neon|ssl|tls|connection|schema|relation|table/i.test(message);
 }
 
 export function getPrismaConnectivityCode(error: unknown): PrismaConnectivityCode | null {
@@ -138,8 +145,10 @@ export function getSafeDatabaseErrorDetails(error: unknown): SafeDatabaseErrorDe
       } else if (connectivityCode === 'DATABASE_SCHEMA_NOT_READY') {
         messageSafe = 'A required database table does not exist on the target database.';
       } else if (connectivityCode === 'DATABASE_CONNECTION_FAILED') {
-        messageSafe = 'Database connection failed.';
+        messageSafe = sanitizeRawMessage(message) || 'Database connection failed.';
       } else if (error.name.startsWith('Prisma')) {
+        messageSafe = sanitizeRawMessage(message) || 'Prisma request failed.';
+      } else if (looksDatabaseRelated(message)) {
         messageSafe = sanitizeRawMessage(message) || 'Prisma request failed.';
       }
   }

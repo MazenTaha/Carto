@@ -6,6 +6,8 @@ import { createListSchema } from '@/lib/validations';
 import { purgeExpiredShoppingLists } from '@/lib/list-retention';
 import { ownerCreateData, ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 
+export const runtime = "nodejs";
+
 // GET /api/lists - Get all lists for the user
 export async function GET(request: NextRequest) {
   try {

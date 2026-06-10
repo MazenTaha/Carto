@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+
+export const runtime = "nodejs";
 import { prisma } from '@/lib/prisma';
 import { verifyFirebaseIdToken } from '@/lib/firebase/admin';
 import { normalizeEgyptianMobileNumber } from '@/lib/phone';

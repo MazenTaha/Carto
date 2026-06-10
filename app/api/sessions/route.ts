@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 
+export const runtime = "nodejs";
+
 export const dynamic = 'force-dynamic';
 
 // GET /api/sessions - Get all user sessions

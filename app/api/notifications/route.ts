@@ -6,6 +6,8 @@ import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 import { markNotificationsReadSchema } from '@/lib/validations';
 
+export const runtime = "nodejs";
+
 export const dynamic = 'force-dynamic';
 
 // GET /api/notifications - List user's notifications

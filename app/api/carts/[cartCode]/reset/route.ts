@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+
+export const runtime = "nodejs";
 import { guardAdminApi } from '@/lib/admin-auth';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { CartSessionService } from '@/lib/services/cart-session.service';

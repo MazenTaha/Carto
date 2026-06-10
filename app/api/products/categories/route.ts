@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+
+export const runtime = "nodejs";
 import { prisma } from '@/lib/prisma';
 import { LOCAL_PRODUCTS } from '@/lib/product-dataset';
 import { ProductCategorySummary } from '@/types';

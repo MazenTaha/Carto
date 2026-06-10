@@ -78,7 +78,7 @@ function buildWarnings(data: DemoAuthReadiness) {
     warnings.push('ADMIN_EMAIL_NOT_ALLOWED');
   }
 
-  if (!data.auth.adminUserExists) {
+  if (data.database.connection === 'ok' && data.database.userTableReachable && !data.auth.adminUserExists) {
     warnings.push('ADMIN_USER_MISSING_IN_PRODUCTION_DB');
   }
 

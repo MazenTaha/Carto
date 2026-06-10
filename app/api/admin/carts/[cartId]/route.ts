@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+
+export const runtime = "nodejs";
 import QRCode from 'qrcode';
 import { z } from 'zod';
 import { guardAdminApi } from '@/lib/admin-auth';

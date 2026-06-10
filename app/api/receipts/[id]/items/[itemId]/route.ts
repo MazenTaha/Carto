@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 
+export const runtime = "nodejs";
+
 const updateItemSchema = z.object({
   quantity: z.number().int().positive().optional(),
 });

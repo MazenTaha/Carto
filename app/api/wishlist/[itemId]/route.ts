@@ -5,6 +5,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 
+export const runtime = "nodejs";
+
 // DELETE /api/wishlist/[itemId] - Remove an item from the wishlist
 export async function DELETE(
     request: NextRequest,

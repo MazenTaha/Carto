@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { ReceiptItem } from '@/types';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 
+export const runtime = "nodejs";
+
 const addItemSchema = z.object({
   name: z.string().min(1),
   price: z.number().positive(),

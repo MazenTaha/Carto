@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+
+export const runtime = "nodejs";
 import { prisma } from '@/lib/prisma';
 import { createPaymentSchema } from '@/lib/validations';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';

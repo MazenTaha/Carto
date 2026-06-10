@@ -7,6 +7,8 @@ import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { errorResponse, successResponse } from '@/lib/api-response';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
 
+export const runtime = "nodejs";
+
 export const dynamic = 'force-dynamic';
 
 // GET /api/sessions/active - Get user's active session

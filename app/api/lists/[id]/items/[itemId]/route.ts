@@ -7,6 +7,8 @@ import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { ACTIVE_LIST_LOCK_MESSAGE, isListActiveOnCart } from '@/lib/list-session-lock';
 import { errorResponse, successResponse } from '@/lib/api-response';
 
+export const runtime = "nodejs";
+
 // PUT /api/lists/[id]/items/[itemId] - Update an item
 export async function PUT(
   request: NextRequest,

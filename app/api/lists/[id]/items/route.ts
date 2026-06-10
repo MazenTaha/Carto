@@ -8,6 +8,8 @@ import { ACTIVE_LIST_LOCK_MESSAGE, isListActiveOnCart } from '@/lib/list-session
 import { errorResponse, successResponse } from '@/lib/api-response';
 import { formatListItemName, normalizeListItemName } from '@/lib/list-items';
 
+export const runtime = "nodejs";
+
 // GET /api/lists/[id]/items - Get all items in a list
 export async function GET(
   request: NextRequest,

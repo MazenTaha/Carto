@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+
+export const runtime = "nodejs";
 import { requireUserOrGuest } from '@/lib/guest-session';
 import { CartSessionService } from '@/lib/services/cart-session.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
