@@ -114,7 +114,10 @@ export const authOptions: NextAuthOptions = {
           const databaseMessage = getPrismaConnectivityMessage(error);
           if (databaseMessage) {
             logCredentialsFailure('database_error');
-            throw new Error(databaseMessage);
+            if (isDevelopment) {
+              console.warn('[auth] Credentials login database issue:', databaseMessage);
+            }
+            throw new Error('Invalid email or password');
           }
 
           if (isDevelopment && error instanceof Error && error.message !== 'Invalid email or password') {

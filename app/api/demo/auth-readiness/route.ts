@@ -25,6 +25,7 @@ export async function GET() {
   const data = {
     database: process.env.DATABASE_URL ? ('ok' as 'ok' | 'error' | 'missing') : ('missing' as 'ok' | 'error' | 'missing'),
     auth: {
+      hasDatabaseUrl: Boolean(process.env.DATABASE_URL?.trim()),
       hasNextAuthUrl: Boolean(process.env.NEXTAUTH_URL?.trim()),
       hasAuthSecret: hasConfiguredAuthSecret(),
       userTableReachable: false,
