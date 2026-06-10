@@ -1,10 +1,10 @@
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
-require('dotenv').config();
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import 'dotenv/config';
 
 const prisma = new PrismaClient();
 
-function getAdminEmails() {
+function getAdminEmails(): string[] {
   const raw = process.env.ADMIN_EMAILS ?? '';
   return raw
     .split(',')
@@ -12,11 +12,11 @@ function getAdminEmails() {
     .filter(Boolean);
 }
 
-function getAdminPassword() {
+function getAdminPassword(): string {
   return process.env.ADMIN_SEED_PASSWORD?.trim() || '';
 }
 
-function buildAdminName(email) {
+function buildAdminName(email: string): string {
   const localPart = email.split('@')[0] || 'Admin';
   return localPart
     .split(/[._-]+/)

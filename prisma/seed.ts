@@ -1,6 +1,6 @@
-const { PrismaClient } = require('@prisma/client')
-const bcrypt = require('bcryptjs')
-require('dotenv').config()
+import { PrismaClient, SessionStatus } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import 'dotenv/config';
 
 const prisma = new PrismaClient()
 
@@ -9,7 +9,7 @@ const ADMIN_PASSWORD = 'Admin_1'
 const DEMO_CART_CODE = 'CART-001'
 const DEMO_DEVICE_SECRET = 'dev-device-secret'
 const DEMO_STORE_ID = 'dev-carto-store'
-const ACTIVE_SESSION_STATUSES = ['ACTIVE', 'DISCONNECTED']
+const ACTIVE_SESSION_STATUSES: SessionStatus[] = [SessionStatus.ACTIVE, SessionStatus.DISCONNECTED]
 
 // Curated product dataset - 300+ generic grocery items
 const products = [

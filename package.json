@@ -19,7 +19,7 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "db:seed:admins": "node prisma/seed-admins.ts",
+    "db:seed:admins": "ts-node --esm prisma/seed-admins.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -65,6 +65,6 @@
     "typescript": "^5.5.0"
   },
   "prisma": {
-    "seed": "node prisma/seed.ts"
+    "seed": "ts-node --esm prisma/seed.ts"
   }
 }
