@@ -63,6 +63,29 @@ function StartSessionContent() {
   const linkInFlightRef = useRef(false);
 
   useEffect(() => {
+    if (!scannedCart) {
+      return;
+    }
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverscroll = document.body.style.overscrollBehavior;
+    const previousHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+    document.documentElement.style.overscrollBehavior = 'none';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overscrollBehavior = previousBodyOverscroll;
+      document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
+    };
+  }, [scannedCart]);
+
+  useEffect(() => {
     if (!listId) return;
     const currentListId = listId;
 
@@ -197,7 +220,7 @@ function StartSessionContent() {
   const listItemCount = selectedList?.items?.length ?? 0;
 
   return (
-    <PageContainer>
+    <PageContainer className="min-h-dvh overflow-x-hidden">
       <Header title="Connect to Cart" showBack />
 
       <div className="flex flex-1 flex-col items-center gap-6 overflow-y-auto px-4 pb-24 pt-6 sm:px-6">
@@ -267,10 +290,10 @@ function StartSessionContent() {
       </div>
 
       {scannedCart && (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-[100] flex items-end justify-center overflow-hidden bg-slate-950/75 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-4 backdrop-blur-sm sm:px-4 sm:pb-4">
           <button
             type="button"
-            className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm"
+            className="absolute inset-0"
             aria-label="Close confirmation"
             onClick={() => {
               if (!isLoading) {
@@ -279,52 +302,63 @@ function StartSessionContent() {
             }}
             disabled={isLoading}
           />
-          <div className="absolute inset-x-4 bottom-5 mx-auto w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-950">
-            <Badge className="bg-primary/10 text-primary ring-primary/10">Cart detected</Badge>
-            <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">
-              Send this list to {scannedCart.cartCode}?
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-              Confirm to start the live cart session and push <span className="font-bold text-slate-900 dark:text-slate-100">{selectedList?.name || 'your list'}</span> to the cart display.
-            </p>
+          <div className="relative z-[101] w-full min-w-0 max-w-md overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
+            <div className="max-h-[calc(100dvh-1rem)] overflow-y-auto overflow-x-hidden">
+              <div className="p-5 pb-6 sm:p-6">
+                <Badge className="bg-primary/10 text-primary ring-primary/10">Cart detected</Badge>
+                <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">
+                  Send this list to {scannedCart.cartCode}?
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                  Confirm to start the live cart session and push <span className="font-bold text-slate-900 dark:text-slate-100">{selectedList?.name || 'your list'}</span> to the cart display.
+                </p>
 
-            <div className="mt-5 grid gap-3 rounded-3xl bg-slate-50 p-4 dark:bg-slate-900">
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-slate-500">List</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{selectedList?.name || 'Selected list'}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-slate-500">Cart code</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{scannedCart.cartCode}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-slate-500">Items</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{listItemCount}</span>
-              </div>
-            </div>
+                <div className="mt-5 grid gap-3 rounded-3xl bg-slate-50 p-4 dark:bg-slate-900">
+                  <div className="flex min-w-0 items-center justify-between gap-3 text-sm">
+                    <span className="shrink-0 text-slate-500">List</span>
+                    <span className="min-w-0 truncate text-right font-bold text-slate-900 dark:text-slate-100">
+                      {selectedList?.name || 'Selected list'}
+                    </span>
+                  </div>
+                  <div className="flex min-w-0 items-center justify-between gap-3 text-sm">
+                    <span className="shrink-0 text-slate-500">Cart code</span>
+                    <span className="min-w-0 truncate text-right font-bold text-slate-900 dark:text-slate-100">
+                      {scannedCart.cartCode}
+                    </span>
+                  </div>
+                  <div className="flex min-w-0 items-center justify-between gap-3 text-sm">
+                    <span className="shrink-0 text-slate-500">Items</span>
+                    <span className="min-w-0 truncate text-right font-bold text-slate-900 dark:text-slate-100">
+                      {listItemCount}
+                    </span>
+                  </div>
+                </div>
 
-            {error && (
-              <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-300">
-                {error}
-              </p>
-            )}
+                {error && (
+                  <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-300">
+                    {error}
+                  </p>
+                )}
+              </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={resetScanner}
-                disabled={isLoading}
-                className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-              >
-                Scan again
-              </button>
-              <Button
-                onClick={() => void linkCart()}
-                disabled={isLoading || isListLoading}
-                className="h-12"
-              >
-                {isLoading ? 'Sending...' : 'Send list'}
-              </Button>
+              <div className="sticky bottom-0 grid grid-cols-1 gap-3 border-t border-slate-200 bg-white/95 px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 backdrop-blur sm:px-6 min-[400px]:grid-cols-2 dark:border-slate-800 dark:bg-slate-950/95">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={resetScanner}
+                  disabled={isLoading}
+                  className="h-12 rounded-2xl"
+                >
+                  Scan again
+                </Button>
+                <Button
+                  onClick={() => void linkCart()}
+                  disabled={isLoading || isListLoading}
+                  className="h-12 rounded-2xl"
+                >
+                  {isLoading ? 'Sending...' : 'Send list'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

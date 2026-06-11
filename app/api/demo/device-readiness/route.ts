@@ -42,6 +42,10 @@ export async function GET(request: Request) {
   const data = {
     backend: 'ok' as const,
     runtime: runtimeEnvironment,
+    cartCode,
+    cartExists: false,
+    hasDeviceSecret: false,
+    cartStatus: null as string | null,
     database: {
       hasDatabaseUrl,
       connection: (hasDatabaseUrl ? 'ok' : 'missing') as 'ok' | 'error' | 'missing',
@@ -125,6 +129,9 @@ export async function GET(request: Request) {
       data.cart.exists = true;
       data.cart.status = activeSession ? 'IN_USE' : cart.status;
       data.cart.hasDeviceSecret = Boolean(cart.deviceSecret);
+      data.cartExists = true;
+      data.hasDeviceSecret = Boolean(cart.deviceSecret);
+      data.cartStatus = activeSession ? 'IN_USE' : cart.status;
       data.activeSessionExists = Boolean(activeSession);
 
       if (!cart.deviceSecret) {
