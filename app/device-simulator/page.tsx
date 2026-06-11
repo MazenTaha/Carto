@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { RefreshCw, Receipt, ShoppingCart, Wifi, WifiOff } from 'lucide-react';
 import QRCode from 'react-qr-code';
@@ -86,6 +86,12 @@ type QrResponse = {
   expiresAt: string;
 };
 
+type DisconnectResponse = {
+  cartCode: string;
+  cartStatus: 'AVAILABLE';
+  activeSessionReleased: boolean;
+};
+
 function getApiErrorMessage(data: any, fallback: string) {
   if (data?.error?.message) return data.error.message;
   if (typeof data?.error === 'string') return data.error;
@@ -115,6 +121,13 @@ export default function DeviceSimulatorPage() {
   const [hydrated, setHydrated] = useState(false);
   const [lastPollAt, setLastPollAt] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [eventLogs, setEventLogs] = useState<string[]>([]);
+
+  const appendLog = useCallback((message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setEventLogs((current) => [`[${timestamp}] ${message}`, ...current].slice(0, 10));
+  }, []);
 
   useEffect(() => {
     try {
@@ -157,7 +170,7 @@ export default function DeviceSimulatorPage() {
     isLoading: isDeviceLoading,
     mutate: refreshDevice,
   } = useSWR<DeviceResponse>(activeSessionKey, jsonFetcher, {
-    refreshInterval: 2000,
+    refreshInterval: isConnected && !isDisconnecting ? 2000 : 0,
     dedupingInterval: 750,
     revalidateOnFocus: true,
     revalidateIfStale: true,
@@ -200,12 +213,69 @@ export default function DeviceSimulatorPage() {
     event.preventDefault();
     if (!trimmedCartCode || !trimmedDeviceSecret) return;
     setIsConnected(true);
+    appendLog(`Connected simulator to cart: ${trimmedCartCode}`);
   };
 
-  const handleDisconnect = () => {
-    setIsConnected(false);
-    setLastPollAt(null);
-  };
+  const handleDisconnect = useCallback(async () => {
+    if (!isConnected || !trimmedCartCode || !trimmedDeviceSecret || isDisconnecting) return;
+
+    setIsDisconnecting(true);
+    appendLog(`Disconnecting cart: ${trimmedCartCode}`);
+
+    try {
+      const response = await fetch(`/api/carts/${encodeURIComponent(trimmedCartCode)}/disconnect`, {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {
+          Authorization: `Bearer ${trimmedDeviceSecret}`,
+        },
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(getApiErrorMessage(data, 'Could not disconnect this cart.'));
+      }
+
+      const disconnectData = data.data as DisconnectResponse;
+      const waitingState: DeviceResponse = {
+        status: 'waiting',
+        active: false,
+        cartCode: disconnectData.cartCode,
+        cartStatus: disconnectData.cartStatus,
+        cart: {
+          cartCode: disconnectData.cartCode,
+          status: disconnectData.cartStatus,
+        },
+      };
+
+      const freshQr = await jsonFetcher([
+        `/api/carts/${encodeURIComponent(trimmedCartCode)}/qrcode`,
+        trimmedDeviceSecret,
+      ]) as QrResponse;
+
+      await refreshDevice(waitingState, { revalidate: false });
+      await refreshQr(freshQr, { revalidate: false });
+      setLastPollAt(new Date().toISOString());
+      appendLog(`Disconnected cart: ${disconnectData.cartCode}`);
+      appendLog('Cart released and QR refreshed');
+    } catch (error: any) {
+      appendLog(`Disconnect failed: ${error.message || 'Safe error unavailable.'}`);
+      window.alert(error.message || 'Could not disconnect this cart.');
+    } finally {
+      setIsDisconnecting(false);
+      if (isConnected) {
+        void refreshDevice();
+      }
+    }
+  }, [
+    isConnected,
+    trimmedCartCode,
+    trimmedDeviceSecret,
+    isDisconnecting,
+    appendLog,
+    refreshDevice,
+    refreshQr,
+  ]);
 
   const handleResetCart = async () => {
     if (!trimmedCartCode || isResetting) return;
@@ -324,9 +394,10 @@ export default function DeviceSimulatorPage() {
                   <button
                     type="button"
                     onClick={handleDisconnect}
-                    className="col-span-2 rounded-xl bg-slate-200 py-2.5 font-medium text-slate-900 transition-colors hover:bg-slate-300 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
+                    disabled={isDisconnecting}
+                    className="col-span-2 rounded-xl bg-slate-200 py-2.5 font-medium text-slate-900 transition-colors hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
                   >
-                    Disconnect Simulator
+                    {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
                   </button>
                 ) : (
                   <button
@@ -339,7 +410,7 @@ export default function DeviceSimulatorPage() {
                 <button
                   type="button"
                   onClick={() => void refreshDevice()}
-                  disabled={!isConnected}
+                  disabled={!isConnected || isDisconnecting}
                   className="rounded-xl border border-slate-200 py-2 text-sm font-medium text-slate-700 disabled:opacity-50 dark:border-slate-800 dark:text-slate-200"
                 >
                   Poll now
@@ -347,7 +418,7 @@ export default function DeviceSimulatorPage() {
                 <button
                   type="button"
                   onClick={() => void refreshQr()}
-                  disabled={!isConnected || isActive || cartStatus !== 'AVAILABLE'}
+                  disabled={!isConnected || isDisconnecting || isActive || cartStatus !== 'AVAILABLE'}
                   className="rounded-xl border border-slate-200 py-2 text-sm font-medium text-slate-700 disabled:opacity-50 dark:border-slate-800 dark:text-slate-200"
                 >
                   Refresh QR
@@ -356,7 +427,7 @@ export default function DeviceSimulatorPage() {
                   <button
                     type="button"
                     onClick={() => void handleResetCart()}
-                    disabled={!isConnected || isResetting}
+                    disabled={!isConnected || isResetting || isDisconnecting}
                     className="col-span-2 rounded-xl border border-amber-300 bg-amber-50 py-2.5 text-sm font-semibold text-amber-900 transition-colors hover:bg-amber-100 disabled:opacity-50 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
                   >
                     {isResetting ? 'Resetting Cart...' : 'Reset Cart'}
@@ -378,7 +449,11 @@ export default function DeviceSimulatorPage() {
                 {qrData && !isActive && <p>&gt; QR refreshed until {new Date(qrData.expiresAt).toLocaleTimeString()}</p>}
                 {isQrLoading && !qrData && <p>&gt; Requesting fresh pairing QR...</p>}
                 {deviceData?.active && <p>&gt; Session {(deviceData.cartSessionId || deviceData.session.id).slice(-6).toUpperCase()} pushed to device screen</p>}
+                {isDisconnecting && <p>&gt; Releasing cart session and refreshing QR...</p>}
                 {isResetting && <p>&gt; Resetting cart lifecycle from simulator...</p>}
+                {eventLogs.map((entry) => (
+                  <p key={entry}>&gt; {entry}</p>
+                ))}
               </>
             )}
           </div>
