@@ -174,7 +174,7 @@ function StartSessionContent() {
         throw new Error('Cart linked, but the backend did not return a session ID.');
       }
 
-      router.push(`/session?sessionId=${encodeURIComponent(sessionId)}`);
+      router.replace(`/session/ready?sessionId=${encodeURIComponent(sessionId)}`);
     } catch (err: any) {
       setPairingStep('confirming');
       setError(err.message || 'An error occurred.');
