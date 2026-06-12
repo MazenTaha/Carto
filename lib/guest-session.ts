@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import type { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
-import { GUEST_SESSION_COOKIE, GUEST_SESSION_MAX_AGE } from './guest-session.constants';
+import { GUEST_SESSION_COOKIE, GUEST_SESSION_MAX_AGE, LEGACY_GUEST_SESSION_COOKIES } from './guest-session.constants';
 
 export type RequestOwner =
   | { type: 'user'; userId: string }
@@ -37,7 +37,7 @@ export function clearGuestSessionCookie(response: NextResponse) {
 
 export function clearLegacyGuestCookies(response: NextResponse) {
   const isSecure = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
-  for (const name of ['guest_mode', 'carto_guest_id', 'carto_guest_key']) {
+  for (const name of LEGACY_GUEST_SESSION_COOKIES) {
     response.cookies.set(name, '', {
       httpOnly: true,
       secure: isSecure,
@@ -46,6 +46,19 @@ export function clearLegacyGuestCookies(response: NextResponse) {
       maxAge: 0,
     });
   }
+}
+
+function readGuestSessionCookieValue() {
+  const cookieStore = cookies();
+
+  for (const name of [GUEST_SESSION_COOKIE, ...LEGACY_GUEST_SESSION_COOKIES]) {
+    const value = cookieStore.get(name)?.value?.trim();
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
 }
 
 export async function createGuestSession() {
@@ -60,8 +73,21 @@ export async function createGuestSession() {
   });
 }
 
+export async function renewGuestSession(guestSessionId: string) {
+  return prisma.guestSession.update({
+    where: { id: guestSessionId },
+    data: {
+      expiresAt: getGuestSessionExpiresAt(),
+    },
+    select: {
+      id: true,
+      expiresAt: true,
+    },
+  });
+}
+
 export async function getGuestSession() {
-  const guestSessionId = cookies().get(GUEST_SESSION_COOKIE)?.value;
+  const guestSessionId = readGuestSessionCookieValue();
 
   if (!guestSessionId) {
     return null;

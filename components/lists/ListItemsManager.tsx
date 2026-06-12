@@ -9,9 +9,7 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { ProductSearch } from '@/components/lists/ProductSearch';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { cn, formatCurrency } from '@/lib/utils';
 
 interface ListItemsManagerProps {
@@ -27,6 +25,8 @@ type ApiErrorPayload = {
   error?: string | { code?: string; message?: string };
   data?: any;
 };
+
+type DeletedListItem = Pick<ListItem, 'id' | 'name' | 'quantity' | 'category' | 'price'>;
 
 export function ListItemsManager({
   listId,
@@ -45,23 +45,24 @@ export function ListItemsManager({
   const [pendingItemIds, setPendingItemIds] = useState<Set<string>>(new Set());
   const [quantitySyncItemIds, setQuantitySyncItemIds] = useState<Set<string>>(new Set());
   const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
+  const [deletedItems, setDeletedItems] = useState<DeletedListItem[]>([]);
   const itemsRequestInFlightRef = useRef(false);
   const itemsRef = useRef<ListItem[]>(initialItems);
   const quantityRequestsRef = useRef(
     new Map<string, { confirmedQuantity: number; desiredQuantity: number; inFlight: boolean }>()
   );
 
-  const markItemPending = (itemId: string) => {
+  const markItemPending = useCallback((itemId: string) => {
     setPendingItemIds((current) => new Set(current).add(itemId));
-  };
+  }, []);
 
-  const clearItemPending = (itemId: string) => {
+  const clearItemPending = useCallback((itemId: string) => {
     setPendingItemIds((current) => {
       const next = new Set(current);
       next.delete(itemId);
       return next;
     });
-  };
+  }, []);
 
   const markQuantitySync = useCallback((itemId: string) => {
     setQuantitySyncItemIds((current) => new Set(current).add(itemId));
@@ -248,7 +249,7 @@ export function ListItemsManager({
       clearItemPending(optimisticId);
       setIsLoading(false);
     }
-  }, [isLoading, isLockedForActiveSession, listId, readErrorPayload, router, syncItemsFromServer]);
+  }, [clearItemPending, isLoading, isLockedForActiveSession, listId, markItemPending, readErrorPayload, router, syncItemsFromServer]);
 
   const flushQuantityUpdate = useCallback(async (itemId: string) => {
     const requestState = quantityRequestsRef.current.get(itemId);
@@ -369,47 +370,6 @@ export function ListItemsManager({
     }
   };
 
-  const handleToggleCollected = async (item: ListItem) => {
-    if (pendingItemIds.has(item.id)) return;
-    if (isLockedForActiveSession) {
-      setError(activeSessionLockMessage);
-      return;
-    }
-    const nextCollected = !item.isCollected;
-    const previousItem = item;
-    const optimisticItem = {
-      ...item,
-      isCollected: nextCollected,
-      collectedAt: nextCollected ? new Date() : null,
-    };
-    markItemPending(item.id);
-    setError('');
-    setNotice('');
-    setItems((current) => current.map((entry) => (entry.id === item.id ? optimisticItem : entry)));
-
-    try {
-      const response = await fetch(`/api/lists/${listId}/items/${item.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isCollected: nextCollected }),
-      });
-      if (!response.ok) {
-        const payload = await readErrorPayload(response, 'Could not update item status.');
-        throw new Error(payload.message);
-      }
-      const data = await response.json();
-      if (data.success && data.data) {
-        setItems((current) => current.map((entry) => (entry.id === item.id ? data.data : entry)));
-        router.refresh();
-      }
-    } catch (err) {
-      setItems((current) => current.map((entry) => (entry.id === item.id ? previousItem : entry)));
-      setError('Could not update item status.');
-    } finally {
-      clearItemPending(item.id);
-    }
-  };
-
   const handleDeleteItem = async (item: ListItem) => {
     if (pendingItemIds.has(item.id)) return;
     if (isLockedForActiveSession) {
@@ -429,6 +389,16 @@ export function ListItemsManager({
         const payload = await readErrorPayload(response, 'Could not delete item.');
         throw new Error(payload.message);
       }
+      setDeletedItems((current) => [
+        {
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          category: item.category,
+          price: item.price,
+        },
+        ...current.filter((entry) => entry.id !== item.id),
+      ]);
       setNotice('Item deleted.');
       router.refresh();
     } catch (err) {
@@ -442,20 +412,60 @@ export function ListItemsManager({
     }
   };
 
-  const { notCollected, collected } = useMemo(
-    () => ({
-      notCollected: items.filter((item) => !item.isCollected),
-      collected: items.filter((item) => item.isCollected),
-    }),
-    [items]
-  );
-  const progress = items.length > 0 ? Math.round((collected.length / items.length) * 100) : 0;
+  const handleRestoreDeletedItem = useCallback(async (item: DeletedListItem) => {
+    if (isLockedForActiveSession || isLoading) {
+      if (isLockedForActiveSession) {
+        setError(activeSessionLockMessage);
+      }
+      return;
+    }
+
+    markItemPending(item.id);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch(`/api/lists/${listId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price || 0,
+          category: item.category || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await readErrorPayload(response, 'Could not restore item.');
+
+        if (payload.code === 'DUPLICATE_LIST_ITEM') {
+          await syncItemsFromServer();
+        }
+
+        throw new Error(payload.message);
+      }
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        setItems((current) => [...current, data.data]);
+        setDeletedItems((current) => current.filter((entry) => entry.id !== item.id));
+        setNotice('Item restored.');
+        router.refresh();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Could not restore item.');
+    } finally {
+      clearItemPending(item.id);
+    }
+  }, [clearItemPending, isLoading, isLockedForActiveSession, listId, markItemPending, readErrorPayload, router, syncItemsFromServer]);
+
   const estimatedTotal = useMemo(
     () => items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0),
     [items]
   );
 
-  const renderItem = (item: ListItem, isCollected: boolean) => (
+  const renderItem = (item: ListItem) => (
     (() => {
       const isPending = pendingItemIds.has(item.id);
       const isQuantitySyncing = quantitySyncItemIds.has(item.id);
@@ -469,73 +479,48 @@ export function ListItemsManager({
       className={cn(
         'flex min-h-[92px] w-full max-w-full items-center gap-3 rounded-2xl border bg-white p-3 shadow-sm transition dark:bg-slate-900 sm:p-4',
         isBusy && 'opacity-70',
-        isCollected
-          ? 'border-slate-100 opacity-70 dark:border-slate-800'
-          : 'border-slate-200 hover:border-primary/30 hover:shadow-card dark:border-slate-800'
+        'border-slate-200 hover:border-primary/30 hover:shadow-card dark:border-slate-800'
       )}
     >
-      <button
-        type="button"
-        onClick={() => handleToggleCollected(item)}
-        disabled={isBusy || isLockedForActiveSession}
-        className={cn(
-          'flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition active:scale-90 disabled:active:scale-100',
-          isCollected
-            ? 'border-primary bg-primary text-white'
-            : 'border-slate-300 bg-white text-transparent hover:border-primary dark:border-slate-700 dark:bg-slate-950'
-        )}
-        aria-label={isCollected ? `Mark ${item.name} as not collected` : `Mark ${item.name} as collected`}
-      >
-        <span className="material-symbols-outlined text-[20px]">check</span>
-      </button>
-
       <div className="min-w-0 flex-1 self-center">
-        <h3 className={cn('break-words text-base font-bold leading-5 text-slate-950 dark:text-slate-100', isCollected && 'line-through')}>
+        <h3 className="break-words text-base font-bold leading-5 text-slate-950 dark:text-slate-100">
           {item.name}
         </h3>
         <p className="mt-1 text-xs font-medium text-slate-500">{itemMeta}</p>
       </div>
 
-      {!isCollected ? (
-        <div className="ml-auto flex w-[122px] shrink-0 items-center justify-end gap-2 self-center">
-          <div className={cn('flex h-11 flex-1 items-center rounded-full bg-slate-100 p-1 dark:bg-slate-800', isQuantitySyncing && 'ring-1 ring-primary/15')}>
-            <button
-              type="button"
-              onClick={() => handleUpdateQuantity(item.id, -1)}
-              disabled={isPending || isLockedForActiveSession || item.quantity <= 1}
-              className="flex size-8 items-center justify-center rounded-full text-primary transition active:scale-90 hover:bg-white disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-slate-700"
-              aria-label={`Decrease ${item.name} quantity`}
-            >
-              <span className="material-symbols-outlined text-[18px]">remove</span>
-            </button>
-            <span className="min-w-[1.75rem] text-center text-sm font-black tabular-nums">{item.quantity}</span>
-            <button
-              type="button"
-              onClick={() => handleUpdateQuantity(item.id, 1)}
-              disabled={isPending || isLockedForActiveSession}
-              className="flex size-8 items-center justify-center rounded-full text-primary transition active:scale-90 hover:bg-white disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-slate-700"
-              aria-label={`Increase ${item.name} quantity`}
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-            </button>
-          </div>
+      <div className="ml-auto flex w-[122px] shrink-0 items-center justify-end gap-2 self-center">
+        <div className={cn('flex h-11 flex-1 items-center rounded-full bg-slate-100 p-1 dark:bg-slate-800', isQuantitySyncing && 'ring-1 ring-primary/15')}>
           <button
             type="button"
-            onClick={() => handleDeleteItem(item)}
-            disabled={isBusy || isLockedForActiveSession}
-            className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-red-500/10"
-            aria-label={`Delete ${item.name}`}
+            onClick={() => handleUpdateQuantity(item.id, -1)}
+            disabled={isPending || isLockedForActiveSession || item.quantity <= 1}
+            className="flex size-8 items-center justify-center rounded-full text-primary transition active:scale-90 hover:bg-white disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-slate-700"
+            aria-label={`Decrease ${item.name} quantity`}
           >
-            <span className="material-symbols-outlined text-[20px]">delete</span>
+            <span className="material-symbols-outlined text-[18px]">remove</span>
+          </button>
+          <span className="min-w-[1.75rem] text-center text-sm font-black tabular-nums">{item.quantity}</span>
+          <button
+            type="button"
+            onClick={() => handleUpdateQuantity(item.id, 1)}
+            disabled={isPending || isLockedForActiveSession}
+            className="flex size-8 items-center justify-center rounded-full text-primary transition active:scale-90 hover:bg-white disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-slate-700"
+            aria-label={`Increase ${item.name} quantity`}
+          >
+            <span className="material-symbols-outlined text-[18px]">add</span>
           </button>
         </div>
-      ) : (
-        <div className="ml-auto flex w-[122px] shrink-0 justify-end self-center">
-          <Badge variant="success" className="w-full justify-center text-center">
-            {item.quantity} collected
-          </Badge>
-        </div>
-      )}
+        <button
+          type="button"
+          onClick={() => handleDeleteItem(item)}
+          disabled={isBusy || isLockedForActiveSession}
+          className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-red-500/10"
+          aria-label={`Delete ${item.name}`}
+        >
+          <span className="material-symbols-outlined text-[20px]">delete</span>
+        </button>
+      </div>
     </article>
       );
     })()
@@ -576,9 +561,6 @@ export function ListItemsManager({
                 ? 'This list is currently assigned to a cart. Finish the session before changing it.'
                 : 'Keep the list ready, then activate it to link with the QR code on a cart.'}
             </p>
-            <div className="mt-5">
-              <ProgressBar value={progress} label="Collection progress" />
-            </div>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
@@ -586,11 +568,11 @@ export function ListItemsManager({
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
               <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
                 <p className="text-xl font-black">{items.length}</p>
-                <p className="text-xs text-slate-500">Items</p>
+                <p className="text-xs text-slate-500">Active</p>
               </div>
               <div className="rounded-2xl bg-primary/10 p-3 text-primary">
-                <p className="text-xl font-black">{collected.length}</p>
-                <p className="text-xs font-bold">Done</p>
+                <p className="text-xl font-black">{deletedItems.length}</p>
+                <p className="text-xs font-bold">Deleted</p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
                 <p className="text-xl font-black">{formatCurrency(estimatedTotal)}</p>
@@ -649,42 +631,20 @@ export function ListItemsManager({
           <div className="mt-6">
             <LoadingState label="Loading list items" />
           </div>
-        ) : items.length === 0 ? (
-          <EmptyState
-            className="mt-6"
-            icon="add_shopping_cart"
-            title="This list is empty"
-            description={
-              isLockedForActiveSession
-                ? 'This list is active on a cart, so edits are paused until the session is finished.'
-                : 'Add products from search or quick add. Once this list has items, activate it to link with a cart.'
-            }
-            action={
-              isLockedForActiveSession ? undefined : (
-                <Button onClick={() => setIsProductSearchOpen(true)}>
-                  <span className="material-symbols-outlined">search</span>
-                  Browse products
-                </Button>
-              )
-            }
-          />
         ) : (
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
             <section>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-600 dark:text-slate-300">
-                  Not collected ({notCollected.length})
+                  Items ({items.length})
                 </h2>
-                <Badge variant={isLockedForActiveSession ? 'default' : 'warning'}>
-                  {isLockedForActiveSession ? 'Live on cart' : 'Ready for cart'}
-                </Badge>
               </div>
               <div className="space-y-3">
-                {notCollected.length > 0 ? (
-                  notCollected.map((item) => renderItem(item, false))
+                {items.length > 0 ? (
+                  items.map((item) => renderItem(item))
                 ) : (
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm font-medium text-slate-500 dark:border-slate-800 dark:bg-slate-900">
-                    All items are collected.
+                    No active items yet.
                   </div>
                 )}
               </div>
@@ -693,16 +653,43 @@ export function ListItemsManager({
             <section>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-500">
-                  Collected ({collected.length})
+                  Deleted items ({deletedItems.length})
                 </h2>
-                <Badge variant="success">{progress}% done</Badge>
               </div>
               <div className="space-y-3">
-                {collected.length > 0 ? (
-                  collected.map((item) => renderItem(item, true))
+                {deletedItems.length > 0 ? (
+                  deletedItems.map((item) => {
+                    const isPending = pendingItemIds.has(item.id);
+                    return (
+                      <article
+                        key={item.id}
+                        className={cn(
+                          'flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900',
+                          isPending && 'opacity-70'
+                        )}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <h3 className="break-words text-base font-bold text-slate-950 dark:text-slate-100">{item.name}</h3>
+                          <p className="mt-1 text-xs font-medium text-slate-500">
+                            Qty: {item.quantity}
+                            {item.category ? ` | ${item.category}` : ''}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleRestoreDeletedItem(item)}
+                          disabled={isPending || isLockedForActiveSession}
+                        >
+                          Restore
+                        </Button>
+                      </article>
+                    );
+                  })
                 ) : (
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm font-medium text-slate-500 dark:border-slate-800 dark:bg-slate-900">
-                    Collected items will appear here.
+                    Deleted items will appear here.
                   </div>
                 )}
               </div>

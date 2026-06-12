@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { isAdminEmail } from '@/lib/admin-emails';
 import { getAuthSecret } from '@/lib/auth-secret';
-import { GUEST_SESSION_COOKIE } from '@/lib/guest-session.constants';
+import { GUEST_SESSION_COOKIE, LEGACY_GUEST_SESSION_COOKIES } from '@/lib/guest-session.constants';
 
 const USER_ONLY_PATHS = ['/profile'];
 
@@ -18,7 +18,9 @@ export async function middleware(request: NextRequest) {
     secret: getAuthSecret(),
   });
 
-  const hasGuestSession = Boolean(request.cookies.get(GUEST_SESSION_COOKIE)?.value);
+  const hasGuestSession = [GUEST_SESSION_COOKIE, ...LEGACY_GUEST_SESSION_COOKIES].some((cookieName) =>
+    Boolean(request.cookies.get(cookieName)?.value)
+  );
 
   if (pathname.startsWith('/admin')) {
     if (!token?.id) {

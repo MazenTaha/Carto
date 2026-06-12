@@ -4,6 +4,7 @@ import {
   createGuestSession,
   getAuthenticatedUserId,
   getGuestSession,
+  renewGuestSession,
   setGuestSessionCookie,
 } from '@/lib/guest-session';
 import { errorResponse, successResponse } from '@/lib/api-response';
@@ -26,11 +27,14 @@ export async function POST() {
     }
 
     const existingGuestSession = await getGuestSession();
-    const guestSession = existingGuestSession ?? (await createGuestSession());
+    const guestSession = existingGuestSession
+      ? await renewGuestSession(existingGuestSession.id)
+      : await createGuestSession();
 
     const response = successResponse({
       guestSessionId: guestSession.id,
       reused: Boolean(existingGuestSession),
+      expiresAt: guestSession.expiresAt,
       redirectTo: '/dashboard',
     });
 
