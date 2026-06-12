@@ -10,6 +10,7 @@ import { ProductSearch } from '@/components/lists/ProductSearch';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { normalizeListItemName } from '@/lib/list-items';
 import { cn, formatCurrency } from '@/lib/utils';
 
 interface ListItemsManagerProps {
@@ -27,6 +28,16 @@ type ApiErrorPayload = {
 };
 
 type DeletedListItem = Pick<ListItem, 'id' | 'name' | 'quantity' | 'category' | 'price'>;
+
+function toDeletedListItem(item: Pick<ListItem, 'id' | 'name' | 'quantity' | 'category' | 'price'>): DeletedListItem {
+  return {
+    id: item.id,
+    name: item.name,
+    quantity: item.quantity,
+    category: item.category,
+    price: item.price,
+  };
+}
 
 export function ListItemsManager({
   listId,
@@ -154,6 +165,14 @@ export function ListItemsManager({
     itemsRef.current = items;
   }, [items]);
 
+  const upsertDeletedItem = useCallback((item: DeletedListItem) => {
+    setDeletedItems((current) => [item, ...current.filter((entry) => entry.id !== item.id)]);
+  }, []);
+
+  const removeDeletedItem = useCallback((itemId: string) => {
+    setDeletedItems((current) => current.filter((entry) => entry.id !== itemId));
+  }, []);
+
   useEffect(() => {
     void syncItemsFromServer({ showLoader: initialItems.length === 0 });
   }, [initialItems.length, syncItemsFromServer]);
@@ -237,7 +256,6 @@ export function ListItemsManager({
       if (data.success && data.data) {
         setItems((current) => current.map((item) => (item.id === optimisticId ? data.data : item)));
         setNotice('Item added.');
-        router.refresh();
       }
       return true;
     } catch (err: any) {
@@ -249,7 +267,7 @@ export function ListItemsManager({
       clearItemPending(optimisticId);
       setIsLoading(false);
     }
-  }, [clearItemPending, isLoading, isLockedForActiveSession, listId, markItemPending, readErrorPayload, router, syncItemsFromServer]);
+  }, [clearItemPending, isLoading, isLockedForActiveSession, listId, markItemPending, readErrorPayload, syncItemsFromServer]);
 
   const flushQuantityUpdate = useCallback(async (itemId: string) => {
     const requestState = quantityRequestsRef.current.get(itemId);
@@ -376,10 +394,12 @@ export function ListItemsManager({
       setError(activeSessionLockMessage);
       return;
     }
+    const deletedItem = toDeletedListItem(item);
     markItemPending(item.id);
     setError('');
     setNotice('');
     setItems((current) => current.filter((entry) => entry.id !== item.id));
+    upsertDeletedItem(deletedItem);
 
     try {
       const response = await fetch(`/api/lists/${listId}/items/${item.id}`, {
@@ -389,24 +409,14 @@ export function ListItemsManager({
         const payload = await readErrorPayload(response, 'Could not delete item.');
         throw new Error(payload.message);
       }
-      setDeletedItems((current) => [
-        {
-          id: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          category: item.category,
-          price: item.price,
-        },
-        ...current.filter((entry) => entry.id !== item.id),
-      ]);
       setNotice('Item deleted.');
-      router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       setItems((current) => {
         if (current.some((entry) => entry.id === item.id)) return current;
         return [...current, item];
       });
-      setError('Could not delete item.');
+      removeDeletedItem(item.id);
+      setError(err.message || 'Could not delete item.');
     } finally {
       clearItemPending(item.id);
     }
@@ -420,45 +430,145 @@ export function ListItemsManager({
       return;
     }
 
+    const currentItems = itemsRef.current;
+    const matchingActiveItem = currentItems.find((entry) => normalizeListItemName(entry.name) === normalizeListItemName(item.name));
+    const optimisticRestoredItem: ListItem = {
+      id: `restoring-${item.id}`,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price || 0,
+      category: item.category || null,
+      isCollected: false,
+      collectedAt: null,
+      listId,
+    };
+    const targetQuantity = matchingActiveItem ? matchingActiveItem.quantity + item.quantity : item.quantity;
+
     markItemPending(item.id);
+    if (matchingActiveItem) {
+      markItemPending(matchingActiveItem.id);
+    }
     setError('');
     setNotice('');
+    removeDeletedItem(item.id);
+
+    if (matchingActiveItem) {
+      setItems((current) => current.map((entry) => (
+        entry.id === matchingActiveItem.id
+          ? { ...entry, quantity: targetQuantity }
+          : entry
+      )));
+    } else {
+      setItems((current) => [...current, optimisticRestoredItem]);
+    }
 
     try {
-      const response = await fetch(`/api/lists/${listId}/items`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price || 0,
-          category: item.category || undefined,
-        }),
-      });
+      if (matchingActiveItem) {
+        const response = await fetch(`/api/lists/${listId}/items/${matchingActiveItem.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: targetQuantity }),
+        });
 
-      if (!response.ok) {
-        const payload = await readErrorPayload(response, 'Could not restore item.');
-
-        if (payload.code === 'DUPLICATE_LIST_ITEM') {
-          await syncItemsFromServer();
+        if (!response.ok) {
+          const payload = await readErrorPayload(response, 'Could not restore item.');
+          throw new Error(payload.message);
         }
 
-        throw new Error(payload.message);
+        const data = await response.json();
+        if (!data.success || !data.data) {
+          throw new Error('Could not restore item.');
+        }
+
+        setItems((current) => current.map((entry) => (
+          entry.id === matchingActiveItem.id
+            ? { ...entry, ...data.data, quantity: targetQuantity }
+            : entry
+        )));
+      } else {
+        const response = await fetch(`/api/lists/${listId}/items`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price || 0,
+            category: item.category || undefined,
+          }),
+        });
+
+        if (!response.ok) {
+          const payload = await readErrorPayload(response, 'Could not restore item.');
+
+          if (payload.code === 'DUPLICATE_LIST_ITEM' && payload.data?.existingItem?.id) {
+            const mergedItemId = String(payload.data.existingItem.id);
+            const latestExistingItem = itemsRef.current.find((entry) => entry.id === mergedItemId)
+              || currentItems.find((entry) => entry.id === mergedItemId);
+            const mergedQuantity = (latestExistingItem?.quantity ?? payload.data.existingItem.quantity ?? 0) + item.quantity;
+
+            const mergeResponse = await fetch(`/api/lists/${listId}/items/${mergedItemId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ quantity: mergedQuantity }),
+            });
+
+            if (!mergeResponse.ok) {
+              const mergePayload = await readErrorPayload(mergeResponse, 'Could not restore item.');
+              throw new Error(mergePayload.message);
+            }
+
+            const mergeData = await mergeResponse.json();
+            if (!mergeData.success || !mergeData.data) {
+              throw new Error('Could not restore item.');
+            }
+
+            setItems((current) => {
+              const withoutOptimistic = current.filter((entry) => entry.id !== optimisticRestoredItem.id);
+              const alreadyVisible = withoutOptimistic.some((entry) => entry.id === mergedItemId);
+
+              if (!alreadyVisible) {
+                return [...withoutOptimistic, { ...mergeData.data, quantity: mergedQuantity }];
+              }
+
+              return withoutOptimistic.map((entry) => (
+                entry.id === mergedItemId
+                  ? { ...entry, ...mergeData.data, quantity: mergedQuantity }
+                  : entry
+              ));
+            });
+            setNotice('Item restored.');
+            return;
+          }
+
+          throw new Error(payload.message);
+        }
+
+        const data = await response.json();
+        if (!data.success || !data.data) {
+          throw new Error('Could not restore item.');
+        }
+
+        setItems((current) => current.map((entry) => (
+          entry.id === optimisticRestoredItem.id ? data.data : entry
+        )));
       }
 
-      const data = await response.json();
-      if (data.success && data.data) {
-        setItems((current) => [...current, data.data]);
-        setDeletedItems((current) => current.filter((entry) => entry.id !== item.id));
-        setNotice('Item restored.');
-        router.refresh();
-      }
+      setNotice('Item restored.');
     } catch (err: any) {
+      upsertDeletedItem(item);
+      if (matchingActiveItem) {
+        setItems(currentItems);
+      } else {
+        setItems((current) => current.filter((entry) => entry.id !== optimisticRestoredItem.id));
+      }
       setError(err.message || 'Could not restore item.');
     } finally {
       clearItemPending(item.id);
+      if (matchingActiveItem) {
+        clearItemPending(matchingActiveItem.id);
+      }
     }
-  }, [clearItemPending, isLoading, isLockedForActiveSession, listId, markItemPending, readErrorPayload, router, syncItemsFromServer]);
+  }, [clearItemPending, isLoading, isLockedForActiveSession, listId, markItemPending, readErrorPayload, removeDeletedItem, upsertDeletedItem]);
 
   const estimatedTotal = useMemo(
     () => items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0),
@@ -477,9 +587,9 @@ export function ListItemsManager({
     <article
       key={item.id}
       className={cn(
-        'flex min-h-[92px] w-full max-w-full items-center gap-3 rounded-2xl border bg-white p-3 shadow-sm transition dark:bg-slate-900 sm:p-4',
-        isBusy && 'opacity-70',
-        'border-slate-200 hover:border-primary/30 hover:shadow-card dark:border-slate-800'
+        'flex min-h-[92px] w-full max-w-full items-center gap-3 rounded-2xl border bg-white p-3 shadow-sm transition-all duration-200 ease-out dark:bg-slate-900 sm:p-4',
+        isBusy && 'scale-[0.99] opacity-70',
+        'border-slate-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-card dark:border-slate-800'
       )}
     >
       <div className="min-w-0 flex-1 self-center">
@@ -515,10 +625,10 @@ export function ListItemsManager({
           type="button"
           onClick={() => handleDeleteItem(item)}
           disabled={isBusy || isLockedForActiveSession}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-red-500/10"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition-all duration-200 active:scale-90 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-red-500/10"
           aria-label={`Delete ${item.name}`}
         >
-          <span className="material-symbols-outlined text-[20px]">delete</span>
+          <span className={cn('material-symbols-outlined text-[20px]', isPending && 'animate-pulse')}>{isPending ? 'progress_activity' : 'delete'}</span>
         </button>
       </div>
     </article>
@@ -664,8 +774,8 @@ export function ListItemsManager({
                       <article
                         key={item.id}
                         className={cn(
-                          'flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900',
-                          isPending && 'opacity-70'
+                          'flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/90 p-4 shadow-sm transition-all duration-200 ease-out dark:border-slate-800 dark:bg-slate-900/70',
+                          isPending && 'scale-[0.99] opacity-70'
                         )}
                       >
                         <div className="min-w-0 flex-1">
@@ -681,8 +791,9 @@ export function ListItemsManager({
                           size="sm"
                           onClick={() => void handleRestoreDeletedItem(item)}
                           disabled={isPending || isLockedForActiveSession}
+                          className="min-w-[88px] rounded-xl border-primary/20 bg-white/80 transition-all duration-200 hover:border-primary/40 hover:bg-white dark:bg-slate-900"
                         >
-                          Restore
+                          {isPending ? 'Restoring...' : 'Restore'}
                         </Button>
                       </article>
                     );
