@@ -43,8 +43,13 @@ export function ListItemsManager({
   const [isItemsLoading, setIsItemsLoading] = useState(initialItems.length === 0);
   const [isActivating, setIsActivating] = useState(false);
   const [pendingItemIds, setPendingItemIds] = useState<Set<string>>(new Set());
+  const [quantitySyncItemIds, setQuantitySyncItemIds] = useState<Set<string>>(new Set());
   const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
   const itemsRequestInFlightRef = useRef(false);
+  const itemsRef = useRef<ListItem[]>(initialItems);
+  const quantityRequestsRef = useRef(
+    new Map<string, { confirmedQuantity: number; desiredQuantity: number; inFlight: boolean }>()
+  );
 
   const markItemPending = (itemId: string) => {
     setPendingItemIds((current) => new Set(current).add(itemId));
@@ -58,7 +63,19 @@ export function ListItemsManager({
     });
   };
 
-  const readErrorPayload = async (response: Response, fallback: string) => {
+  const markQuantitySync = (itemId: string) => {
+    setQuantitySyncItemIds((current) => new Set(current).add(itemId));
+  };
+
+  const clearQuantitySync = (itemId: string) => {
+    setQuantitySyncItemIds((current) => {
+      const next = new Set(current);
+      next.delete(itemId);
+      return next;
+    });
+  };
+
+  const readErrorPayload = useCallback(async (response: Response, fallback: string) => {
     try {
       const data: ApiErrorPayload = await response.json();
       const message = typeof data.error === 'string'
@@ -77,7 +94,22 @@ export function ListItemsManager({
         data: undefined,
       };
     }
-  };
+  }, []);
+
+  const mergeItemsWithPendingQuantities = useCallback((nextItems: ListItem[]) => (
+    nextItems.map((item) => {
+      const pendingQuantity = quantityRequestsRef.current.get(item.id);
+
+      if (!pendingQuantity) {
+        return item;
+      }
+
+      return {
+        ...item,
+        quantity: pendingQuantity.desiredQuantity,
+      };
+    })
+  ), []);
 
   const syncItemsFromServer = useCallback(async (options?: { showLoader?: boolean }) => {
     if (itemsRequestInFlightRef.current) {
@@ -101,7 +133,7 @@ export function ListItemsManager({
 
       const data = await response.json();
       const nextItems = Array.isArray(data?.data) ? data.data : [];
-      setItems(nextItems);
+      setItems(mergeItemsWithPendingQuantities(nextItems));
       return true;
     } catch (err: any) {
       setError((current) => current || err.message || 'Failed to refresh list items.');
@@ -110,12 +142,16 @@ export function ListItemsManager({
       itemsRequestInFlightRef.current = false;
       setIsItemsLoading(false);
     }
-  }, [listId]);
+  }, [listId, mergeItemsWithPendingQuantities, readErrorPayload]);
 
   useEffect(() => {
-    setItems(initialItems);
+    setItems(mergeItemsWithPendingQuantities(initialItems));
     setIsItemsLoading(false);
-  }, [initialItems, listId]);
+  }, [initialItems, listId, mergeItemsWithPendingQuantities]);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   useEffect(() => {
     void syncItemsFromServer({ showLoader: initialItems.length === 0 });
@@ -214,42 +250,122 @@ export function ListItemsManager({
     }
   }, [isLoading, isLockedForActiveSession, listId, router, syncItemsFromServer]);
 
-  const handleUpdateQuantity = async (item: ListItem, delta: number) => {
-    if (pendingItemIds.has(item.id)) return;
-    if (isLockedForActiveSession) {
-      setError(activeSessionLockMessage);
+  const flushQuantityUpdate = useCallback(async (itemId: string) => {
+    const requestState = quantityRequestsRef.current.get(itemId);
+
+    if (!requestState || requestState.inFlight) {
       return;
     }
-    const newQuantity = Math.max(1, item.quantity + delta);
-    if (newQuantity === item.quantity) return;
 
-    const previousItem = item;
-    const optimisticItem = { ...item, quantity: newQuantity };
-    markItemPending(item.id);
-    setError('');
-    setNotice('');
-    setItems((current) => current.map((entry) => (entry.id === item.id ? optimisticItem : entry)));
+    if (requestState.desiredQuantity === requestState.confirmedQuantity) {
+      quantityRequestsRef.current.delete(itemId);
+      clearQuantitySync(itemId);
+      return;
+    }
+
+    requestState.inFlight = true;
+    markQuantitySync(itemId);
+    const requestedQuantity = requestState.desiredQuantity;
 
     try {
-      const response = await fetch(`/api/lists/${listId}/items/${item.id}`, {
+      const response = await fetch(`/api/lists/${listId}/items/${itemId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity: newQuantity }),
+        body: JSON.stringify({ quantity: requestedQuantity }),
       });
+
       if (!response.ok) {
         const payload = await readErrorPayload(response, 'Could not update quantity.');
         throw new Error(payload.message);
       }
+
       const data = await response.json();
-      if (data.success && data.data) {
-        setItems((current) => current.map((entry) => (entry.id === item.id ? data.data : entry)));
-        router.refresh();
+
+      if (!data.success || !data.data) {
+        throw new Error('Could not update quantity.');
       }
-    } catch (err) {
-      setItems((current) => current.map((entry) => (entry.id === item.id ? previousItem : entry)));
-      setError('Could not update quantity.');
-    } finally {
-      clearItemPending(item.id);
+
+      const latestRequestState = quantityRequestsRef.current.get(itemId);
+
+      if (!latestRequestState) {
+        return;
+      }
+
+      latestRequestState.confirmedQuantity = data.data.quantity ?? requestedQuantity;
+      latestRequestState.inFlight = false;
+
+      const visibleQuantity = latestRequestState.desiredQuantity !== requestedQuantity
+        ? latestRequestState.desiredQuantity
+        : latestRequestState.confirmedQuantity;
+
+      setItems((current) => current.map((entry) => (
+        entry.id === itemId
+          ? { ...entry, ...data.data, quantity: visibleQuantity }
+          : entry
+      )));
+
+      if (latestRequestState.desiredQuantity !== latestRequestState.confirmedQuantity) {
+        void flushQuantityUpdate(itemId);
+        return;
+      }
+
+      quantityRequestsRef.current.delete(itemId);
+      clearQuantitySync(itemId);
+    } catch (err: any) {
+      const latestRequestState = quantityRequestsRef.current.get(itemId);
+      const rollbackQuantity = latestRequestState?.confirmedQuantity;
+
+      if (typeof rollbackQuantity === 'number') {
+        setItems((current) => current.map((entry) => (
+          entry.id === itemId
+            ? { ...entry, quantity: rollbackQuantity }
+            : entry
+        )));
+      }
+
+      quantityRequestsRef.current.delete(itemId);
+      clearQuantitySync(itemId);
+      setError(err.message || 'Could not update quantity.');
+    }
+  }, [clearQuantitySync, listId, readErrorPayload]);
+
+  const handleUpdateQuantity = async (itemId: string, delta: number) => {
+    if (pendingItemIds.has(itemId)) return;
+    if (isLockedForActiveSession) {
+      setError(activeSessionLockMessage);
+      return;
+    }
+
+    const currentItem = itemsRef.current.find((entry) => entry.id === itemId);
+
+    if (!currentItem) {
+      return;
+    }
+
+    const existingRequestState = quantityRequestsRef.current.get(itemId);
+    const currentQuantity = existingRequestState?.desiredQuantity ?? currentItem.quantity;
+    const newQuantity = Math.max(1, currentQuantity + delta);
+
+    if (newQuantity === currentQuantity) return;
+
+    quantityRequestsRef.current.set(itemId, {
+      confirmedQuantity: existingRequestState?.confirmedQuantity ?? currentItem.quantity,
+      desiredQuantity: newQuantity,
+      inFlight: existingRequestState?.inFlight ?? false,
+    });
+
+    markQuantitySync(itemId);
+    setError('');
+    setNotice('');
+
+    setItems((current) => current.map((entry) => (
+      entry.id === itemId
+        ? { ...entry, quantity: newQuantity }
+        : entry
+    )));
+
+    if (!existingRequestState?.inFlight) {
+      void flushQuantityUpdate(itemId);
     }
   };
 
@@ -342,6 +458,8 @@ export function ListItemsManager({
   const renderItem = (item: ListItem, isCollected: boolean) => (
     (() => {
       const isPending = pendingItemIds.has(item.id);
+      const isQuantitySyncing = quantitySyncItemIds.has(item.id);
+      const isBusy = isPending || isQuantitySyncing;
       const itemMeta = [item.category || 'General', item.price ? formatCurrency(item.price) : null]
         .filter(Boolean)
         .join(' | ');
@@ -350,7 +468,7 @@ export function ListItemsManager({
       key={item.id}
       className={cn(
         'flex min-h-[92px] w-full max-w-full items-center gap-3 rounded-2xl border bg-white p-3 shadow-sm transition dark:bg-slate-900 sm:p-4',
-        isPending && 'opacity-70',
+        isBusy && 'opacity-70',
         isCollected
           ? 'border-slate-100 opacity-70 dark:border-slate-800'
           : 'border-slate-200 hover:border-primary/30 hover:shadow-card dark:border-slate-800'
@@ -359,7 +477,7 @@ export function ListItemsManager({
       <button
         type="button"
         onClick={() => handleToggleCollected(item)}
-        disabled={isPending || isLockedForActiveSession}
+        disabled={isBusy || isLockedForActiveSession}
         className={cn(
           'flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition active:scale-90 disabled:active:scale-100',
           isCollected
@@ -380,20 +498,20 @@ export function ListItemsManager({
 
       {!isCollected ? (
         <div className="ml-auto flex w-[122px] shrink-0 items-center justify-end gap-2 self-center">
-          <div className="flex h-11 flex-1 items-center rounded-full bg-slate-100 p-1 dark:bg-slate-800">
+          <div className={cn('flex h-11 flex-1 items-center rounded-full bg-slate-100 p-1 dark:bg-slate-800', isQuantitySyncing && 'ring-1 ring-primary/15')}>
             <button
               type="button"
-              onClick={() => handleUpdateQuantity(item, -1)}
+              onClick={() => handleUpdateQuantity(item.id, -1)}
               disabled={isPending || isLockedForActiveSession || item.quantity <= 1}
               className="flex size-8 items-center justify-center rounded-full text-primary transition active:scale-90 hover:bg-white disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-slate-700"
               aria-label={`Decrease ${item.name} quantity`}
             >
               <span className="material-symbols-outlined text-[18px]">remove</span>
             </button>
-            <span className="min-w-[1.75rem] text-center text-sm font-black">{item.quantity}</span>
+            <span className="min-w-[1.75rem] text-center text-sm font-black tabular-nums">{item.quantity}</span>
             <button
               type="button"
-              onClick={() => handleUpdateQuantity(item, 1)}
+              onClick={() => handleUpdateQuantity(item.id, 1)}
               disabled={isPending || isLockedForActiveSession}
               className="flex size-8 items-center justify-center rounded-full text-primary transition active:scale-90 hover:bg-white disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-slate-700"
               aria-label={`Increase ${item.name} quantity`}
@@ -404,7 +522,7 @@ export function ListItemsManager({
           <button
             type="button"
             onClick={() => handleDeleteItem(item)}
-            disabled={isPending || isLockedForActiveSession}
+            disabled={isBusy || isLockedForActiveSession}
             className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-red-500/10"
             aria-label={`Delete ${item.name}`}
           >
@@ -594,14 +712,14 @@ export function ListItemsManager({
       </main>
 
       {isProductSearchOpen && !isLockedForActiveSession && (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-[100] flex max-h-dvh items-end justify-center overflow-hidden md:items-start md:p-4">
           <button
             type="button"
             className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
             aria-label="Close product search"
             onClick={() => setIsProductSearchOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-hidden rounded-t-3xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-950 md:bottom-auto md:top-10 md:mx-auto md:w-[min(920px,calc(100%-2rem))] md:rounded-3xl md:p-6">
+          <div className="relative z-10 flex max-h-dvh min-h-0 w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white p-4 pb-0 shadow-2xl dark:border-slate-800 dark:bg-slate-950 md:mt-6 md:max-h-[calc(100dvh-3rem)] md:w-[min(920px,calc(100%-2rem))] md:rounded-3xl md:p-6 md:pb-0">
             <ProductSearch
               onCancel={() => setIsProductSearchOpen(false)}
               onSelect={async (product) => {

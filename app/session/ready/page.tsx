@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { formatCurrency } from '@/lib/utils';
 import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
 
 type ReadySessionResponse = {
@@ -141,23 +140,22 @@ function ReadySessionContent() {
   const listName = sessionData.session.shoppingList?.name || 'Selected list';
   const itemCount = sessionData.session.shoppingList?.items?.length || 0;
   const cartCode = sessionData.session.cart?.cartCode || 'Cart connected';
-  const total = sessionData.receipt?.total || 0;
   const sessionIsLive = isActiveCartSessionStatus(sessionData.session.status);
 
   return (
     <PageContainer maxWidth="md">
-      <Header title="Ready for checkout" showBack onBack={() => router.push('/dashboard')} />
+      <Header showBack onBack={() => router.push('/dashboard')} />
 
       <main className="flex min-h-[calc(100dvh-4.5rem)] flex-col justify-center px-4 pb-32 pt-6 sm:px-6">
         <section className="overflow-hidden rounded-[2rem] bg-slate-950 text-white shadow-soft">
           <div className="bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_transparent_42%)] p-6 sm:p-8">
-            <Badge className="bg-white/10 text-white ring-white/15">Cart connected</Badge>
-            <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Your list was sent to {cartCode}.</h1>
+            <Badge variant="connected">Cart connected</Badge>
+            <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Enjoy your shopping :)</h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-white/75 sm:text-base">
-              Your smart cart session is ready. Continue when you are ready to lock the receipt and move into payment.
+              Your smart cart session is live on {cartCode}. Continue whenever you are ready to move into payment.
             </p>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl bg-white/10 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Shopping list</p>
                 <p className="mt-2 text-lg font-black">{listName}</p>
@@ -167,10 +165,6 @@ function ReadySessionContent() {
                 <p className="mt-2 text-lg font-black">
                   {itemCount} item{itemCount === 1 ? '' : 's'}
                 </p>
-              </div>
-              <div className="rounded-2xl bg-white/10 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Current total</p>
-                <p className="mt-2 text-lg font-black">{formatCurrency(total)}</p>
               </div>
             </div>
           </div>

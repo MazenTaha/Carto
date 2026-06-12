@@ -156,64 +156,70 @@ export function ProductSearch({ onSelect, onCancel }: ProductSearchProps) {
       : 'Try another search term or switch categories.';
 
   return (
-    <div className="w-full overflow-hidden">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <Badge variant="success">Product finder</Badge>
-          <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Find Products</h3>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Search or choose popular products for this list.</p>
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-slate-200 pb-4 dark:border-slate-800">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <Badge variant="success">Product finder</Badge>
+            <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Find Products</h3>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Search or choose popular products for this list.</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onCancel} aria-label="Back to list">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Back
+          </Button>
         </div>
-        <Button variant="ghost" size="icon" onClick={onCancel} aria-label="Close product search">
-          <span className="material-symbols-outlined">close</span>
-        </Button>
+
+        <div className="relative mb-4">
+          <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search milk, apples, coffee..."
+            className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          {(isLoading || isCategoryLoading) && (
+            <div className="absolute right-5 top-1/2 size-5 -translate-y-1/2 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+          )}
+        </div>
+
+        <div className="mb-4">
+          <CategoryFilter
+            categories={categoryOptions}
+            selectedCategory={selectedCategory}
+            onSelect={setSelectedCategory}
+          />
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {TAB_OPTIONS.map((tab) => {
+            const isActive = activeTab === tab.value;
+
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setActiveTab(tab.value)}
+                aria-pressed={isActive}
+                className={`shrink-0 rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.14em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950 ${
+                  isActive
+                    ? 'bg-primary text-white'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="relative mb-4">
-        <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder="Search milk, apples, coffee..."
-          className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        {(isLoading || isCategoryLoading) && (
-          <div className="absolute right-5 top-1/2 size-5 -translate-y-1/2 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-        )}
-      </div>
-
-      <div className="mb-4">
-        <CategoryFilter
-          categories={categoryOptions}
-          selectedCategory={selectedCategory}
-          onSelect={setSelectedCategory}
-        />
-      </div>
-
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-        {TAB_OPTIONS.map((tab) => {
-          const isActive = activeTab === tab.value;
-
-          return (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => setActiveTab(tab.value)}
-              aria-pressed={isActive}
-              className={`shrink-0 rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.14em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950 ${
-                isActive
-                  ? 'bg-primary text-white'
-                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="custom-scrollbar max-h-[54vh] overflow-y-auto pr-1 md:max-h-[430px]">
+      <div
+        className="custom-scrollbar flex-1 overflow-y-auto overscroll-contain pr-1 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-4"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${isLoading ? 'opacity-60' : 'opacity-100'}`}>
           {results.length > 0 ? (
             results.map((product) => (

@@ -231,7 +231,7 @@ function SessionContent() {
         showBack
         onBack={() => router.push('/dashboard')}
         rightElement={
-          <Badge variant={isSessionLive && isConnected ? 'success' : 'warning'}>
+          <Badge variant={isSessionLive && isConnected ? 'connected' : 'warning'}>
             <span className="size-1.5 rounded-full bg-current" />
             {isSessionLive ? (isConnected ? 'Linked' : 'Syncing') : 'Ended'}
           </Badge>
@@ -291,7 +291,7 @@ function SessionContent() {
                   <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Linked physical cart</p>
                   <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-slate-100">{session.cart.cartCode}</h2>
                 </div>
-                <Badge variant={session.cart.status === 'IN_USE' ? 'success' : 'warning'}>{session.cart.status.replace('_', ' ')}</Badge>
+                <Badge variant={session.cart.status === 'IN_USE' ? 'connected' : 'warning'}>{session.cart.status.replace('_', ' ')}</Badge>
               </div>
               <div className="grid gap-3 text-sm sm:grid-cols-3">
                 <div>
