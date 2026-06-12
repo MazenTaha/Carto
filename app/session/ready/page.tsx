@@ -30,6 +30,13 @@ type ReadySessionResponse = {
   } | null;
 };
 
+type DisconnectCartResponse = {
+  disconnected: boolean;
+  sessionId: string;
+  cartCode: string;
+  cartStatus: 'AVAILABLE';
+};
+
 function getApiErrorMessage(data: any, fallback: string) {
   if (data?.error?.message) return data.error.message;
   if (typeof data?.error === 'string') return data.error;
@@ -44,6 +51,7 @@ function ReadySessionContent() {
   const [sessionData, setSessionData] = useState<ReadySessionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isContinuing, setIsContinuing] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [error, setError] = useState('');
 
   const fetchSession = useCallback(async (signal?: AbortSignal) => {
@@ -83,7 +91,7 @@ function ReadySessionContent() {
   }, [fetchSession]);
 
   const handleContinue = useCallback(async () => {
-    if (!sessionId || !sessionData || isContinuing) return;
+    if (!sessionId || !sessionData || isContinuing || isDisconnecting) return;
 
     if (sessionData.receipt?.status === 'PAID') {
       router.replace(`/checkout/success?sessionId=${encodeURIComponent(sessionId)}`);
@@ -110,7 +118,40 @@ function ReadySessionContent() {
       setError(err.message || 'Could not prepare checkout.');
       setIsContinuing(false);
     }
-  }, [isContinuing, router, sessionData, sessionId]);
+  }, [isContinuing, isDisconnecting, router, sessionData, sessionId]);
+
+  const handleDisconnect = useCallback(async () => {
+    if (!sessionId || !sessionData || isDisconnecting || isContinuing) return;
+
+    setIsDisconnecting(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/cart/disconnect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(getApiErrorMessage(data, 'Could not disconnect this cart.'));
+      }
+
+      const disconnectData = data.data as DisconnectCartResponse;
+
+      if (!disconnectData?.disconnected) {
+        throw new Error('Could not disconnect this cart.');
+      }
+
+      router.replace('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Could not disconnect this cart.');
+      setIsDisconnecting(false);
+    }
+  }, [isContinuing, isDisconnecting, router, sessionData, sessionId]);
 
   if (isLoading) {
     return (
@@ -194,20 +235,30 @@ function ReadySessionContent() {
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-        <div className="mx-auto flex max-w-md flex-col gap-3 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] min-[420px]:flex-row">
+        <div className="mx-auto grid max-w-2xl grid-cols-1 gap-3 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] min-[560px]:grid-cols-3">
           <Button
             type="button"
             variant="outline"
-            className="h-12 flex-1 rounded-2xl"
+            className="h-12 rounded-2xl"
             onClick={() => router.push('/dashboard')}
+            disabled={isDisconnecting || isContinuing}
           >
             Back to home
           </Button>
           <Button
             type="button"
-            className="h-12 flex-1 rounded-2xl"
+            variant="outline"
+            className="h-12 rounded-2xl border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
+            onClick={() => void handleDisconnect()}
+            disabled={!sessionIsLive || isDisconnecting || isContinuing}
+          >
+            {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
+          </Button>
+          <Button
+            type="button"
+            className="h-12 rounded-2xl"
             onClick={() => void handleContinue()}
-            disabled={isContinuing}
+            disabled={isContinuing || isDisconnecting}
           >
             {isContinuing ? 'Preparing checkout...' : 'Continue to payment'}
           </Button>

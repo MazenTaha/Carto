@@ -204,6 +204,35 @@ export class CartSessionService {
     });
   }
 
+  public static async disconnectOwnedSession(owner: RequestOwner, sessionId?: string | null) {
+    const cartSession = await prisma.cartSession.findFirst({
+      where: {
+        ...(sessionId ? { id: sessionId } : {}),
+        ...ownerWhere(owner),
+        status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
+        endedAt: null,
+      },
+      select: {
+        id: true,
+        cartId: true,
+      },
+      orderBy: { startedAt: 'desc' },
+    });
+
+    if (!cartSession) {
+      throw new ApiErrorResponse('No active cart session found', 404, 'ACTIVE_SESSION_NOT_FOUND');
+    }
+
+    const result = await this.resetCartById(cartSession.cartId);
+
+    return {
+      disconnected: true as const,
+      sessionId: cartSession.id,
+      cartCode: result.cartCode,
+      cartStatus: result.status,
+    };
+  }
+
   public static async forceFinishSession(sessionId: string) {
     return this.finalizeSessionById(sessionId, { targetStatus: 'COMPLETED' });
   }
