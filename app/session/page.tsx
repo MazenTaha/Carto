@@ -269,18 +269,10 @@ function SessionContent() {
             <ProgressBar value={progressData.percentage} label={`${progress.collected}/${progress.total} items collected`} className="mt-6" />
           </section>
 
-          <section className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Remaining</p>
-              <p className="mt-2 text-3xl font-black text-slate-950 dark:text-slate-100">{remainingItems.length}</p>
-            </div>
+          <section className="max-w-sm">
             <div className="rounded-2xl border border-primary/15 bg-primary/10 p-4 shadow-card">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Collected</p>
               <p className="mt-2 text-3xl font-black text-primary">{collectedItems.length}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Cart status</p>
-              <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">{isConnected ? 'Connected' : 'Waiting'}</p>
             </div>
           </section>
 
@@ -293,14 +285,10 @@ function SessionContent() {
                 </div>
                 <Badge variant={session.cart.status === 'IN_USE' ? 'connected' : 'warning'}>{session.cart.status.replace('_', ' ')}</Badge>
               </div>
-              <div className="grid gap-3 text-sm sm:grid-cols-3">
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
                 <div>
                   <p className="font-bold text-slate-500">Device name</p>
                   <p className="mt-1 truncate font-black text-slate-900 dark:text-slate-100">{session.cart.bluetoothName || 'Not provided'}</p>
-                </div>
-                <div>
-                  <p className="font-bold text-slate-500">QR session</p>
-                  <p className="mt-1 truncate font-black text-slate-900 dark:text-slate-100">{session.externalSessionId || session.cart.qrSessionId || 'Not provided'}</p>
                 </div>
                 <div>
                   <p className="font-bold text-slate-500">Store</p>
