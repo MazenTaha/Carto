@@ -8,6 +8,7 @@ import { ListsOverview, type ListOverviewItem } from '@/components/lists/ListsOv
 import { purgeExpiredShoppingLists } from '@/lib/list-retention';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { SignOutButton } from '@/components/auth/SignOutButton';
+import { getOwnedActiveCartSession } from '@/lib/active-cart-session';
 
 
 function serializeList(list: any): ListOverviewItem {
@@ -35,23 +36,33 @@ export default async function ListsPage({
 
   let lists: any[] = [];
   let deletedLists: any[] = [];
+  let activeSession = null as Awaited<ReturnType<typeof getOwnedActiveCartSession>>;
   if (process.env.DATABASE_URL) {
     try {
       const { prisma } = await import('@/lib/prisma');
       const ownerFilter = ownerWhere(owner);
       await purgeExpiredShoppingLists(prisma, ownerFilter);
-      lists = await prisma.shoppingList.findMany({
-        where: { ...ownerFilter, deletedAt: null },
-        include: { _count: { select: { items: true } } },
-        orderBy: { updatedAt: 'desc' },
-      });
-      deletedLists = await prisma.shoppingList.findMany({
-        where: { ...ownerFilter, deletedAt: { not: null } },
-        include: { _count: { select: { items: true } } },
-        orderBy: { deletedAt: 'desc' },
-      });
+      const [listsData, deletedListsData, activeSessionData] = await Promise.all([
+        prisma.shoppingList.findMany({
+          where: { ...ownerFilter, deletedAt: null },
+          include: { _count: { select: { items: true } } },
+          orderBy: { updatedAt: 'desc' },
+        }),
+        prisma.shoppingList.findMany({
+          where: { ...ownerFilter, deletedAt: { not: null } },
+          include: { _count: { select: { items: true } } },
+          orderBy: { deletedAt: 'desc' },
+        }),
+        getOwnedActiveCartSession(owner),
+      ]);
+      lists = listsData;
+      deletedLists = deletedListsData;
+      activeSession = activeSessionData;
     } catch (error) {}
   }
+
+  const activationDisabled = isActivationFlow && Boolean(activeSession);
+  const activationDisabledMessage = 'Finish or disconnect the current cart session before starting another list.';
 
   return (
     <PageContainer maxWidth="lg">
@@ -112,10 +123,42 @@ export default async function ListsPage({
           </section>
         )}
 
+        {activationDisabled && activeSession && (
+          <section className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-card dark:border-emerald-400/30 dark:bg-emerald-500/10">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <Badge variant="connected">Cart connected</Badge>
+                <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Another list cannot be activated right now</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  {activationDisabledMessage} Your list &quot;{activeSession.shoppingList.name}&quot; is already connected to {activeSession.cartCode}.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href={`/session?sessionId=${encodeURIComponent(activeSession.sessionId)}`}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-black text-white shadow-glow transition active:scale-95"
+                >
+                  <span className="material-symbols-outlined">shopping_cart</span>
+                  Continue session
+                </Link>
+                <Link
+                  href={`/session/ready?sessionId=${encodeURIComponent(activeSession.sessionId)}`}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-300 bg-white px-5 text-sm font-black text-emerald-700 shadow-sm transition hover:bg-emerald-100 dark:border-emerald-400/30 dark:bg-slate-950 dark:text-emerald-300"
+                >
+                  <span className="material-symbols-outlined">payments</span>
+                  Continue to payment
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
         <ListsOverview
           lists={lists.map(serializeList)}
           deletedLists={deletedLists.map(serializeList)}
           isActivationFlow={isActivationFlow}
+          activationDisabled={activationDisabled}
+          activationDisabledMessage={activationDisabledMessage}
         />
       </main>
 

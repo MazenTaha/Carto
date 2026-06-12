@@ -25,6 +25,12 @@ type SelectedListSummary = {
   items?: Array<{ id: string }>;
 };
 
+type ExistingSessionSummary = {
+  sessionId: string;
+  cartCode: string;
+  listName: string;
+};
+
 type PairingStep = 'scanning' | 'confirming' | 'submitting';
 
 function getApiErrorMessage(data: any, fallback: string) {
@@ -58,6 +64,8 @@ function StartSessionContent() {
   const [scannedCart, setScannedCart] = useState<CartQrPayload | null>(null);
   const [selectedList, setSelectedList] = useState<SelectedListSummary | null>(null);
   const [isListLoading, setIsListLoading] = useState(false);
+  const [isCheckingExistingSession, setIsCheckingExistingSession] = useState(true);
+  const [existingSession, setExistingSession] = useState<ExistingSessionSummary | null>(null);
   const [pairingStep, setPairingStep] = useState<PairingStep>('scanning');
   const [scannerKey, setScannerKey] = useState(0);
   const linkInFlightRef = useRef(false);
@@ -84,6 +92,43 @@ function StartSessionContent() {
       document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
     };
   }, [scannedCart]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function checkExistingSession() {
+      try {
+        const response = await fetch('/api/sessions/active', {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data?.success) {
+          return;
+        }
+
+        const activeSession = data?.data?.session;
+
+        if (!controller.signal.aborted && activeSession?.id && activeSession?.cart?.cartCode) {
+          setExistingSession({
+            sessionId: activeSession.id,
+            cartCode: activeSession.cart.cartCode,
+            listName: activeSession.shoppingList?.name || 'your active list',
+          });
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsCheckingExistingSession(false);
+        }
+      }
+    }
+
+    void checkExistingSession();
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     if (!listId) return;
@@ -213,6 +258,66 @@ function StartSessionContent() {
             Select a List
           </button>
         </div>
+      </PageContainer>
+    );
+  }
+
+  if (isCheckingExistingSession) {
+    return (
+      <PageContainer className="flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+          <p className="text-sm font-bold uppercase text-slate-400">Checking session...</p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (existingSession) {
+    return (
+      <PageContainer className="min-h-dvh overflow-x-hidden">
+        <Header title="Connect to Cart" showBack />
+
+        <main className="flex flex-1 items-center justify-center px-4 pb-24 pt-6 sm:px-6">
+          <section className="w-full max-w-lg rounded-[2rem] border border-emerald-200 bg-white p-6 shadow-card dark:border-emerald-400/30 dark:bg-slate-900 sm:p-8">
+            <Badge variant="connected">Cart connected</Badge>
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">A shopping session is already active</h1>
+            <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              Your list &quot;{existingSession.listName}&quot; is already connected to {existingSession.cartCode}. Finish or disconnect the current cart session before starting another list.
+            </p>
+
+            <div className="mt-5 grid gap-3 rounded-3xl bg-emerald-50 p-4 dark:bg-emerald-500/10">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-slate-500 dark:text-slate-400">Cart</span>
+                <span className="font-bold text-slate-950 dark:text-slate-100">{existingSession.cartCode}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-slate-500 dark:text-slate-400">List</span>
+                <span className="font-bold text-slate-950 dark:text-slate-100">{existingSession.listName}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Button
+                onClick={() => router.push(`/session?sessionId=${encodeURIComponent(existingSession.sessionId)}`)}
+                className="h-12 flex-1 rounded-2xl"
+              >
+                <span className="material-symbols-outlined">shopping_cart</span>
+                Continue session
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/session/ready?sessionId=${encodeURIComponent(existingSession.sessionId)}`)}
+                className="h-12 flex-1 rounded-2xl"
+              >
+                <span className="material-symbols-outlined">payments</span>
+                Continue to payment
+              </Button>
+            </div>
+          </section>
+        </main>
+
+        <BottomNav />
       </PageContainer>
     );
   }

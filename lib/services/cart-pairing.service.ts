@@ -222,47 +222,31 @@ export class CartPairingService {
         throw new ApiErrorResponse('Invalid or expired cart pairing code.', 410, 'EXPIRED_PAIRING_CODE');
       }
 
-      // 4. Close any previous sessions for this user on other carts
+      // 4. Block starting another live session while one is still active for this owner
       const previousOwnerSessions = await tx.cartSession.findMany({
         where: {
           ...ownerFilter,
           status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
+          endedAt: null,
         },
         select: {
           id: true,
           cartId: true,
+          listId: true,
         },
       });
 
       if (previousOwnerSessions.length > 0) {
-        await tx.cartSession.updateMany({
-          where: {
-            id: { in: previousOwnerSessions.map((activeSession) => activeSession.id) },
-          },
-          data: {
-            status: 'COMPLETED',
-            endedAt: new Date(),
-          },
-        });
-
-        const previousCartIds = Array.from(
-          new Set(previousOwnerSessions.map((activeSession) => activeSession.cartId).filter((cartId) => cartId !== cart.id))
+        const otherOwnerSession = previousOwnerSessions.find(
+          (activeSession) => activeSession.cartId !== cart.id || activeSession.listId !== list.id
         );
 
-        if (previousCartIds.length > 0) {
-          await tx.cart.updateMany({
-            where: {
-              id: { in: previousCartIds },
-              status: 'IN_USE',
-            },
-            data: {
-              status: 'AVAILABLE',
-              pairingCode: null,
-              pairingExpiresAt: null,
-              qrSessionId: null,
-              lastSeen: new Date(),
-            },
-          });
+        if (otherOwnerSession) {
+          throw new ApiErrorResponse(
+            'You already have an active cart session. Finish or disconnect it before starting another list.',
+            409,
+            'ACTIVE_SESSION_EXISTS'
+          );
         }
       }
 

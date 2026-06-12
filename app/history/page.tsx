@@ -47,7 +47,7 @@ export default async function HistoryPage() {
 
       <main className="flex-1 pb-32 pt-6 md:pb-10">
         <section className="mb-6 rounded-3xl bg-slate-950 p-6 text-white shadow-soft">
-          <Badge className="bg-white/10 text-white ring-white/15">Paid receipts only</Badge>
+          <Badge className="bg-white/10 text-white ring-white/15">Receipt history</Badge>
           <h1 className="mt-4 text-3xl font-black tracking-tight">Final transactions</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">
             History shows only completed checkout receipts from finished shopping sessions.
@@ -57,8 +57,8 @@ export default async function HistoryPage() {
         {receipts.length === 0 ? (
           <EmptyState
             icon="receipt_long"
-            title="No final receipts yet"
-            description="Complete a checkout and the latest receipt will appear here."
+            title="No paid receipts yet"
+            description="Completed payments will appear here."
             actionLabel="Start shopping"
             actionHref="/lists?activate=1"
           />

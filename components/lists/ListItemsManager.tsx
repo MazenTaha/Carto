@@ -63,17 +63,17 @@ export function ListItemsManager({
     });
   };
 
-  const markQuantitySync = (itemId: string) => {
+  const markQuantitySync = useCallback((itemId: string) => {
     setQuantitySyncItemIds((current) => new Set(current).add(itemId));
-  };
+  }, []);
 
-  const clearQuantitySync = (itemId: string) => {
+  const clearQuantitySync = useCallback((itemId: string) => {
     setQuantitySyncItemIds((current) => {
       const next = new Set(current);
       next.delete(itemId);
       return next;
     });
-  };
+  }, []);
 
   const readErrorPayload = useCallback(async (response: Response, fallback: string) => {
     try {
@@ -248,7 +248,7 @@ export function ListItemsManager({
       clearItemPending(optimisticId);
       setIsLoading(false);
     }
-  }, [isLoading, isLockedForActiveSession, listId, router, syncItemsFromServer]);
+  }, [isLoading, isLockedForActiveSession, listId, readErrorPayload, router, syncItemsFromServer]);
 
   const flushQuantityUpdate = useCallback(async (itemId: string) => {
     const requestState = quantityRequestsRef.current.get(itemId);
@@ -327,7 +327,7 @@ export function ListItemsManager({
       clearQuantitySync(itemId);
       setError(err.message || 'Could not update quantity.');
     }
-  }, [clearQuantitySync, listId, readErrorPayload]);
+  }, [clearQuantitySync, listId, markQuantitySync, readErrorPayload]);
 
   const handleUpdateQuantity = async (itemId: string, delta: number) => {
     if (pendingItemIds.has(itemId)) return;

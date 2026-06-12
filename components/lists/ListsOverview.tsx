@@ -23,6 +23,8 @@ interface ListsOverviewProps {
   lists: ListOverviewItem[];
   deletedLists: ListOverviewItem[];
   isActivationFlow: boolean;
+  activationDisabled?: boolean;
+  activationDisabledMessage?: string;
 }
 
 function getPermanentDeleteAt(deletedAt = new Date()) {
@@ -35,6 +37,8 @@ export function ListsOverview({
   lists,
   deletedLists,
   isActivationFlow,
+  activationDisabled = false,
+  activationDisabledMessage = 'Finish the current cart session before activating another list.',
 }: ListsOverviewProps) {
   const [activeLists, setActiveLists] = useState(lists);
   const [recentlyDeletedLists, setRecentlyDeletedLists] = useState(deletedLists);
@@ -153,6 +157,7 @@ export function ListsOverview({
             const isOpening = openingId === list.id;
             const isConfirmingDelete = confirmingDeleteId === list.id;
             const isBusy = busyListId !== null;
+            const activationIsLocked = isActivationFlow && activationDisabled;
 
             return (
               <article
@@ -161,7 +166,8 @@ export function ListsOverview({
                   'group flex min-h-52 flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-card transition duration-150 dark:border-slate-800 dark:bg-slate-900',
                   isOpening
                     ? 'scale-[0.99] border-primary/40 ring-4 ring-primary/10'
-                    : 'hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft'
+                    : !activationIsLocked && 'hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft',
+                  activationIsLocked && 'opacity-75'
                 )}
               >
                 <div>
@@ -200,42 +206,59 @@ export function ListsOverview({
                       </button>
                     )}
                   </div>
+                  {activationIsLocked ? (
+                    <div className="block rounded-xl">
+                      <h2 className="line-clamp-2 text-xl font-black text-slate-950 dark:text-slate-100">
+                        {list.name}
+                      </h2>
+                      <p className="mt-2 text-sm text-slate-500">{count} items - Updated {updatedAt}</p>
+                    </div>
+                  ) : (
+                    <Link
+                      href={href}
+                      onClick={() => setOpeningId(list.id)}
+                      className="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      prefetch
+                    >
+                      <h2 className="line-clamp-2 text-xl font-black text-slate-950 group-hover:text-primary dark:text-slate-100">
+                        {list.name}
+                      </h2>
+                      <p className="mt-2 text-sm text-slate-500">{count} items - Updated {updatedAt}</p>
+                    </Link>
+                  )}
+                </div>
+
+                {activationIsLocked ? (
+                  <div className="mt-6 border-t border-slate-100 pt-4 dark:border-slate-800">
+                    <span className="text-sm font-bold text-slate-400">
+                      {activationDisabledMessage}
+                    </span>
+                  </div>
+                ) : (
                   <Link
                     href={href}
                     onClick={() => setOpeningId(list.id)}
-                    className="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className={cn(
+                      'mt-6 flex items-center justify-between border-t border-slate-100 pt-4 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-slate-800',
+                      isOpening && 'text-primary'
+                    )}
                     prefetch
                   >
-                    <h2 className="line-clamp-2 text-xl font-black text-slate-950 group-hover:text-primary dark:text-slate-100">
-                      {list.name}
-                    </h2>
-                    <p className="mt-2 text-sm text-slate-500">{count} items - Updated {updatedAt}</p>
-                  </Link>
-                </div>
-
-                <Link
-                  href={href}
-                  onClick={() => setOpeningId(list.id)}
-                  className={cn(
-                    'mt-6 flex items-center justify-between border-t border-slate-100 pt-4 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-slate-800',
-                    isOpening && 'text-primary'
-                  )}
-                  prefetch
-                >
-                  <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
-                    {isOpening ? 'Opening...' : isActivationFlow ? 'Open QR scanner' : 'Manage list'}
-                  </span>
-                  <span
-                    className={cn(
-                      'flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition dark:bg-slate-800',
-                      isOpening ? 'bg-primary text-white' : 'group-hover:bg-primary group-hover:text-white'
-                    )}
-                  >
-                    <span className={cn('material-symbols-outlined', isOpening && 'animate-spin')}>
-                      {isOpening ? 'progress_activity' : 'arrow_forward'}
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                      {isOpening ? 'Opening...' : isActivationFlow ? 'Open QR scanner' : 'Manage list'}
                     </span>
-                  </span>
-                </Link>
+                    <span
+                      className={cn(
+                        'flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition dark:bg-slate-800',
+                        isOpening ? 'bg-primary text-white' : 'group-hover:bg-primary group-hover:text-white'
+                      )}
+                    >
+                      <span className={cn('material-symbols-outlined', isOpening && 'animate-spin')}>
+                        {isOpening ? 'progress_activity' : 'arrow_forward'}
+                      </span>
+                    </span>
+                  </Link>
+                )}
               </article>
             );
           })}

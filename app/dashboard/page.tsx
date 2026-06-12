@@ -8,10 +8,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { ShoppingList } from '@/types';
-import { formatCurrency } from '@/lib/utils';
 import { purgeExpiredShoppingLists } from '@/lib/list-retention';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { SignOutButton } from '@/components/auth/SignOutButton';
+import { getOwnedActiveCartSession } from '@/lib/active-cart-session';
 
 
 export default async function DashboardPage() {
@@ -25,13 +25,14 @@ export default async function DashboardPage() {
   let recentLists: ShoppingList[] = [];
   const isGuest = owner.type === 'guest';
   let userName = isGuest ? 'Guest Shopper' : 'Alex';
+  let activeSession = null as Awaited<ReturnType<typeof getOwnedActiveCartSession>>;
 
   if (process.env.DATABASE_URL) {
     try {
       const { prisma } = await import('@/lib/prisma');
       const ownerFilter = ownerWhere(owner);
       await purgeExpiredShoppingLists(prisma, ownerFilter);
-      const [listsData, savedListsCount, receiptTotals] = await Promise.all([
+      const [listsData, savedListsCount, receiptTotals, activeSessionData] = await Promise.all([
         prisma.shoppingList.findMany({
           where: { ...ownerFilter, deletedAt: null },
           orderBy: { updatedAt: 'desc' },
@@ -59,13 +60,18 @@ export default async function DashboardPage() {
           },
           _sum: { total: true },
         }),
+        getOwnedActiveCartSession(owner),
       ]);
 
       recentLists = listsData as ShoppingList[];
       stats.savedLists = savedListsCount;
       stats.totalSpent = receiptTotals._sum.total || 0;
+      activeSession = activeSessionData;
     } catch (error) {}
   }
+
+  const hasActiveSession = Boolean(activeSession);
+  const activationDisabledText = 'Finish or disconnect the current cart session before starting another list.';
 
   return (
     <PageContainer maxWidth="lg">
@@ -101,21 +107,71 @@ export default async function DashboardPage() {
           <div className="w-full max-w-full overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-soft md:p-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
-                <Badge variant="success" className="bg-white/10 text-white ring-white/15">Smart cart ready</Badge>
+                <Badge
+                  variant={hasActiveSession ? 'connected' : 'success'}
+                  className={!hasActiveSession ? 'bg-white/10 text-white ring-white/15' : ''}
+                >
+                  {hasActiveSession ? 'Cart connected' : 'Smart cart ready'}
+                </Badge>
                 <h1 className="mt-5 max-w-2xl text-3xl font-black tracking-tight md:text-4xl">
-                  Welcome back, {userName}. Choose a list and connect to a cart.
+                  {hasActiveSession
+                    ? 'Active shopping session'
+                    : `Welcome back, ${userName}. Choose a list and connect to a cart.`}
                 </h1>
                 <p className="mt-3 max-w-xl text-sm leading-6 text-white/70 md:text-base">
-                  Start by activating the list you want shown on the shopping cart. Carto will sync the items after the QR link succeeds.
+                  {hasActiveSession
+                    ? `Your list "${activeSession?.shoppingList.name}" is currently connected to ${activeSession?.cartCode}. Continue shopping or proceed to payment when you are ready.`
+                    : 'Start by activating the list you want shown on the shopping cart. Carto will sync the items after the QR link succeeds.'}
                 </p>
+
+                {hasActiveSession && activeSession && (
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-2xl bg-white/10 p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Cart</p>
+                      <p className="mt-2 text-lg font-black">{activeSession.cartCode}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">List</p>
+                      <p className="mt-2 truncate text-lg font-black">{activeSession.shoppingList.name}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Items</p>
+                      <p className="mt-2 text-lg font-black">
+                        {activeSession.shoppingList.itemsCount} item{activeSession.shoppingList.itemsCount === 1 ? '' : 's'}
+                      </p>
+                      <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-white/55">
+                        {activeSession.cartStatus.replace('_', ' ')}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <Link
-                href="/lists?activate=1"
-                className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-primary px-6 text-base font-black text-white shadow-glow transition active:scale-[0.98]"
-              >
-                <span className="material-symbols-outlined">qr_code_scanner</span>
-                Start Shopping
-              </Link>
+              {hasActiveSession && activeSession ? (
+                <div className="flex w-full flex-col gap-3 md:w-auto">
+                  <Link
+                    href={`/session?sessionId=${encodeURIComponent(activeSession.sessionId)}`}
+                    className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-primary px-6 text-base font-black text-white shadow-glow transition active:scale-[0.98]"
+                  >
+                    <span className="material-symbols-outlined">shopping_cart</span>
+                    Continue session
+                  </Link>
+                  <Link
+                    href={`/session/ready?sessionId=${encodeURIComponent(activeSession.sessionId)}`}
+                    className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-6 text-base font-black text-white transition hover:bg-white/15 active:scale-[0.98]"
+                  >
+                    <span className="material-symbols-outlined">payments</span>
+                    Continue to payment
+                  </Link>
+                </div>
+              ) : (
+                <Link
+                  href="/lists?activate=1"
+                  className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-primary px-6 text-base font-black text-white shadow-glow transition active:scale-[0.98]"
+                >
+                  <span className="material-symbols-outlined">qr_code_scanner</span>
+                  Start Shopping
+                </Link>
+              )}
             </div>
           </div>
 
@@ -123,18 +179,36 @@ export default async function DashboardPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Next step</p>
-                <h2 className="mt-2 text-xl font-black text-slate-950">Activate a list</h2>
+                <h2 className="mt-2 text-xl font-black text-slate-950">
+                  {hasActiveSession ? 'Activation locked' : 'Activate a list'}
+                </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Pick a saved list, scan the QR code on the physical cart, then the cart display can use that list.
+                  {hasActiveSession
+                    ? activationDisabledText
+                    : 'Pick a saved list, scan the QR code on the physical cart, then the cart display can use that list.'}
                 </p>
               </div>
               <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white text-primary shadow-sm">
                 <span className="material-symbols-outlined">shopping_cart_checkout</span>
               </div>
             </div>
-            <Link href="/lists?activate=1" className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-black text-primary shadow-sm transition hover:bg-primary hover:text-white">
-              Select list to activate
-            </Link>
+            {hasActiveSession ? (
+              <>
+                <button
+                  type="button"
+                  disabled
+                  aria-disabled="true"
+                  className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-white/70 px-4 py-3 text-sm font-black text-slate-400 shadow-sm opacity-70"
+                >
+                  Select list to activate
+                </button>
+                <p className="mt-3 text-sm font-medium text-slate-500">{activationDisabledText}</p>
+              </>
+            ) : (
+              <Link href="/lists?activate=1" className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-black text-primary shadow-sm transition hover:bg-primary hover:text-white">
+                Select list to activate
+              </Link>
+            )}
           </div>
         </section>
 
@@ -145,13 +219,6 @@ export default async function DashboardPage() {
             value={stats.savedLists}
             helper="Existing shopping lists"
             tone="slate"
-          />
-          <MetricCard
-            icon="receipt_long"
-            label="Checkout History"
-            value={formatCurrency(stats.totalSpent)}
-            helper="Paid receipts only"
-            tone="amber"
           />
         </section>
 
