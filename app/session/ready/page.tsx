@@ -177,10 +177,7 @@ function ReadySessionContent() {
             </div>
             <div className="min-w-0">
               <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Next step: payment</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                We removed the old live tracking cards from this post-scan step. You can go straight to checkout from here.
-              </p>
-              <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-300">
+              <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                 {sessionIsLive
                   ? 'Continuing will finalize the active cart session and open checkout.'
                   : 'This session is already finalized, so continuing will open checkout directly.'}
