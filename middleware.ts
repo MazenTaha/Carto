@@ -4,7 +4,7 @@ import { isAdminEmail } from '@/lib/admin-emails';
 import { getAuthSecret } from '@/lib/auth-secret';
 import { GUEST_SESSION_COOKIE } from '@/lib/guest-session.constants';
 
-const USER_ONLY_PATHS = ['/history', '/profile'];
+const USER_ONLY_PATHS = ['/profile'];
 
 function isUserOnlyPath(pathname: string) {
   return USER_ONLY_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
