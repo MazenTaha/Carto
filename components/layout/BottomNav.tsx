@@ -1,19 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { isCustomerNavActive } from '@/lib/customer-nav';
 import { cn } from '@/lib/utils';
-
-function isActivePath(pathname: string | null, href: string) {
-  if (!pathname) {
-    return false;
-  }
-
-  if (href === '/dashboard') {
-    return pathname === '/' || pathname === '/dashboard';
-  }
-
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -28,7 +17,7 @@ export function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-[60] w-full max-w-full overflow-x-hidden border-t border-warm-border/45 bg-white/92 px-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_rgba(114,47,55,0.12)] backdrop-blur-xl pointer-events-auto dark:border-warm-border/45 dark:bg-white/92 md:hidden">
       <div className="mx-auto grid w-full max-w-md grid-cols-4 gap-1 px-1">
         {navItems.map((item) => {
-          const active = isActivePath(pathname, item.href);
+          const active = isCustomerNavActive(pathname, item.href);
 
           return (
             <Link

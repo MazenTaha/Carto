@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { isCustomerNavActive } from '@/lib/customer-nav';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 
@@ -33,9 +34,7 @@ export function Sidebar() {
 
       <nav className="flex-1 space-y-1">
         {navItems.map((item) => {
-          const active = item.href === '/dashboard'
-            ? pathname === '/dashboard' || pathname === '/'
-            : pathname?.startsWith(item.href);
+          const active = isCustomerNavActive(pathname, item.href);
 
           return (
             <Link
