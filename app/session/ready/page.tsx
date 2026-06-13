@@ -41,8 +41,9 @@ type DisconnectCartResponse = {
 type PaymentScanValidationResponse = {
   sessionId: string;
   receiptId: string | null;
-  checkoutUrl: string;
 };
+
+const LAST_PAYMENT_ATTEMPT_KEY = 'carto_last_payment_attempt';
 
 function getApiErrorMessage(data: any, fallback: string) {
   if (data?.error?.message) return data.error.message;
@@ -99,11 +100,15 @@ function ReadySessionContent() {
     return () => controller.abort();
   }, [fetchSession]);
 
-  const proceedToCheckout = useCallback(async () => {
+  const startHostedCheckout = useCallback(async (validatedReceiptId?: string | null) => {
     if (!sessionId || !sessionData || isContinuing || isDisconnecting) return;
 
     if (sessionData.receipt?.status === 'PAID') {
-      router.replace(`/checkout/success?sessionId=${encodeURIComponent(sessionId)}`);
+      const params = new URLSearchParams({ sessionId });
+      if (sessionData.receipt?.id) {
+        params.set('receiptId', sessionData.receipt.id);
+      }
+      router.replace(`/payment/success?${params.toString()}`);
       return;
     }
 
@@ -111,27 +116,53 @@ function ReadySessionContent() {
     setError('');
 
     try {
-      if (isActiveCartSessionStatus(sessionData.session.status)) {
-        const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/finish`, {
-          method: 'POST',
-        });
-        const data = await response.json().catch(() => null);
+      const response = await fetch('/api/payments/paymob/create-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          receiptId: validatedReceiptId || sessionData.receipt?.id || undefined,
+          paymentMethod: 'CARD',
+        }),
+      });
+      const data = await response.json().catch(() => null);
 
-        if (!response.ok || data?.success === false) {
-          throw new Error(getApiErrorMessage(data, 'Could not prepare checkout.'));
-        }
+      if (!response.ok || data?.success === false) {
+        throw new Error(getApiErrorMessage(data, 'Could not open Paymob checkout.'));
       }
 
-      router.replace(`/checkout?sessionId=${encodeURIComponent(sessionId)}`);
+      if (data.data?.attemptId) {
+        window.localStorage.setItem(LAST_PAYMENT_ATTEMPT_KEY, data.data.attemptId);
+      }
+
+      if (data.data?.alreadyPaid) {
+        const params = new URLSearchParams({ sessionId });
+        if (data.data?.receiptId) {
+          params.set('receiptId', data.data.receiptId);
+        }
+        if (data.data?.attemptId) {
+          params.set('attemptId', data.data.attemptId);
+        }
+        router.replace(`/payment/success?${params.toString()}`);
+        return;
+      }
+
+      if (!data.data?.paymentUrl) {
+        throw new Error('Paymob checkout URL is missing.');
+      }
+
+      window.location.assign(data.data.paymentUrl);
     } catch (err: any) {
-      setError(err.message || 'Could not prepare checkout.');
+      setError(err.message || 'Could not open Paymob checkout.');
       setIsContinuing(false);
     }
   }, [isContinuing, isDisconnecting, router, sessionData, sessionId]);
 
   const handleBypassScan = useCallback(async () => {
-    await proceedToCheckout();
-  }, [proceedToCheckout]);
+    await startHostedCheckout();
+  }, [startHostedCheckout]);
 
   const handleScanDetected = useCallback(async (qrValue: string) => {
     if (!sessionId || isValidatingQr || isContinuing || isDisconnecting) {
@@ -142,7 +173,7 @@ function ReadySessionContent() {
     setError('');
 
     try {
-      const response = await fetch('/api/payment/scan/validate', {
+      const response = await fetch('/api/payments/scan/validate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -162,7 +193,7 @@ function ReadySessionContent() {
       }
 
       setIsScannerOpen(false);
-      await proceedToCheckout();
+      await startHostedCheckout(validationData.receiptId);
       return true;
     } catch (err: any) {
       setError(err.message || 'Invalid payment QR code.');
@@ -170,7 +201,7 @@ function ReadySessionContent() {
     } finally {
       setIsValidatingQr(false);
     }
-  }, [isContinuing, isDisconnecting, isValidatingQr, proceedToCheckout, sessionId]);
+  }, [isContinuing, isDisconnecting, isValidatingQr, sessionId, startHostedCheckout]);
 
   const handleDisconnect = useCallback(async () => {
     if (!sessionId || !sessionData || isDisconnecting || isContinuing) return;

@@ -83,7 +83,7 @@ export const cartQrPayloadSchema = z.object({
 export const createStoreSchema = z.object({
   name: z.string().min(1, 'Store name is required').max(100),
   location: z.string().max(200).optional(),
-  currency: z.string().length(3, 'Currency must be a 3-letter code').default('USD'),
+  currency: z.string().length(3, 'Currency must be a 3-letter code').default('EGP'),
   taxRate: z.number().min(0).max(1).default(0.085),
   logo: z.string().url().optional(),
 });
@@ -118,8 +118,8 @@ export const markNotificationsReadSchema = z.object({
 // ─── Payment ───────────────────────────────────────────────────────────────────
 
 export const createPaymentSchema = z.object({
-  receiptId: z.string().min(1, 'Receipt ID is required'),
+  receiptId: z.string().min(1, 'Receipt ID is required').optional(),
   sessionId: z.string().min(1, 'Session ID is required'),
-  amount: z.number().positive('Amount must be positive'),
+  amount: z.number().positive('Amount must be positive').optional(),
   paymentMethod: z.enum(['CARD', 'CASH', 'MOBILE', 'WALLET']).default('CARD'),
 });

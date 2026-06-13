@@ -11,7 +11,8 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ReceiptPanel } from '@/components/ui/ReceiptPanel';
 import { Receipt } from '@/types';
 import { formatCurrency } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+
+const LAST_PAYMENT_ATTEMPT_KEY = 'carto_last_payment_attempt';
 
 function getApiErrorMessage(data: any, fallback: string) {
   if (data?.error?.message) return data.error.message;
@@ -28,7 +29,6 @@ function CheckoutContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'saved' | 'new'>('saved');
 
   const fetchReceipt = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -73,21 +73,37 @@ function CheckoutContent() {
         body: JSON.stringify({
           receiptId: receipt.id,
           sessionId,
-          amount: receipt.total,
+          paymentMethod: 'CARD',
         }),
       });
       const data = await response.json();
       if (!response.ok || data?.success === false) {
-        throw new Error(getApiErrorMessage(data, 'Payment failed'));
+        throw new Error(getApiErrorMessage(data, 'Could not open Paymob checkout.'));
       }
 
-      if (data.data.paymentUrl) {
-        window.location.href = data.data.paymentUrl;
-      } else {
-        router.push(`/checkout/success?sessionId=${sessionId}`);
+      if (data.data?.attemptId) {
+        window.localStorage.setItem(LAST_PAYMENT_ATTEMPT_KEY, data.data.attemptId);
       }
+
+      if (data.data?.alreadyPaid) {
+        const params = new URLSearchParams({ sessionId });
+        if (data.data?.receiptId) {
+          params.set('receiptId', data.data.receiptId);
+        }
+        if (data.data?.attemptId) {
+          params.set('attemptId', data.data.attemptId);
+        }
+        router.push(`/payment/success?${params.toString()}`);
+        return;
+      }
+
+      if (!data.data?.paymentUrl) {
+        throw new Error('Paymob checkout URL is missing.');
+      }
+
+      window.location.assign(data.data.paymentUrl);
     } catch (err: any) {
-      setError(err.message || 'Payment processing failed');
+      setError(err.message || 'Could not open Paymob checkout.');
     } finally {
       setIsProcessing(false);
     }
@@ -128,66 +144,26 @@ function CheckoutContent() {
             <Badge className="bg-white/10 text-white ring-white/15">Final step</Badge>
             <h1 className="mt-4 text-3xl font-black tracking-tight">Review and pay</h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">
-              Confirm the virtual receipt from your smart cart session. This demo payment will finalize the transaction and move it to history.
+              Confirm the final receipt from your Carto session. Continuing will open the real Paymob hosted checkout, and your receipt only becomes paid after the gateway confirms it.
             </p>
           </div>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900 md:p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Payment Method</h2>
-                <p className="mt-1 text-sm text-slate-500">Choose how to complete this demo checkout.</p>
+                <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Hosted checkout</h2>
+                <p className="mt-1 text-sm text-slate-500">You will be redirected to Paymob to complete this payment securely in EGP.</p>
               </div>
               <span className="material-symbols-outlined text-primary">lock</span>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 font-bold transition hover:border-primary/30 hover:bg-white dark:border-slate-800 dark:bg-slate-950" type="button">
-                <span className="rounded bg-slate-950 px-1.5 py-1 text-[10px] font-black text-white">Pay</span>
-                Apple Pay
-              </button>
-              <button className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 font-bold transition hover:border-primary/30 hover:bg-white dark:border-slate-800 dark:bg-slate-950" type="button">
-                <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
-                Google Pay
-              </button>
-            </div>
-
-            <div className="my-6 flex items-center gap-4">
-              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-              <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">or card</span>
-              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-            </div>
-
-            <div className="space-y-3">
-              {[
-                { id: 'saved' as const, title: 'Visa ending in 4242', helper: 'Expires 12/26', icon: 'credit_card' },
-                { id: 'new' as const, title: 'Add new payment method', helper: 'Use another card for this transaction', icon: 'add_card' },
-              ].map((method) => (
-                <button
-                  key={method.id}
-                  type="button"
-                  onClick={() => setPaymentMethod(method.id)}
-                  className={cn(
-                    'flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition',
-                    paymentMethod === method.id
-                      ? 'border-primary bg-primary/5 ring-4 ring-primary/10'
-                      : 'border-slate-200 bg-white hover:border-primary/30 dark:border-slate-800 dark:bg-slate-950'
-                  )}
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 dark:bg-slate-800">
-                      <span className="material-symbols-outlined">{method.icon}</span>
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate font-black text-slate-950 dark:text-slate-100">{method.title}</span>
-                      <span className="text-sm text-slate-500">{method.helper}</span>
-                    </span>
-                  </span>
-                  <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-full border-2', paymentMethod === method.id ? 'border-primary' : 'border-slate-300')}>
-                    {paymentMethod === method.id && <span className="size-2.5 rounded-full bg-primary" />}
-                  </span>
-                </button>
-              ))}
+            <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">What happens next</p>
+              <div className="mt-3 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                <p>Paymob will handle the card or wallet screen outside the app.</p>
+                <p>Your receipt history updates only after the backend receives the final payment confirmation.</p>
+                <p>If Paymob returns you before the webhook finishes, Carto will keep checking the payment status automatically.</p>
+              </div>
             </div>
           </section>
 
@@ -228,10 +204,10 @@ function CheckoutContent() {
               </div>
               <div className="mt-5 flex items-center justify-center gap-2 text-xs font-bold text-slate-400">
                 <span className="material-symbols-outlined text-sm">encrypted</span>
-                Secure demo checkout
+                Secure Paymob checkout
               </div>
               <Button size="lg" className="mt-4 w-full" onClick={handlePayment} disabled={isProcessing}>
-                {isProcessing ? 'Processing...' : `Confirm and Pay ${formatCurrency(receipt.total)}`}
+                {isProcessing ? 'Opening Paymob...' : `Continue to Paymob ${formatCurrency(receipt.total)}`}
               </Button>
             </div>
           </ReceiptPanel>
@@ -245,7 +221,7 @@ function CheckoutContent() {
             <p className="text-2xl font-black text-slate-950 dark:text-slate-100">{formatCurrency(receipt.total)}</p>
           </div>
           <Button onClick={handlePayment} disabled={isProcessing}>
-            {isProcessing ? 'Processing' : 'Pay'}
+            {isProcessing ? 'Opening' : 'Pay'}
           </Button>
         </div>
       </div>

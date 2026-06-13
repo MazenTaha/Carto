@@ -93,7 +93,7 @@ function parsePaymentQrValue(qrValue: string, request: NextRequest): ParsedPayme
       return { error: 'This payment QR code does not belong to this Carto app.' };
     }
 
-    if (!['/checkout', '/payment/scan'].includes(parsedUrl.pathname)) {
+    if (!['/checkout', '/payment/scan', '/session/ready', '/payment/pending'].includes(parsedUrl.pathname)) {
       return { error: 'This QR code is not a valid Carto payment route.' };
     }
 
@@ -160,8 +160,8 @@ export async function POST(request: NextRequest) {
       sessionId: cartSession.id,
       receiptId: cartSession.receipt?.id ?? null,
       checkoutUrl: cartSession.receipt?.status === 'PAID'
-        ? `/checkout/success?sessionId=${encodeURIComponent(cartSession.id)}`
-        : `/checkout?sessionId=${encodeURIComponent(cartSession.id)}`,
+        ? `/payment/success?sessionId=${encodeURIComponent(cartSession.id)}`
+        : `/session/ready?sessionId=${encodeURIComponent(cartSession.id)}`,
     });
   } catch (error) {
     console.error('Error validating payment QR:', error);

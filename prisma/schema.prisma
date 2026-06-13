@@ -56,7 +56,7 @@ model Store {
   id        String   @id @default(cuid())
   name      String
   location  String?
-  currency  String   @default("USD")
+  currency  String   @default("EGP")
   taxRate   Float    @default(0.085)
   logo      String?
   createdAt DateTime @default(now())
@@ -199,11 +199,12 @@ model Receipt {
   paymentMethod PaymentMethod @default(CARD)
   paymentStatus PaymentStatus @default(PENDING)
 
-  cartSession  CartSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  guestSession GuestSession? @relation(fields: [guestSessionId], references: [id], onDelete: Cascade)
-  store        Store?        @relation(fields: [storeId], references: [id])
-  items        ReceiptItem[]
+  cartSession     CartSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user            User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestSession    GuestSession?    @relation(fields: [guestSessionId], references: [id], onDelete: Cascade)
+  store           Store?           @relation(fields: [storeId], references: [id])
+  items           ReceiptItem[]
+  paymentAttempts PaymentAttempt[]
 
   @@index([sessionId])
   @@index([userId])
@@ -232,6 +233,48 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
+}
+
+model PaymentAttempt {
+  id                    String               @id @default(cuid())
+  receiptId             String
+  sessionId             String
+  userId                String?
+  guestSessionId        String?
+  provider              String               @default("PAYMOB")
+  merchantOrderId       String               @unique
+  providerOrderId       String?              @unique
+  providerTransactionId String?              @unique
+  amountCents           Int
+  currency              String               @default("EGP")
+  checkoutUrl           String?
+  status                PaymentAttemptStatus @default(PENDING)
+  lastError             String?
+  rawResponse           Json?
+  rawWebhook            Json?
+  metadata              Json?
+  completedAt           DateTime?
+  failedAt              DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  receipt Receipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@index([receiptId])
+  @@index([sessionId])
+  @@index([userId])
+  @@index([guestSessionId])
+  @@index([status])
+  @@map("payment_attempts")
+}
+
+enum PaymentAttemptStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  EXPIRED
 }
 
 // ─── RECEIPT ITEM ──────────────────────────────────────────────────────────────
