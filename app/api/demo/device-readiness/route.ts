@@ -70,6 +70,7 @@ export async function GET(request: Request) {
       adminAccessConfigured: isAdminAccessConfigured(DEMO_ADMIN_EMAIL),
     },
     endpoints: {
+      setupCart: '/api/demo/setup-cart',
       qrcode: `/api/carts/${encodeURIComponent(cartCode)}/qrcode`,
       activeSession: `/api/carts/${encodeURIComponent(cartCode)}/active-session`,
       link: '/api/cart/link',

@@ -39,7 +39,7 @@ export function getCartCodeLookupCandidates(cartCode: string) {
   if (!trimmed) return [];
 
   if (isDemoCartCode(trimmed)) {
-    return [DEMO_CART_CODE, LEGACY_DEMO_CART_CODE];
+    return [DEMO_CART_CODE];
   }
 
   return uniqueCaseInsensitive([trimmed, normalizeCartCode(trimmed)]);

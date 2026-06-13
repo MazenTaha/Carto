@@ -1,4 +1,4 @@
-import { SessionStatus, type PrismaClient } from '@prisma/client';
+import { type CartStatus, type PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import {
   DEMO_CART_CODE,
@@ -14,8 +14,6 @@ export const DEMO_ADMIN_NAME = 'Admin';
 export const DEMO_ADMIN_PASSWORD = 'Admin_1';
 export const DEMO_STORE_ID = 'dev-carto-store';
 
-const ACTIVE_SESSION_STATUSES: SessionStatus[] = [SessionStatus.ACTIVE, SessionStatus.DISCONNECTED];
-
 type DemoProvisionOptions = {
   deviceSecret?: string;
 };
@@ -24,30 +22,13 @@ export type DemoProvisionResult = {
   adminUserExists: boolean;
   adminHasPasswordHash: boolean;
   cartExists: boolean;
-  cartStatus: 'AVAILABLE';
+  hasDeviceSecret: boolean;
+  cartStatus: 'AVAILABLE' | 'IN_USE';
   guestSessionTableReachable: boolean;
 };
 
-export async function provisionDemoState(prisma: PrismaClient, options: DemoProvisionOptions = {}): Promise<DemoProvisionResult> {
-  const now = new Date();
-  const deviceSecret = options.deviceSecret || process.env.DEMO_DEVICE_SECRET?.trim() || DEMO_DEVICE_SECRET;
-  const adminPasswordHash = await bcrypt.hash(DEMO_ADMIN_PASSWORD, 12);
-
-  await prisma.user.upsert({
-    where: { email: DEMO_ADMIN_EMAIL },
-    update: {
-      email: DEMO_ADMIN_EMAIL,
-      password: adminPasswordHash,
-      name: DEMO_ADMIN_NAME,
-    },
-    create: {
-      email: DEMO_ADMIN_EMAIL,
-      password: adminPasswordHash,
-      name: DEMO_ADMIN_NAME,
-    },
-  });
-
-  const store = await prisma.store.upsert({
+async function ensureDemoStore(prisma: PrismaClient) {
+  return prisma.store.upsert({
     where: { id: DEMO_STORE_ID },
     update: {
       name: 'Carto Demo Store',
@@ -59,6 +40,12 @@ export async function provisionDemoState(prisma: PrismaClient, options: DemoProv
       location: 'Demo seed',
     },
   });
+}
+
+export async function provisionDemoCart(prisma: PrismaClient, options: DemoProvisionOptions = {}) {
+  const now = new Date();
+  const deviceSecret = options.deviceSecret || process.env.DEMO_DEVICE_SECRET?.trim() || DEMO_DEVICE_SECRET;
+  const store = await ensureDemoStore(prisma);
 
   const existingCart = await prisma.cart.findFirst({
     where: {
@@ -73,38 +60,19 @@ export async function provisionDemoState(prisma: PrismaClient, options: DemoProv
     },
   });
 
-  const activeSessionIds = existingCart
-    ? (await prisma.cartSession.findMany({
+  const hasActiveSession = existingCart
+    ? Boolean(await prisma.cartSession.findFirst({
         where: {
           cartId: existingCart.id,
-          status: { in: ACTIVE_SESSION_STATUSES },
+          status: { in: ['ACTIVE', 'DISCONNECTED'] },
           endedAt: null,
         },
         select: { id: true },
-      })).map((session) => session.id)
-    : [];
+      }))
+    : false;
+  const targetStatus: CartStatus = hasActiveSession ? 'IN_USE' : 'AVAILABLE';
 
   await prisma.$transaction(async (tx) => {
-    if (activeSessionIds.length > 0) {
-      await tx.cartSession.updateMany({
-        where: { id: { in: activeSessionIds } },
-        data: {
-          status: SessionStatus.COMPLETED,
-          endedAt: now,
-        },
-      });
-
-      await tx.receipt.updateMany({
-        where: {
-          sessionId: { in: activeSessionIds },
-          status: 'DRAFT',
-        },
-        data: {
-          status: 'LOCKED',
-        },
-      });
-    }
-
     const canonicalCart = await tx.cart.findUnique({
       where: { cartCode: DEMO_CART_CODE },
       select: { id: true },
@@ -126,7 +94,7 @@ export async function provisionDemoState(prisma: PrismaClient, options: DemoProv
           pairingExpiresAt: null,
           qrSessionId: null,
           deviceSecret,
-          status: 'AVAILABLE',
+          status: targetStatus,
           storeId: store.id,
           lastSeen: now,
         },
@@ -141,7 +109,7 @@ export async function provisionDemoState(prisma: PrismaClient, options: DemoProv
           pairingExpiresAt: null,
           qrSessionId: null,
           deviceSecret,
-          status: 'AVAILABLE',
+          status: targetStatus,
           storeId: store.id,
           lastSeen: now,
         },
@@ -155,13 +123,41 @@ export async function provisionDemoState(prisma: PrismaClient, options: DemoProv
           pairingExpiresAt: null,
           qrSessionId: null,
           deviceSecret,
-          status: 'AVAILABLE',
+          status: targetStatus,
           storeId: store.id,
           lastSeen: now,
         },
       });
     }
   });
+
+  return {
+    cartCode: DEMO_CART_CODE,
+    cartExists: true,
+    hasDeviceSecret: Boolean(deviceSecret),
+    status: targetStatus,
+  };
+}
+
+export async function provisionDemoState(prisma: PrismaClient, options: DemoProvisionOptions = {}): Promise<DemoProvisionResult> {
+  const deviceSecret = options.deviceSecret || process.env.DEMO_DEVICE_SECRET?.trim() || DEMO_DEVICE_SECRET;
+  const adminPasswordHash = await bcrypt.hash(DEMO_ADMIN_PASSWORD, 12);
+
+  await prisma.user.upsert({
+    where: { email: DEMO_ADMIN_EMAIL },
+    update: {
+      email: DEMO_ADMIN_EMAIL,
+      password: adminPasswordHash,
+      name: DEMO_ADMIN_NAME,
+    },
+    create: {
+      email: DEMO_ADMIN_EMAIL,
+      password: adminPasswordHash,
+      name: DEMO_ADMIN_NAME,
+    },
+  });
+
+  const cart = await provisionDemoCart(prisma, { deviceSecret });
 
   await prisma.guestSession.findFirst({
     select: { id: true },
@@ -170,8 +166,9 @@ export async function provisionDemoState(prisma: PrismaClient, options: DemoProv
   return {
     adminUserExists: true,
     adminHasPasswordHash: true,
-    cartExists: true,
-    cartStatus: 'AVAILABLE',
+    cartExists: cart.cartExists,
+    hasDeviceSecret: cart.hasDeviceSecret,
+    cartStatus: cart.status,
     guestSessionTableReachable: true,
   };
 }

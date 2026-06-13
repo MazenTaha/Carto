@@ -15,8 +15,6 @@ const prisma = new PrismaClient()
 const ADMIN_EMAIL = 'admin@gmail.com'
 const ADMIN_PASSWORD = 'Admin_1'
 const DEMO_STORE_ID = 'dev-carto-store'
-const ACTIVE_SESSION_STATUSES: SessionStatus[] = [SessionStatus.ACTIVE, SessionStatus.DISCONNECTED]
-
 // Curated product dataset - 300+ generic grocery items
 const products = [
     // Fresh Fruits (40 items)
@@ -1623,38 +1621,19 @@ async function main() {
         },
     })
 
-    const activeSessionIds = existingCart
-        ? (await prisma.cartSession.findMany({
+    const hasActiveSession = existingCart
+        ? Boolean(await prisma.cartSession.findFirst({
             where: {
                 cartId: existingCart.id,
-                status: { in: ACTIVE_SESSION_STATUSES },
+                status: { in: [SessionStatus.ACTIVE, SessionStatus.DISCONNECTED] },
                 endedAt: null,
             },
             select: { id: true },
-        })).map((session) => session.id)
-        : []
+        }))
+        : false
+    const targetCartStatus = hasActiveSession ? 'IN_USE' : 'AVAILABLE'
 
     await prisma.$transaction(async (tx) => {
-        if (activeSessionIds.length > 0) {
-            await tx.cartSession.updateMany({
-                where: { id: { in: activeSessionIds } },
-                data: {
-                    status: 'COMPLETED',
-                    endedAt: now,
-                },
-            })
-
-            await tx.receipt.updateMany({
-                where: {
-                    sessionId: { in: activeSessionIds },
-                    status: 'DRAFT',
-                },
-                data: {
-                    status: 'LOCKED',
-                },
-            })
-        }
-
         const canonicalCart = await tx.cart.findUnique({
             where: { cartCode: DEMO_CART_CODE },
             select: { id: true },
@@ -1676,7 +1655,7 @@ async function main() {
                     pairingExpiresAt: null,
                     qrSessionId: null,
                     deviceSecret: DEMO_DEVICE_SECRET,
-                    status: 'AVAILABLE',
+                    status: targetCartStatus,
                     storeId: store.id,
                     lastSeen: now,
                 },
@@ -1691,7 +1670,7 @@ async function main() {
                     pairingExpiresAt: null,
                     qrSessionId: null,
                     deviceSecret: DEMO_DEVICE_SECRET,
-                    status: 'AVAILABLE',
+                    status: targetCartStatus,
                     storeId: store.id,
                     lastSeen: now,
                 },
@@ -1706,7 +1685,7 @@ async function main() {
                     qrSessionId: null,
                     deviceSecret: DEMO_DEVICE_SECRET,
                     storeId: store.id,
-                    status: 'AVAILABLE',
+                    status: targetCartStatus,
                     lastSeen: now,
                 },
             })
