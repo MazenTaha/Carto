@@ -1,6 +1,12 @@
 import { PrismaClient, SessionStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { config as loadEnv } from 'dotenv';
+import {
+    DEMO_CART_CODE,
+    DEMO_DEVICE_SECRET,
+    LEGACY_DEMO_CART_CODE,
+    getDemoCartBluetoothName,
+} from '../lib/cart-code';
 
 loadEnv({ path: '.env' });
 
@@ -8,8 +14,6 @@ const prisma = new PrismaClient()
 
 const ADMIN_EMAIL = 'admin@gmail.com'
 const ADMIN_PASSWORD = 'Admin_1'
-const DEMO_CART_CODE = 'CART-001'
-const DEMO_DEVICE_SECRET = 'dev-device-secret'
 const DEMO_STORE_ID = 'dev-carto-store'
 const ACTIVE_SESSION_STATUSES: SessionStatus[] = [SessionStatus.ACTIVE, SessionStatus.DISCONNECTED]
 
@@ -1606,9 +1610,17 @@ async function main() {
         },
     })
 
-    const existingCart = await prisma.cart.findUnique({
-        where: { cartCode: DEMO_CART_CODE },
-        select: { id: true },
+    const existingCart = await prisma.cart.findFirst({
+        where: {
+            OR: [
+                { cartCode: DEMO_CART_CODE },
+                { cartCode: LEGACY_DEMO_CART_CODE },
+            ],
+        },
+        select: {
+            id: true,
+            cartCode: true,
+        },
     })
 
     const activeSessionIds = existingCart
@@ -1643,30 +1655,62 @@ async function main() {
             })
         }
 
-        await tx.cart.upsert({
+        const canonicalCart = await tx.cart.findUnique({
             where: { cartCode: DEMO_CART_CODE },
-            update: {
-                bluetoothName: `Carto-${DEMO_CART_CODE}`,
-                pairingCode: null,
-                pairingExpiresAt: null,
-                qrSessionId: null,
-                deviceSecret: DEMO_DEVICE_SECRET,
-                status: 'AVAILABLE',
-                storeId: store.id,
-                lastSeen: now,
-            },
-            create: {
-                cartCode: DEMO_CART_CODE,
-                bluetoothName: `Carto-${DEMO_CART_CODE}`,
-                pairingCode: null,
-                pairingExpiresAt: null,
-                qrSessionId: null,
-                deviceSecret: DEMO_DEVICE_SECRET,
-                storeId: store.id,
-                status: 'AVAILABLE',
-                lastSeen: now,
-            },
+            select: { id: true },
         })
+        const legacyCart = canonicalCart
+            ? null
+            : await tx.cart.findUnique({
+                where: { cartCode: LEGACY_DEMO_CART_CODE },
+                select: { id: true },
+            })
+
+        if (canonicalCart) {
+            await tx.cart.update({
+                where: { id: canonicalCart.id },
+                data: {
+                    cartCode: DEMO_CART_CODE,
+                    bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
+                    pairingCode: null,
+                    pairingExpiresAt: null,
+                    qrSessionId: null,
+                    deviceSecret: DEMO_DEVICE_SECRET,
+                    status: 'AVAILABLE',
+                    storeId: store.id,
+                    lastSeen: now,
+                },
+            })
+        } else if (legacyCart) {
+            await tx.cart.update({
+                where: { id: legacyCart.id },
+                data: {
+                    cartCode: DEMO_CART_CODE,
+                    bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
+                    pairingCode: null,
+                    pairingExpiresAt: null,
+                    qrSessionId: null,
+                    deviceSecret: DEMO_DEVICE_SECRET,
+                    status: 'AVAILABLE',
+                    storeId: store.id,
+                    lastSeen: now,
+                },
+            })
+        } else {
+            await tx.cart.create({
+                data: {
+                    cartCode: DEMO_CART_CODE,
+                    bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
+                    pairingCode: null,
+                    pairingExpiresAt: null,
+                    qrSessionId: null,
+                    deviceSecret: DEMO_DEVICE_SECRET,
+                    storeId: store.id,
+                    status: 'AVAILABLE',
+                    lastSeen: now,
+                },
+            })
+        }
     })
 
     const totalCount = await prisma.product.count()

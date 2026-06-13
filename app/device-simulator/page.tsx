@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { RefreshCw, Receipt, ShoppingCart, Wifi, WifiOff } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { DEMO_CART_CODE, normalizeCartCode } from '@/lib/cart-code';
 
 const STORAGE_KEY = 'carto_device_simulator_config';
 
@@ -116,7 +117,7 @@ const jsonFetcher = async ([url, deviceSecret]: [string, string]) => {
 
 export default function DeviceSimulatorPage() {
   const [deviceSecret, setDeviceSecret] = useState('dev-device-secret');
-  const [cartCode, setCartCode] = useState('CART-001');
+  const [cartCode, setCartCode] = useState(DEMO_CART_CODE);
   const [isConnected, setIsConnected] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [lastPollAt, setLastPollAt] = useState<string | null>(null);
@@ -154,7 +155,7 @@ export default function DeviceSimulatorPage() {
     );
   }, [hydrated, cartCode, deviceSecret]);
 
-  const trimmedCartCode = cartCode.trim().toUpperCase();
+  const trimmedCartCode = normalizeCartCode(cartCode);
   const trimmedDeviceSecret = deviceSecret.trim();
   const activeSessionKey = useMemo(
     () =>
@@ -337,10 +338,10 @@ export default function DeviceSimulatorPage() {
                 <input
                   type="text"
                   value={cartCode}
-                  onChange={(event) => setCartCode(event.target.value.toUpperCase())}
+                  onChange={(event) => setCartCode(event.target.value)}
                   disabled={isConnected}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm uppercase disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950"
-                  placeholder="CART-001"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950"
+                  placeholder="cart-01"
                 />
               </div>
 

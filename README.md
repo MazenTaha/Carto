@@ -158,14 +158,14 @@ Cart QR codes contain only pairing data, not shopping list contents:
 ```json
 {
   "type": "cart_pairing",
-  "cartCode": "CART-001",
+  "cartCode": "cart-01",
   "pairingCode": "123456"
 }
 ```
 
 After a shopper selects a list and scans the QR, `/api/cart/link` verifies ownership and pairing, creates the `CartSession` and draft `Receipt`, and marks the cart `IN_USE`. A cart/device fetches its assigned list from `/api/carts/[cartCode]/active-session` with `Authorization: Bearer <deviceSecret>`.
 
-For local testing, the seed script creates `CART-001` with `deviceSecret` set to `dev-device-secret`.
+For local testing, the seed script creates `cart-01` with `deviceSecret` set to `dev-device-secret`.
 
 ## Guest Mode
 

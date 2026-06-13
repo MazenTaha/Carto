@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ApiErrorResponse } from '../api-response';
+import { buildCartCodeLookupWhere } from '@/lib/cart-code';
 
 export class DeviceAuthService {
   /**
@@ -24,8 +25,8 @@ export class DeviceAuthService {
       throw new ApiErrorResponse('Missing device bearer token.', 401, 'DEVICE_SECRET_REQUIRED');
     }
 
-    const cart = await prisma.cart.findUnique({
-      where: { cartCode: cartCode.trim() },
+    const cart = await prisma.cart.findFirst({
+      where: buildCartCodeLookupWhere(cartCode),
       select: {
         id: true,
         cartCode: true,

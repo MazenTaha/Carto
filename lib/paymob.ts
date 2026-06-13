@@ -43,6 +43,20 @@ function getPaymobHostedBaseUrl() {
   return (process.env.PAYMOB_HOSTED_BASE_URL || DEFAULT_PAYMOB_HOSTED_BASE_URL).replace(/\/+$/, '');
 }
 
+export function isPaymobConfigured() {
+  const apiKey = process.env.PAYMOB_API_KEY?.trim();
+  const integrationId = Number(process.env.PAYMOB_INTEGRATION_ID);
+  const iframeId = Number(process.env.PAYMOB_IFRAME_ID);
+
+  return Boolean(
+    apiKey &&
+    Number.isInteger(integrationId) &&
+    integrationId > 0 &&
+    Number.isInteger(iframeId) &&
+    iframeId > 0
+  );
+}
+
 export function getPaymobConfig() {
   const apiKey = process.env.PAYMOB_API_KEY?.trim();
   const integrationId = Number(process.env.PAYMOB_INTEGRATION_ID);

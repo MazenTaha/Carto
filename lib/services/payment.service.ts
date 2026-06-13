@@ -12,6 +12,7 @@ import {
   createPaymobAuthToken,
   createPaymobOrder,
   createPaymobPaymentKey,
+  isPaymobConfigured,
 } from '@/lib/paymob';
 
 const REUSABLE_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
@@ -30,6 +31,10 @@ type PaymobWebhookInput = {
 
 function buildMerchantOrderId() {
   return `carto_${crypto.randomUUID().replace(/-/g, '')}`;
+}
+
+function buildSecurePreviewCheckoutUrl(attemptId: string) {
+  return `/payment/secure-preview?attemptId=${encodeURIComponent(attemptId)}`;
 }
 
 async function getReceiptOwnerProfile(owner: RequestOwner) {
@@ -311,6 +316,43 @@ export class PaymentService {
       },
     });
 
+    if (!isPaymobConfigured()) {
+      const checkoutUrl = buildSecurePreviewCheckoutUrl(paymentAttempt.id);
+
+      await prisma.$transaction([
+        prisma.paymentAttempt.update({
+          where: { id: paymentAttempt.id },
+          data: {
+            checkoutUrl,
+            metadata: {
+              cartCode: cartSession.cart?.cartCode ?? null,
+              storeId: cartSession.cart?.storeId ?? null,
+              storeName: cartSession.cart?.store?.name ?? null,
+              listId: cartSession.shoppingList?.id ?? null,
+              listName: cartSession.shoppingList?.name ?? null,
+              paymentMethod: input.paymentMethod ?? receipt.paymentMethod,
+              checkoutMode: 'preview',
+            },
+          },
+        }),
+        prisma.receipt.update({
+          where: { id: receipt.id },
+          data: {
+            paymentMethod: input.paymentMethod ?? receipt.paymentMethod,
+            paymentStatus: 'PENDING',
+          },
+        }),
+      ]);
+
+      return {
+        alreadyPaid: false,
+        sessionId: cartSession.id,
+        receiptId: receipt.id,
+        attemptId: paymentAttempt.id,
+        checkoutUrl,
+      };
+    }
+
     try {
       const profile = await getReceiptOwnerProfile(owner);
       const authToken = await createPaymobAuthToken();
@@ -366,7 +408,7 @@ export class PaymentService {
         },
       });
 
-      throw error;
+      throw new ApiErrorResponse('Could not initialize secure payment checkout.', 502, 'PAYMENT_PROVIDER_ERROR');
     }
   }
 

@@ -1,10 +1,17 @@
 import { SessionStatus, type PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import {
+  DEMO_CART_CODE,
+  DEMO_DEVICE_SECRET,
+  LEGACY_DEMO_CART_CODE,
+  getDemoCartBluetoothName,
+} from '@/lib/cart-code';
+
+export { DEMO_CART_CODE } from '@/lib/cart-code';
 
 export const DEMO_ADMIN_EMAIL = 'admin@gmail.com';
 export const DEMO_ADMIN_NAME = 'Admin';
 export const DEMO_ADMIN_PASSWORD = 'Admin_1';
-export const DEMO_CART_CODE = 'CART-001';
 export const DEMO_STORE_ID = 'dev-carto-store';
 
 const ACTIVE_SESSION_STATUSES: SessionStatus[] = [SessionStatus.ACTIVE, SessionStatus.DISCONNECTED];
@@ -23,7 +30,7 @@ export type DemoProvisionResult = {
 
 export async function provisionDemoState(prisma: PrismaClient, options: DemoProvisionOptions = {}): Promise<DemoProvisionResult> {
   const now = new Date();
-  const deviceSecret = options.deviceSecret || process.env.DEMO_DEVICE_SECRET?.trim() || 'dev-device-secret';
+  const deviceSecret = options.deviceSecret || process.env.DEMO_DEVICE_SECRET?.trim() || DEMO_DEVICE_SECRET;
   const adminPasswordHash = await bcrypt.hash(DEMO_ADMIN_PASSWORD, 12);
 
   await prisma.user.upsert({
@@ -53,9 +60,17 @@ export async function provisionDemoState(prisma: PrismaClient, options: DemoProv
     },
   });
 
-  const existingCart = await prisma.cart.findUnique({
-    where: { cartCode: DEMO_CART_CODE },
-    select: { id: true },
+  const existingCart = await prisma.cart.findFirst({
+    where: {
+      OR: [
+        { cartCode: DEMO_CART_CODE },
+        { cartCode: LEGACY_DEMO_CART_CODE },
+      ],
+    },
+    select: {
+      id: true,
+      cartCode: true,
+    },
   });
 
   const activeSessionIds = existingCart
@@ -90,30 +105,62 @@ export async function provisionDemoState(prisma: PrismaClient, options: DemoProv
       });
     }
 
-    await tx.cart.upsert({
+    const canonicalCart = await tx.cart.findUnique({
       where: { cartCode: DEMO_CART_CODE },
-      update: {
-        bluetoothName: `Carto-${DEMO_CART_CODE}`,
-        pairingCode: null,
-        pairingExpiresAt: null,
-        qrSessionId: null,
-        deviceSecret,
-        status: 'AVAILABLE',
-        storeId: store.id,
-        lastSeen: now,
-      },
-      create: {
-        cartCode: DEMO_CART_CODE,
-        bluetoothName: `Carto-${DEMO_CART_CODE}`,
-        pairingCode: null,
-        pairingExpiresAt: null,
-        qrSessionId: null,
-        deviceSecret,
-        status: 'AVAILABLE',
-        storeId: store.id,
-        lastSeen: now,
-      },
+      select: { id: true },
     });
+    const legacyCart = canonicalCart
+      ? null
+      : await tx.cart.findUnique({
+          where: { cartCode: LEGACY_DEMO_CART_CODE },
+          select: { id: true },
+        });
+
+    if (canonicalCart) {
+      await tx.cart.update({
+        where: { id: canonicalCart.id },
+        data: {
+          cartCode: DEMO_CART_CODE,
+          bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
+          pairingCode: null,
+          pairingExpiresAt: null,
+          qrSessionId: null,
+          deviceSecret,
+          status: 'AVAILABLE',
+          storeId: store.id,
+          lastSeen: now,
+        },
+      });
+    } else if (legacyCart) {
+      await tx.cart.update({
+        where: { id: legacyCart.id },
+        data: {
+          cartCode: DEMO_CART_CODE,
+          bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
+          pairingCode: null,
+          pairingExpiresAt: null,
+          qrSessionId: null,
+          deviceSecret,
+          status: 'AVAILABLE',
+          storeId: store.id,
+          lastSeen: now,
+        },
+      });
+    } else {
+      await tx.cart.create({
+        data: {
+          cartCode: DEMO_CART_CODE,
+          bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
+          pairingCode: null,
+          pairingExpiresAt: null,
+          qrSessionId: null,
+          deviceSecret,
+          status: 'AVAILABLE',
+          storeId: store.id,
+          lastSeen: now,
+        },
+      });
+    }
   });
 
   await prisma.guestSession.findFirst({

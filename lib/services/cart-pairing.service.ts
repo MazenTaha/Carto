@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { RequestOwner, ownerCreateData, ownerWhere } from '@/lib/guest-session';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
+import { buildCartCodeLookupWhere, normalizeCartCode } from '@/lib/cart-code';
 import { ApiErrorResponse } from '../api-response';
 import { CartConnectionService } from './cart-connection.service';
 
@@ -65,8 +66,8 @@ export class CartPairingService {
     await CartConnectionService.reconcileCartByCode(cartCode);
 
     return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const cart = await tx.cart.findUnique({
-        where: { cartCode },
+      const cart = await tx.cart.findFirst({
+        where: buildCartCodeLookupWhere(cartCode),
         select: {
           id: true,
           cartCode: true,
@@ -114,7 +115,7 @@ export class CartPairingService {
 
       const payload = {
         type: 'cart_pairing' as const,
-        cartCode: updatedCart.cartCode,
+        cartCode: normalizeCartCode(updatedCart.cartCode),
         pairingCode: updatedCart.pairingCode,
       };
 
@@ -157,8 +158,8 @@ export class CartPairingService {
       }
 
       // 2. Find and validate the physical cart
-      const cart = await tx.cart.findUnique({
-        where: { cartCode: params.cartCode },
+      const cart = await tx.cart.findFirst({
+        where: buildCartCodeLookupWhere(params.cartCode),
         include: { store: true },
       });
 
@@ -192,7 +193,7 @@ export class CartPairingService {
 
           return {
             id: existingCartSession.id,
-            cartCode: cart.cartCode,
+            cartCode: normalizeCartCode(cart.cartCode),
             reused: true,
           };
         }
@@ -283,7 +284,7 @@ export class CartPairingService {
           startedAt: now,
           qrCode: JSON.stringify({
             type: 'cart_pairing',
-            cartCode: cart.cartCode,
+            cartCode: normalizeCartCode(cart.cartCode),
             pairingCode: params.pairingCode,
           }),
           receipt: {
@@ -320,7 +321,7 @@ export class CartPairingService {
 
       return {
         id: createdSession.id,
-        cartCode: cart.cartCode,
+        cartCode: normalizeCartCode(cart.cartCode),
         reused: false,
       };
     }, {

@@ -51,6 +51,10 @@ function getApiErrorMessage(data: any, fallback: string) {
   return fallback;
 }
 
+function isInternalCheckoutUrl(checkoutUrl: string) {
+  return checkoutUrl.startsWith('/');
+}
+
 function ReadySessionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -130,11 +134,14 @@ function ReadySessionContent() {
       const data = await response.json().catch(() => null);
 
       if (!response.ok || data?.success === false) {
-        throw new Error(getApiErrorMessage(data, 'Could not open Paymob checkout.'));
+        throw new Error(getApiErrorMessage(data, 'Could not prepare secure payment.'));
       }
 
-      if (data.data?.attemptId) {
-        window.localStorage.setItem(LAST_PAYMENT_ATTEMPT_KEY, data.data.attemptId);
+      const paymentAttemptId = data.data?.paymentAttemptId || data.data?.attemptId;
+      const checkoutUrl = data.data?.checkoutUrl || data.data?.paymentUrl;
+
+      if (paymentAttemptId) {
+        window.localStorage.setItem(LAST_PAYMENT_ATTEMPT_KEY, paymentAttemptId);
       }
 
       if (data.data?.alreadyPaid) {
@@ -142,20 +149,25 @@ function ReadySessionContent() {
         if (data.data?.receiptId) {
           params.set('receiptId', data.data.receiptId);
         }
-        if (data.data?.attemptId) {
-          params.set('attemptId', data.data.attemptId);
+        if (paymentAttemptId) {
+          params.set('attemptId', paymentAttemptId);
         }
         router.replace(`/payment/success?${params.toString()}`);
         return;
       }
 
-      if (!data.data?.paymentUrl) {
-        throw new Error('Paymob checkout URL is missing.');
+      if (!checkoutUrl) {
+        throw new Error('Secure payment checkout URL is missing.');
       }
 
-      window.location.assign(data.data.paymentUrl);
+      if (isInternalCheckoutUrl(checkoutUrl)) {
+        router.push(checkoutUrl);
+        return;
+      }
+
+      window.location.href = checkoutUrl;
     } catch (err: any) {
-      setError(err.message || 'Could not open Paymob checkout.');
+      setError(err.message || 'Could not prepare secure payment.');
       setIsContinuing(false);
     }
   }, [isContinuing, isDisconnecting, router, sessionData, sessionId]);
@@ -337,7 +349,7 @@ function ReadySessionContent() {
             disabled={isBusy}
           >
             <span className="material-symbols-outlined text-[18px]">bolt</span>
-            Bypass scan
+            {isContinuing ? 'Preparing payment...' : 'Bypass scan'}
           </Button>
           <Button
             type="button"

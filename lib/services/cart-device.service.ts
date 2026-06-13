@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
+import { normalizeCartCode } from '@/lib/cart-code';
 import { ApiErrorResponse } from '../api-response';
 import { calculateTax } from '../utils';
 import { CartSessionService } from './cart-session.service';
@@ -214,13 +215,15 @@ export class CartDeviceService {
   }
 
   public static buildWaitingPayload(cart: { cartCode: string; status: string }) {
+    const canonicalCartCode = normalizeCartCode(cart.cartCode);
+
     return {
       status: 'waiting' as const,
       active: false,
-      cartCode: cart.cartCode,
+      cartCode: canonicalCartCode,
       cartStatus: cart.status,
       cart: {
-        cartCode: cart.cartCode,
+        cartCode: canonicalCartCode,
         status: cart.status,
       },
     };
@@ -230,10 +233,12 @@ export class CartDeviceService {
     cart: { cartCode: string; status: string },
     session: DeviceSessionSnapshot
   ) {
+    const canonicalCartCode = normalizeCartCode(cart.cartCode);
+
     return {
       status: 'active' as const,
       active: true,
-      cartCode: cart.cartCode,
+      cartCode: canonicalCartCode,
       cartStatus: cart.status,
       cartSessionId: session.id,
       sessionId: session.id,
@@ -254,7 +259,7 @@ export class CartDeviceService {
       total: session.receipt?.total ?? 0,
       paymentStatus: session.receipt?.paymentStatus ?? null,
       cart: {
-        cartCode: cart.cartCode,
+        cartCode: canonicalCartCode,
         status: cart.status,
       },
       session: {

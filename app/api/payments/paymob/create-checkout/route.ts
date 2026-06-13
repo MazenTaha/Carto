@@ -33,8 +33,10 @@ export async function POST(request: NextRequest) {
     return successResponse({
       sessionId: checkout.sessionId,
       receiptId: checkout.receiptId,
+      paymentAttemptId: checkout.attemptId,
       attemptId: checkout.attemptId,
       alreadyPaid: checkout.alreadyPaid,
+      checkoutUrl: checkout.checkoutUrl,
       paymentUrl: checkout.checkoutUrl,
     });
   } catch (error: any) {

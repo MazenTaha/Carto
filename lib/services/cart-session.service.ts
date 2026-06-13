@@ -4,6 +4,7 @@ import { calculateTax } from '@/lib/utils';
 import { ReceiptItem } from '@/types';
 import { RequestOwner, ownerCreateData, ownerWhere } from '@/lib/guest-session';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
+import { buildCartCodeLookupWhere, normalizeCartCode } from '@/lib/cart-code';
 import { ApiErrorResponse } from '../api-response';
 
 const DEFAULT_ACTIVE_SESSION_TIMEOUT_MS = 2 * 60 * 60 * 1000;
@@ -314,15 +315,15 @@ export class CartSessionService {
     }
 
     return {
-      cartCode: cart.cartCode,
+      cartCode: normalizeCartCode(cart.cartCode),
       status: 'AVAILABLE' as const,
       closedSessionId,
     };
   }
 
   public static async resetCartByCode(cartCode: string) {
-    const cart = await prisma.cart.findUnique({
-      where: { cartCode: cartCode.trim() },
+    const cart = await prisma.cart.findFirst({
+      where: buildCartCodeLookupWhere(cartCode),
       select: { id: true },
     });
 

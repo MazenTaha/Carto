@@ -5,6 +5,7 @@ import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { CartDeviceService } from '@/lib/services/cart-device.service';
 import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
 import { prisma } from '@/lib/prisma';
+import { buildCartCodeLookupWhere, normalizeCartCode } from '@/lib/cart-code';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
 import { applyDeviceApiHeaders, handleDeviceOptions } from '@/lib/device-api-http';
 
@@ -31,7 +32,7 @@ export async function GET(
       return applyDeviceApiHeaders(
         request,
         successResponse({
-          cartCode: cart.cartCode,
+          cartCode: normalizeCartCode(cart.cartCode),
           status: activeSession ? 'IN_USE' : reconciliation?.cart.status ?? cart.status,
           activeSessionId: activeSession?.id ?? null,
           receiptId: activeSession?.receipt?.id ?? null,
@@ -43,8 +44,8 @@ export async function GET(
     }
 
     const reconciliation = await CartConnectionService.reconcileCartByCode(params.cartCode);
-    const cart = await prisma.cart.findUnique({
-      where: { cartCode: params.cartCode.trim() },
+    const cart = await prisma.cart.findFirst({
+      where: buildCartCodeLookupWhere(params.cartCode),
       select: {
         id: true,
         cartCode: true,
@@ -62,7 +63,7 @@ export async function GET(
     return applyDeviceApiHeaders(
       request,
       successResponse({
-        cartCode: cart.cartCode,
+        cartCode: normalizeCartCode(cart.cartCode),
         status: activeSession ? 'IN_USE' : reconciliation?.cart.status ?? cart.status,
         isAvailable: !activeSession && (reconciliation?.cart.status ?? cart.status) === 'AVAILABLE',
         hasActiveSession: Boolean(activeSession),

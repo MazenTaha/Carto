@@ -1,5 +1,6 @@
 import { successResponse } from '@/lib/api-response';
 import { getAppRuntimeEnvironment, getSafeDatabaseUrlInfo } from '@/lib/database-url-info';
+import { buildCartCodeLookupWhere, DEMO_CART_CODE, normalizeCartCode } from '@/lib/cart-code';
 import { prisma } from '@/lib/prisma';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
@@ -34,7 +35,7 @@ function isAdminAccessConfigured(email: string) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const cartCode = searchParams.get('cartCode')?.trim().toUpperCase() || 'CART-001';
+  const cartCode = normalizeCartCode(searchParams.get('cartCode')?.trim() || DEMO_CART_CODE);
   const warnings: string[] = [];
   const runtimeEnvironment = getAppRuntimeEnvironment();
   const hasDatabaseUrl = Boolean(process.env.DATABASE_URL?.trim());
@@ -95,8 +96,8 @@ export async function GET(request: Request) {
   try {
     await CartConnectionService.reconcileCartByCode(cartCode);
 
-    const cart = await prisma.cart.findUnique({
-      where: { cartCode },
+    const cart = await prisma.cart.findFirst({
+      where: buildCartCodeLookupWhere(cartCode),
       select: {
         id: true,
         cartCode: true,

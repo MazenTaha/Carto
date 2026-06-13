@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 export const runtime = "nodejs";
 import { prisma } from '@/lib/prisma';
 import { successResponse, errorResponse } from '@/lib/api-response';
+import { buildCartCodeLookupWhere, normalizeCartCode } from '@/lib/cart-code';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
 
 // GET /api/carts/[cartCode] - Look up a physical cart by its QR code
@@ -13,8 +14,8 @@ export async function GET(
     try {
         await CartConnectionService.reconcileCartByCode(params.cartCode);
 
-        const cart = await prisma.cart.findUnique({
-            where: { cartCode: params.cartCode },
+        const cart = await prisma.cart.findFirst({
+            where: buildCartCodeLookupWhere(params.cartCode),
             select: {
                 id: true,
                 cartCode: true,
@@ -48,7 +49,10 @@ export async function GET(
             );
         }
 
-        const response = successResponse(cart);
+        const response = successResponse({
+            ...cart,
+            cartCode: normalizeCartCode(cart.cartCode),
+        });
         response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         return response;
     } catch (error) {

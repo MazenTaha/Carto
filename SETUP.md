@@ -243,7 +243,7 @@ Camera access is allowed from `http://localhost:3000` on the same computer runni
 For the QR/device flow, create or seed a physical cart with:
 
 ```text
-cartCode: CART-001
+cartCode: cart-01
 pairingCode: 123456
 deviceSecret: dev-device-secret
 status: AVAILABLE
@@ -254,12 +254,12 @@ The seed script creates this demo cart when run. The cart QR payload should cont
 ```json
 {
   "type": "cart_pairing",
-  "cartCode": "CART-001",
+  "cartCode": "cart-01",
   "pairingCode": "123456"
 }
 ```
 
-Open `/device/CART-001`, enter `dev-device-secret`, then link a selected list from `/session/start?listId=<listId>`. The device page polls the protected backend endpoint and shows the assigned list after linking.
+Open `/device/cart-01`, enter `dev-device-secret`, then link a selected list from `/session/start?listId=<listId>`. The device page polls the protected backend endpoint and shows the assigned list after linking.
 
 To simulate items being scanned by the cart, you can use the receipt items API:
 

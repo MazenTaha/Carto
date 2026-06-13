@@ -1,6 +1,7 @@
 import { CartStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
+import { buildCartCodeLookupWhere } from '@/lib/cart-code';
 import { CartSessionService } from './cart-session.service';
 
 type ReconciledCart = {
@@ -12,8 +13,8 @@ type ReconciledCart = {
 
 export class CartConnectionService {
   private static async loadCartByCode(cartCode: string) {
-    return prisma.cart.findUnique({
-      where: { cartCode: cartCode.trim() },
+    return prisma.cart.findFirst({
+      where: buildCartCodeLookupWhere(cartCode),
       select: {
         id: true,
         cartCode: true,
