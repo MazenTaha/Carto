@@ -253,7 +253,7 @@ export class CartPairingService {
 
         if (otherOwnerSession) {
           throw new ApiErrorResponse(
-            'You already have an active cart session. Finish or disconnect it before starting another list.',
+            'You already have an active cart session.',
             409,
             'ACTIVE_SESSION_EXISTS'
           );

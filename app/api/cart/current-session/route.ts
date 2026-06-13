@@ -6,26 +6,31 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const revalidate = 0;
 
+function withNoStoreHeaders<T extends Response>(response: T) {
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  return response;
+}
+
 export async function GET() {
   try {
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
+      return withNoStoreHeaders(errorResponse('Unauthorized', 401, 'UNAUTHORIZED'));
     }
 
     const activeSession = await getOwnedActiveCartSession(owner);
 
     if (!activeSession) {
-      return successResponse({ active: false });
+      return withNoStoreHeaders(successResponse({ active: false }));
     }
 
-    return successResponse({
+    return withNoStoreHeaders(successResponse({
       active: true,
       session: activeSession,
-    });
+    }));
   } catch (error) {
     console.error('Error fetching current cart session:', error);
-    return errorResponse('Failed to fetch current cart session', 500, 'INTERNAL_SERVER_ERROR');
+    return withNoStoreHeaders(errorResponse('Failed to fetch current cart session', 500, 'INTERNAL_SERVER_ERROR'));
   }
 }

@@ -9,12 +9,13 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { isCurrentCustomerCartSessionStatus } from '@/lib/current-cart-session';
+import { isCurrentCustomerSessionLive } from '@/lib/current-cart-session';
 
 type ReadySessionResponse = {
   session: {
     id: string;
     status: string;
+    endedAt?: string | null;
     shoppingList: {
       id: string;
       name: string;
@@ -22,12 +23,14 @@ type ReadySessionResponse = {
     } | null;
     cart: {
       cartCode: string;
+      status?: string | null;
     } | null;
   };
   receipt: {
     id: string;
     status: string;
     total: number;
+    paymentStatus?: string | null;
   } | null;
 };
 
@@ -242,6 +245,7 @@ function ReadySessionContent() {
       }
 
       router.replace('/dashboard');
+      router.refresh();
     } catch (err: any) {
       setError(err.message || 'Could not disconnect this cart.');
       setIsDisconnecting(false);
@@ -276,9 +280,13 @@ function ReadySessionContent() {
   const listName = sessionData.session.shoppingList?.name || 'Selected list';
   const itemCount = sessionData.session.shoppingList?.items?.length || 0;
   const cartCode = sessionData.session.cart?.cartCode || 'Cart connected';
-  const sessionIsCurrent =
-    isCurrentCustomerCartSessionStatus(sessionData.session.status) &&
-    sessionData.receipt?.status !== 'PAID';
+  const sessionIsCurrent = isCurrentCustomerSessionLive({
+    status: sessionData.session.status,
+    endedAt: sessionData.session.endedAt ? new Date(sessionData.session.endedAt) : null,
+    cartStatus: sessionData.session.cart?.status,
+    receiptStatus: sessionData.receipt?.status,
+    paymentStatus: sessionData.receipt?.paymentStatus,
+  });
   const isBusy = isContinuing || isDisconnecting || isValidatingQr;
 
   return (
@@ -357,7 +365,10 @@ function ReadySessionContent() {
             type="button"
             variant="outline"
             className="h-12 rounded-2xl"
-            onClick={() => router.push('/dashboard')}
+            onClick={() => {
+              router.replace('/dashboard');
+              router.refresh();
+            }}
             disabled={isBusy}
           >
             Back to home
