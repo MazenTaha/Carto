@@ -71,7 +71,6 @@ export default async function DashboardPage() {
   }
 
   const hasActiveSession = Boolean(activeSession);
-  const activationDisabledText = 'Finish or disconnect the current cart session before starting another list.';
 
   return (
     <PageContainer maxWidth="lg">
@@ -118,7 +117,7 @@ export default async function DashboardPage() {
                 </h1>
                 <p className="mt-3 max-w-xl text-sm leading-6 text-white/70 md:text-base">
                   {hasActiveSession
-                    ? `Your list "${activeSession?.shoppingList.name}" is currently connected to ${activeSession?.cartCode}. Continue shopping or proceed to payment when you are ready.`
+                    ? `Your list "${activeSession?.shoppingList.name}" is currently connected to ${activeSession?.cartCode}. Continue the active session from here whenever you are ready.`
                     : 'Start by activating the list you want shown on the shopping cart. Carto will sync the items after the QR link succeeds.'}
                 </p>
 
@@ -145,20 +144,13 @@ export default async function DashboardPage() {
                 )}
               </div>
               {hasActiveSession && activeSession ? (
-                <div className="flex w-full flex-col gap-3 md:w-auto">
+                <div className="w-full md:w-auto">
                   <Link
                     href={`/session?sessionId=${encodeURIComponent(activeSession.sessionId)}`}
-                    className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-primary px-6 text-base font-black text-white shadow-glow transition active:scale-[0.98]"
+                    className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-6 text-base font-black text-white transition hover:bg-white/15 active:scale-[0.98] md:w-auto"
                   >
                     <span className="material-symbols-outlined">shopping_cart</span>
                     Continue session
-                  </Link>
-                  <Link
-                    href={`/session/ready?sessionId=${encodeURIComponent(activeSession.sessionId)}`}
-                    className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-6 text-base font-black text-white transition hover:bg-white/15 active:scale-[0.98]"
-                  >
-                    <span className="material-symbols-outlined">payments</span>
-                    Continue to payment
                   </Link>
                 </div>
               ) : (
@@ -173,41 +165,25 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <div className="w-full max-w-full rounded-3xl border border-primary/15 bg-primary/10 p-5 shadow-card">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Next step</p>
-                <h2 className="mt-2 text-xl font-black text-slate-950">
-                  {hasActiveSession ? 'Activation locked' : 'Activate a list'}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {hasActiveSession
-                    ? activationDisabledText
-                    : 'Pick a saved list, scan the QR code on the physical cart, then the cart display can use that list.'}
-                </p>
+          {!hasActiveSession && (
+            <div className="w-full max-w-full rounded-3xl border border-primary/15 bg-primary/10 p-5 shadow-card">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Next step</p>
+                  <h2 className="mt-2 text-xl font-black text-slate-950">Activate a list</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Pick a saved list, scan the QR code on the physical cart, then the cart display can use that list.
+                  </p>
+                </div>
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white text-primary shadow-sm">
+                  <span className="material-symbols-outlined">shopping_cart_checkout</span>
+                </div>
               </div>
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white text-primary shadow-sm">
-                <span className="material-symbols-outlined">shopping_cart_checkout</span>
-              </div>
-            </div>
-            {hasActiveSession ? (
-              <>
-                <button
-                  type="button"
-                  disabled
-                  aria-disabled="true"
-                  className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-white/70 px-4 py-3 text-sm font-black text-slate-400 shadow-sm opacity-70"
-                >
-                  Select list to activate
-                </button>
-                <p className="mt-3 text-sm font-medium text-slate-500">{activationDisabledText}</p>
-              </>
-            ) : (
               <Link href="/lists?activate=1" className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-black text-primary shadow-sm transition hover:bg-primary hover:text-white">
                 Select list to activate
               </Link>
-            )}
-          </div>
+            </div>
+          )}
         </section>
 
         <section className="mt-5 grid w-full min-w-0 gap-3 sm:grid-cols-2">

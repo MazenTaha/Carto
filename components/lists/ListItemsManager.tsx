@@ -18,9 +18,19 @@ interface ListItemsManagerProps {
   listName: string;
   initialItems: ListItem[];
   isLockedForActiveSession?: boolean;
+  activeSession?: {
+    sessionId: string;
+    cartCode: string;
+    shoppingList: {
+      id: string;
+      name: string;
+      itemsCount: number;
+    };
+  } | null;
 }
 
 const activeSessionLockMessage = 'This list is active on a cart. Finish the session before editing it.';
+const existingSessionMessage = 'You already have an active cart session. Finish or disconnect it before starting another list.';
 
 type ApiErrorPayload = {
   error?: string | { code?: string; message?: string };
@@ -44,6 +54,7 @@ export function ListItemsManager({
   listName,
   initialItems,
   isLockedForActiveSession = false,
+  activeSession = null,
 }: ListItemsManagerProps) {
   const router = useRouter();
   const [items, setItems] = useState<ListItem[]>(initialItems);
@@ -574,6 +585,23 @@ export function ListItemsManager({
     () => items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0),
     [items]
   );
+  const hasOwnedActiveSession = Boolean(activeSession?.sessionId);
+  const isCurrentListSession = activeSession?.shoppingList.id === listId;
+
+  const handleActivationClick = useCallback(() => {
+    if (isCurrentListSession && activeSession?.sessionId) {
+      router.push(`/session?sessionId=${encodeURIComponent(activeSession.sessionId)}`);
+      return;
+    }
+
+    if (hasOwnedActiveSession) {
+      setError(existingSessionMessage);
+      return;
+    }
+
+    setIsActivating(true);
+    router.push(`/session/start?listId=${listId}`);
+  }, [activeSession?.sessionId, hasOwnedActiveSession, isCurrentListSession, listId, router]);
 
   const renderItem = (item: ListItem) => (
     (() => {
@@ -645,16 +673,15 @@ export function ListItemsManager({
         rightElement={
           <Button
             size="sm"
-            onClick={() => {
-              setIsActivating(true);
-              router.push(`/session/start?listId=${listId}`);
-            }}
+            onClick={handleActivationClick}
             disabled={isActivating}
           >
             <span className={cn('material-symbols-outlined text-[18px]', isActivating && 'animate-spin')}>
-              {isActivating ? 'progress_activity' : 'qr_code_scanner'}
+              {isActivating ? 'progress_activity' : isCurrentListSession ? 'shopping_cart' : 'qr_code_scanner'}
             </span>
-            <span className="hidden sm:inline">{isActivating ? 'Opening' : 'Activate'}</span>
+            <span className="hidden sm:inline">
+              {isActivating ? 'Opening' : isCurrentListSession ? 'Continue session' : 'Activate'}
+            </span>
           </Button>
         }
       />
@@ -663,14 +690,34 @@ export function ListItemsManager({
         <section className="grid gap-4 lg:grid-cols-[1fr_320px]">
           <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-soft md:p-6">
             <Badge className="bg-white/10 text-white ring-white/15">
-              {isLockedForActiveSession ? 'Active on cart' : 'Shopping list'}
+              {hasOwnedActiveSession ? 'Cart connected' : isLockedForActiveSession ? 'Active on cart' : 'Shopping list'}
             </Badge>
             <h1 className="mt-4 text-3xl font-black tracking-tight">{listName}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">
-              {isLockedForActiveSession
+              {hasOwnedActiveSession && !isCurrentListSession
+                ? existingSessionMessage
+                : isLockedForActiveSession
                 ? 'This list is currently assigned to a cart. Finish the session before changing it.'
                 : 'Keep the list ready, then activate it to link with the QR code on a cart.'}
             </p>
+            {hasOwnedActiveSession && activeSession && (
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl bg-white/10 p-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Cart</p>
+                  <p className="mt-2 text-lg font-black">{activeSession.cartCode}</p>
+                </div>
+                <div className="rounded-2xl bg-white/10 p-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">List</p>
+                  <p className="mt-2 truncate text-lg font-black">{activeSession.shoppingList.name}</p>
+                </div>
+                <div className="rounded-2xl bg-white/10 p-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Items</p>
+                  <p className="mt-2 text-lg font-black">
+                    {activeSession.shoppingList.itemsCount} item{activeSession.shoppingList.itemsCount === 1 ? '' : 's'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
@@ -728,9 +775,9 @@ export function ListItemsManager({
               <span className={cn('material-symbols-outlined', isLoading && 'animate-spin')}>{isLoading ? 'progress_activity' : 'add'}</span>
             </Button>
           </div>
-          {isLockedForActiveSession && (
+          {(isLockedForActiveSession || (hasOwnedActiveSession && !isCurrentListSession)) && (
             <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
-              {activeSessionLockMessage}
+              {hasOwnedActiveSession && !isCurrentListSession ? existingSessionMessage : activeSessionLockMessage}
             </p>
           )}
           {error && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-300">{error}</p>}
