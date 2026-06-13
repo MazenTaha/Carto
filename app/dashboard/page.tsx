@@ -13,6 +13,8 @@ import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { SignOutButton } from '@/components/auth/SignOutButton';
 import { getOwnedActiveCartSession } from '@/lib/active-cart-session';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function DashboardPage() {
   const owner = process.env.DATABASE_URL ? await requireUserOrGuest() : null;
@@ -186,86 +188,90 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        <section className="mt-5 grid w-full min-w-0 gap-3 sm:grid-cols-2">
-          <MetricCard
-            icon="format_list_bulleted"
-            label="Saved Lists"
-            value={stats.savedLists}
-            helper="Existing shopping lists"
-            tone="slate"
-          />
-        </section>
-
-        <section className="mt-6 grid w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
-          <div className="w-full min-w-0 max-w-full rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Recent Lists</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Your latest shopping plans.</p>
-              </div>
-              <Link href="/lists" className="text-sm font-bold text-primary hover:underline">View all</Link>
-            </div>
-
-            {recentLists.length === 0 ? (
-              <EmptyState
-                icon="playlist_add"
-                title="No shopping lists yet"
-                description="Create your first list, then activate it when you are ready to link a cart."
-                actionLabel="Create list"
-                actionHref="/lists/new"
+        {!hasActiveSession && (
+          <>
+            <section className="mt-5 grid w-full min-w-0 gap-3 sm:grid-cols-2">
+              <MetricCard
+                icon="format_list_bulleted"
+                label="Saved Lists"
+                value={stats.savedLists}
+                helper="Existing shopping lists"
+                tone="slate"
               />
-            ) : (
-              <div className="grid w-full min-w-0 gap-3 sm:grid-cols-2">
-                {recentLists.map((list) => {
-                  const totalItems = list.items?.length || 0;
-                  const collectedItems = list.items?.filter((item: any) => item.isCollected).length || 0;
-                  const percentage = totalItems > 0 ? Math.round((collectedItems / totalItems) * 100) : 0;
+            </section>
 
-                  return (
-                    <Link
-                      key={list.id}
-                      href={`/lists/${list.id}`}
-                    className="group block w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-primary/30 hover:bg-white hover:shadow-card dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="truncate text-base font-black text-slate-950 group-hover:text-primary dark:text-slate-100">{list.name}</h3>
-                          <p className="mt-1 text-sm text-slate-500">{totalItems} items ready</p>
-                        </div>
-                        <span className="material-symbols-outlined text-slate-400 group-hover:text-primary">chevron_right</span>
-                      </div>
-                      <ProgressBar value={percentage} className="mt-4" />
-                    </Link>
-                  );
-                })}
+            <section className="mt-6 grid w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
+              <div className="w-full min-w-0 max-w-full rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Recent Lists</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Your latest shopping plans.</p>
+                  </div>
+                  <Link href="/lists" className="text-sm font-bold text-primary hover:underline">View all</Link>
+                </div>
+
+                {recentLists.length === 0 ? (
+                  <EmptyState
+                    icon="playlist_add"
+                    title="No shopping lists yet"
+                    description="Create your first list, then activate it when you are ready to link a cart."
+                    actionLabel="Create list"
+                    actionHref="/lists/new"
+                  />
+                ) : (
+                  <div className="grid w-full min-w-0 gap-3 sm:grid-cols-2">
+                    {recentLists.map((list) => {
+                      const totalItems = list.items?.length || 0;
+                      const collectedItems = list.items?.filter((item: any) => item.isCollected).length || 0;
+                      const percentage = totalItems > 0 ? Math.round((collectedItems / totalItems) * 100) : 0;
+
+                      return (
+                        <Link
+                          key={list.id}
+                          href={`/lists/${list.id}`}
+                        className="group block w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-primary/30 hover:bg-white hover:shadow-card dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="truncate text-base font-black text-slate-950 group-hover:text-primary dark:text-slate-100">{list.name}</h3>
+                              <p className="mt-1 text-sm text-slate-500">{totalItems} items ready</p>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-400 group-hover:text-primary">chevron_right</span>
+                          </div>
+                          <ProgressBar value={percentage} className="mt-4" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <aside className="w-full min-w-0 max-w-full rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Quick Actions</h2>
-            <div className="mt-4 space-y-3">
-              <Link href="/lists/new" className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-primary/30 hover:bg-primary/5 dark:border-slate-800">
-                <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <span className="material-symbols-outlined">add</span>
-                </span>
-                <span>
-                  <span className="block font-black text-slate-950 dark:text-slate-100">Create list</span>
-                  <span className="text-sm text-slate-500">Plan your next trip</span>
-                </span>
-              </Link>
-              <Link href="/session" className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-primary/30 hover:bg-primary/5 dark:border-slate-800">
-                <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <span className="material-symbols-outlined">sensors</span>
-                </span>
-                <span>
-                  <span className="block font-black text-slate-950 dark:text-slate-100">Active session</span>
-                  <span className="text-sm text-slate-500">View cart progress</span>
-                </span>
-              </Link>
-            </div>
-          </aside>
-        </section>
+              <aside className="w-full min-w-0 max-w-full rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
+                <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Quick Actions</h2>
+                <div className="mt-4 space-y-3">
+                  <Link href="/lists/new" className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-primary/30 hover:bg-primary/5 dark:border-slate-800">
+                    <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <span className="material-symbols-outlined">add</span>
+                    </span>
+                    <span>
+                      <span className="block font-black text-slate-950 dark:text-slate-100">Create list</span>
+                      <span className="text-sm text-slate-500">Plan your next trip</span>
+                    </span>
+                  </Link>
+                  <Link href="/session" className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-primary/30 hover:bg-primary/5 dark:border-slate-800">
+                    <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <span className="material-symbols-outlined">sensors</span>
+                    </span>
+                    <span>
+                      <span className="block font-black text-slate-950 dark:text-slate-100">Active session</span>
+                      <span className="text-sm text-slate-500">View cart progress</span>
+                    </span>
+                  </Link>
+                </div>
+              </aside>
+            </section>
+          </>
+        )}
       </main>
 
       <BottomNav />

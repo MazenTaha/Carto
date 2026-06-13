@@ -5,6 +5,7 @@ import { ReceiptItem } from '@/types';
 import { RequestOwner, ownerCreateData, ownerWhere } from '@/lib/guest-session';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { buildCartCodeLookupWhere, normalizeCartCode } from '@/lib/cart-code';
+import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
 import { ApiErrorResponse } from '../api-response';
 
 const DEFAULT_ACTIVE_SESSION_TIMEOUT_MS = 2 * 60 * 60 * 1000;
@@ -207,21 +208,29 @@ export class CartSessionService {
 
   public static async disconnectOwnedSession(owner: RequestOwner, sessionId?: string | null) {
     const cartSession = await prisma.cartSession.findFirst({
-      where: {
+      where: buildCurrentCustomerCartSessionWhere({
         ...(sessionId ? { id: sessionId } : {}),
         ...ownerWhere(owner),
-        status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
-        endedAt: null,
-      },
+      }),
       select: {
         id: true,
         cartId: true,
+        status: true,
+        receipt: {
+          select: {
+            status: true,
+          },
+        },
       },
       orderBy: { startedAt: 'desc' },
     });
 
     if (!cartSession) {
       throw new ApiErrorResponse('No active cart session found', 404, 'ACTIVE_SESSION_NOT_FOUND');
+    }
+
+    if (cartSession.status === 'CHECKED_OUT' || cartSession.receipt?.status === 'PAID') {
+      throw new ApiErrorResponse('This cart session is already checked out and cannot be disconnected.', 409, 'SESSION_ALREADY_CHECKED_OUT');
     }
 
     const result = await this.resetCartById(cartSession.cartId);

@@ -1,8 +1,8 @@
 import { prisma } from '@/lib/prisma';
-import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import type { RequestOwner } from '@/lib/guest-session';
 import { ownerWhere } from '@/lib/guest-session';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
+import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
 
 export type ActiveCartSessionSummary = {
   sessionId: string;
@@ -19,11 +19,7 @@ export type ActiveCartSessionSummary = {
 
 export async function getOwnedActiveCartSession(owner: RequestOwner): Promise<ActiveCartSessionSummary | null> {
   let cartSession = await prisma.cartSession.findFirst({
-    where: {
-      ...ownerWhere(owner),
-      status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
-      endedAt: null,
-    },
+    where: buildCurrentCustomerCartSessionWhere(ownerWhere(owner)),
     select: {
       id: true,
       status: true,

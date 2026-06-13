@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { RequestOwner, ownerCreateData, ownerWhere } from '@/lib/guest-session';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { buildCartCodeLookupWhere, normalizeCartCode } from '@/lib/cart-code';
+import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
 import { ApiErrorResponse } from '../api-response';
 import { CartConnectionService } from './cart-connection.service';
 
@@ -225,11 +226,7 @@ export class CartPairingService {
 
       // 4. Block starting another live session while one is still active for this owner
       const previousOwnerSessions = await tx.cartSession.findMany({
-        where: {
-          ...ownerFilter,
-          status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
-          endedAt: null,
-        },
+        where: buildCurrentCustomerCartSessionWhere(ownerFilter),
         select: {
           id: true,
           cartId: true,

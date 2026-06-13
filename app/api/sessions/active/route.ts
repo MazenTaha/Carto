@@ -3,9 +3,9 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
-import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { errorResponse, successResponse } from '@/lib/api-response';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
+import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
 
 export const runtime = "nodejs";
 
@@ -21,11 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     let cartSession = await prisma.cartSession.findFirst({
-      where: {
-        ...ownerWhere(owner),
-        status: { in: [...ACTIVE_CART_SESSION_STATUSES] },
-        endedAt: null,
-      },
+      where: buildCurrentCustomerCartSessionWhere(ownerWhere(owner)),
       select: {
         id: true,
         cartId: true,

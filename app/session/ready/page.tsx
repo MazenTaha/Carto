@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
+import { isCurrentCustomerCartSessionStatus } from '@/lib/current-cart-session';
 
 type ReadySessionResponse = {
   session: {
@@ -276,7 +276,9 @@ function ReadySessionContent() {
   const listName = sessionData.session.shoppingList?.name || 'Selected list';
   const itemCount = sessionData.session.shoppingList?.items?.length || 0;
   const cartCode = sessionData.session.cart?.cartCode || 'Cart connected';
-  const sessionIsLive = isActiveCartSessionStatus(sessionData.session.status);
+  const sessionIsCurrent =
+    isCurrentCustomerCartSessionStatus(sessionData.session.status) &&
+    sessionData.receipt?.status !== 'PAID';
   const isBusy = isContinuing || isDisconnecting || isValidatingQr;
 
   return (
@@ -315,7 +317,7 @@ function ReadySessionContent() {
             <div className="min-w-0">
               <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Next step: payment</h2>
               <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-                {sessionIsLive
+                {sessionIsCurrent
                   ? 'Scan the checkout QR code to continue to payment. Bypass scan is available for demos and testing only.'
                   : 'This session is already finalized, so scanning or bypassing will open checkout directly.'}
               </p>
@@ -365,7 +367,7 @@ function ReadySessionContent() {
             variant="outline"
             className="h-12 rounded-2xl border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
             onClick={() => void handleDisconnect()}
-            disabled={!sessionIsLive || isBusy}
+            disabled={!sessionIsCurrent || isBusy}
           >
             {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
           </Button>
