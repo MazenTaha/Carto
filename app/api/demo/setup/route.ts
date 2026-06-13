@@ -1,5 +1,6 @@
 import { errorResponse, successResponse } from '@/lib/api-response';
 import { getAdminEmails, isAdminEmail } from '@/lib/admin-emails';
+import { requireDemoSetupToken } from '@/lib/demo-setup-auth';
 import { DEMO_ADMIN_EMAIL, DEMO_CART_CODE, provisionDemoState } from '@/lib/demo-setup';
 import { prisma } from '@/lib/prisma';
 import { getPrismaConnectivityCode, getPrismaConnectivityMessage, logSafeDatabaseError } from '@/lib/prisma-errors';
@@ -8,27 +9,10 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const revalidate = 0;
 
-function readBearerToken(request: Request) {
-  const authorization = request.headers.get('authorization') || '';
-  const [scheme, token] = authorization.split(' ');
-
-  if (scheme !== 'Bearer' || !token?.trim()) {
-    return null;
-  }
-
-  return token.trim();
-}
-
 export async function POST(request: Request) {
-  const configuredToken = process.env.DEMO_SETUP_TOKEN?.trim();
-
-  if (!configuredToken) {
-    return errorResponse('DEMO_SETUP_TOKEN is not configured on the server.', 503, 'DEMO_SETUP_TOKEN_MISSING');
-  }
-
-  const providedToken = readBearerToken(request);
-  if (!providedToken || providedToken !== configuredToken) {
-    return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
+  const authResult = requireDemoSetupToken(request);
+  if (!authResult.ok) {
+    return authResult.response;
   }
 
   if (!process.env.DATABASE_URL?.trim()) {
