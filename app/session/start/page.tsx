@@ -109,7 +109,7 @@ function StartSessionContent() {
           return;
         }
 
-        const activeSession = data?.data?.session;
+        const activeSession = data?.data?.active ? data?.data?.session : null;
 
         if (!controller.signal.aborted && activeSession?.id && activeSession?.cart?.cartCode) {
           setExistingSession({

@@ -111,7 +111,7 @@ function SessionContent() {
         return 'error';
       }
 
-      if (!data.data) {
+      if (!data?.data?.active) {
         if (isMountedRef.current) {
           setSession(null);
           setReceipt(null);
@@ -122,7 +122,7 @@ function SessionContent() {
         return 'missing';
       }
 
-      if (data.success && data.data && isMountedRef.current) {
+      if (data.success && data.data?.active && data.data.session && isMountedRef.current) {
         setSession(data.data.session);
         setReceipt(data.data.receipt);
         setConnected(data.data.session.status === 'ACTIVE');

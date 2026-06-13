@@ -5,11 +5,16 @@ import { prisma } from '@/lib/prisma';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { errorResponse, successResponse } from '@/lib/api-response';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
-import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
+import { buildCurrentCustomerCartSessionWhere, isCurrentCustomerSessionLive } from '@/lib/current-cart-session';
 
 export const runtime = "nodejs";
 
 export const dynamic = 'force-dynamic';
+
+function withNoStoreHeaders<T>(response: T & { headers: Headers }) {
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  return response;
+}
 
 // GET /api/sessions/active - Get user's active session
 export async function GET(request: NextRequest) {
@@ -119,9 +124,7 @@ export async function GET(request: NextRequest) {
       const reconciliation = await CartConnectionService.reconcileCartByCode(cartSession.cart.cartCode);
 
       if (reconciliation?.activeSessionClosed) {
-        const response = successResponse(null);
-        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        return response;
+        return withNoStoreHeaders(successResponse({ active: false }));
       }
 
       if (reconciliation) {
@@ -136,20 +139,27 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (!cartSession) {
-      const response = successResponse(null);
-      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      return response;
+    const isActive = Boolean(
+      cartSession && isCurrentCustomerSessionLive({
+        status: cartSession.status,
+        endedAt: cartSession.endedAt,
+        cartStatus: cartSession.cart?.status,
+        receiptStatus: cartSession.receipt?.status,
+        paymentStatus: cartSession.receipt?.paymentStatus,
+      })
+    );
+
+    if (!cartSession || !isActive) {
+      return withNoStoreHeaders(successResponse({ active: false }));
     }
 
     const response = successResponse({
+      active: true,
       session: cartSession,
       receipt: cartSession.receipt,
     });
 
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-
-    return response;
+    return withNoStoreHeaders(response);
   } catch (error) {
     console.error('Error fetching active session:', error);
     return errorResponse('Failed to fetch active session', 500, 'INTERNAL_SERVER_ERROR');

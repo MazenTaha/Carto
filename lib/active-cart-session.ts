@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import type { RequestOwner } from '@/lib/guest-session';
 import { ownerWhere } from '@/lib/guest-session';
 import { CartConnectionService } from '@/lib/services/cart-connection.service';
-import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
+import { buildCurrentCustomerCartSessionWhere, isCurrentCustomerSessionLive } from '@/lib/current-cart-session';
 
 export type ActiveCartSessionSummary = {
   sessionId: string;
@@ -23,6 +23,7 @@ export async function getOwnedActiveCartSession(owner: RequestOwner): Promise<Ac
     select: {
       id: true,
       status: true,
+      endedAt: true,
       cart: {
         select: {
           cartCode: true,
@@ -32,6 +33,8 @@ export async function getOwnedActiveCartSession(owner: RequestOwner): Promise<Ac
       receipt: {
         select: {
           id: true,
+          status: true,
+          paymentStatus: true,
         },
       },
       shoppingList: {
@@ -70,6 +73,16 @@ export async function getOwnedActiveCartSession(owner: RequestOwner): Promise<Ac
   }
 
   if (!cartSession.shoppingList) {
+    return null;
+  }
+
+  if (!isCurrentCustomerSessionLive({
+    status: cartSession.status,
+    endedAt: cartSession.endedAt,
+    cartStatus: cartSession.cart.status,
+    receiptStatus: cartSession.receipt?.status,
+    paymentStatus: cartSession.receipt?.paymentStatus,
+  })) {
     return null;
   }
 
