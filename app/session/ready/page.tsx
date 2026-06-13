@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { QrScanner } from '@/components/carto/QrScanner';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Header } from '@/components/layout/Header';
 import { Badge } from '@/components/ui/Badge';
@@ -37,6 +38,12 @@ type DisconnectCartResponse = {
   cartStatus: 'AVAILABLE';
 };
 
+type PaymentScanValidationResponse = {
+  sessionId: string;
+  receiptId: string | null;
+  checkoutUrl: string;
+};
+
 function getApiErrorMessage(data: any, fallback: string) {
   if (data?.error?.message) return data.error.message;
   if (typeof data?.error === 'string') return data.error;
@@ -52,6 +59,8 @@ function ReadySessionContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isContinuing, setIsContinuing] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isValidatingQr, setIsValidatingQr] = useState(false);
   const [error, setError] = useState('');
 
   const fetchSession = useCallback(async (signal?: AbortSignal) => {
@@ -90,7 +99,7 @@ function ReadySessionContent() {
     return () => controller.abort();
   }, [fetchSession]);
 
-  const handleContinue = useCallback(async () => {
+  const proceedToCheckout = useCallback(async () => {
     if (!sessionId || !sessionData || isContinuing || isDisconnecting) return;
 
     if (sessionData.receipt?.status === 'PAID') {
@@ -119,6 +128,49 @@ function ReadySessionContent() {
       setIsContinuing(false);
     }
   }, [isContinuing, isDisconnecting, router, sessionData, sessionId]);
+
+  const handleBypassScan = useCallback(async () => {
+    await proceedToCheckout();
+  }, [proceedToCheckout]);
+
+  const handleScanDetected = useCallback(async (qrValue: string) => {
+    if (!sessionId || isValidatingQr || isContinuing || isDisconnecting) {
+      return false;
+    }
+
+    setIsValidatingQr(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/payment/scan/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ qrValue }),
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(getApiErrorMessage(data, 'Invalid payment QR code.'));
+      }
+
+      const validationData = data.data as PaymentScanValidationResponse;
+
+      if (validationData.sessionId !== sessionId) {
+        throw new Error('This payment QR code is for a different cart session.');
+      }
+
+      setIsScannerOpen(false);
+      await proceedToCheckout();
+      return true;
+    } catch (err: any) {
+      setError(err.message || 'Invalid payment QR code.');
+      return false;
+    } finally {
+      setIsValidatingQr(false);
+    }
+  }, [isContinuing, isDisconnecting, isValidatingQr, proceedToCheckout, sessionId]);
 
   const handleDisconnect = useCallback(async () => {
     if (!sessionId || !sessionData || isDisconnecting || isContinuing) return;
@@ -182,6 +234,7 @@ function ReadySessionContent() {
   const itemCount = sessionData.session.shoppingList?.items?.length || 0;
   const cartCode = sessionData.session.cart?.cartCode || 'Cart connected';
   const sessionIsLive = isActiveCartSessionStatus(sessionData.session.status);
+  const isBusy = isContinuing || isDisconnecting || isValidatingQr;
 
   return (
     <PageContainer maxWidth="md">
@@ -220,8 +273,8 @@ function ReadySessionContent() {
               <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Next step: payment</h2>
               <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                 {sessionIsLive
-                  ? 'Continuing will finalize the active cart session and open checkout.'
-                  : 'This session is already finalized, so continuing will open checkout directly.'}
+                  ? 'Scan the checkout QR code to continue to payment. Bypass scan is available for demos and testing only.'
+                  : 'This session is already finalized, so scanning or bypassing will open checkout directly.'}
               </p>
             </div>
           </div>
@@ -235,13 +288,32 @@ function ReadySessionContent() {
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-        <div className="mx-auto grid max-w-2xl grid-cols-1 gap-3 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] min-[560px]:grid-cols-3">
+        <div className="mx-auto grid max-w-2xl grid-cols-1 gap-3 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] min-[560px]:grid-cols-2">
+          <Button
+            type="button"
+            className="h-12 rounded-2xl"
+            onClick={() => setIsScannerOpen(true)}
+            disabled={isBusy}
+          >
+            <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
+            {isValidatingQr ? 'Validating QR...' : 'Scan payment QR'}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-12 rounded-2xl"
+            onClick={() => void handleBypassScan()}
+            disabled={isBusy}
+          >
+            <span className="material-symbols-outlined text-[18px]">bolt</span>
+            Bypass scan
+          </Button>
           <Button
             type="button"
             variant="outline"
             className="h-12 rounded-2xl"
             onClick={() => router.push('/dashboard')}
-            disabled={isDisconnecting || isContinuing}
+            disabled={isBusy}
           >
             Back to home
           </Button>
@@ -250,20 +322,53 @@ function ReadySessionContent() {
             variant="outline"
             className="h-12 rounded-2xl border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
             onClick={() => void handleDisconnect()}
-            disabled={!sessionIsLive || isDisconnecting || isContinuing}
+            disabled={!sessionIsLive || isBusy}
           >
             {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
           </Button>
-          <Button
-            type="button"
-            className="h-12 rounded-2xl"
-            onClick={() => void handleContinue()}
-            disabled={isContinuing || isDisconnecting}
-          >
-            {isContinuing ? 'Preparing checkout...' : 'Continue to payment'}
-          </Button>
         </div>
       </div>
+
+      {isScannerOpen && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center overflow-hidden bg-slate-950/75 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-4 backdrop-blur-sm sm:items-center sm:px-4 sm:pb-4">
+          <button
+            type="button"
+            className="absolute inset-0"
+            aria-label="Close payment scanner"
+            onClick={() => {
+              if (!isValidatingQr) {
+                setIsScannerOpen(false);
+              }
+            }}
+            disabled={isValidatingQr}
+          />
+          <div className="relative z-[101] w-full max-w-md overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
+            <div className="max-h-[calc(100dvh-1rem)] overflow-y-auto p-5 sm:p-6">
+              <Badge className="bg-primary/10 text-primary ring-primary/10">Checkout scanner</Badge>
+              <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Scan payment QR</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Scan the checkout QR code to continue to payment. Only Carto checkout QR codes for this session are accepted.
+              </p>
+
+              <div className="mt-5 flex justify-center">
+                <QrScanner onDetected={handleScanDetected} />
+              </div>
+
+              <div className="mt-5 flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12 flex-1 rounded-2xl"
+                  onClick={() => setIsScannerOpen(false)}
+                  disabled={isValidatingQr}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }

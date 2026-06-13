@@ -71,7 +71,7 @@ export function QrScanner({
   onDetected,
   autoStart = true,
 }: {
-  onDetected: (text: string) => boolean | void;
+  onDetected: (text: string) => boolean | void | Promise<boolean | void>;
   autoStart?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -138,16 +138,24 @@ export function QrScanner({
         (result, err, controls) => {
           if (result && !hasDetectedRef.current) {
             hasDetectedRef.current = true;
-            const shouldStop = onDetected(result.getText()) !== false;
+            void Promise.resolve(onDetected(result.getText()))
+              .then((scanResult) => {
+                const shouldStop = scanResult !== false;
 
-            if (shouldStop) {
-              controls.stop();
-              stop('found');
-            } else {
-              window.setTimeout(() => {
-                hasDetectedRef.current = false;
-              }, 1000);
-            }
+                if (shouldStop) {
+                  controls.stop();
+                  stop('found');
+                } else {
+                  window.setTimeout(() => {
+                    hasDetectedRef.current = false;
+                  }, 1000);
+                }
+              })
+              .catch(() => {
+                window.setTimeout(() => {
+                  hasDetectedRef.current = false;
+                }, 1000);
+              });
           }
           // ignore decode errors while scanning (camera noise)
           void err;
