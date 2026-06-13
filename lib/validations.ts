@@ -45,6 +45,16 @@ export const createListSchema = z.object({
   name: z.string().min(1, 'List name is required').max(100, 'List name is too long'),
 });
 
+export const createListRequestSchema = z.object({
+  name: z.string().min(1, 'List name is required').max(100, 'List name is too long'),
+  items: z.array(z.object({
+    name: z.string().min(1, 'Item name is required').max(200, 'Item name is too long'),
+    quantity: z.number().int().positive().default(1),
+    price: z.number().min(0).optional(),
+    category: z.string().max(50).optional(),
+  })).min(1, 'Add at least one item before saving this list.'),
+});
+
 export const updateListSchema = z.object({
   name: z.string().min(1, 'List name is required').max(100, 'List name is too long').optional(),
 });

@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
-import { requireAdmin } from '@/lib/admin-auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
+import { isAdminEmail } from '@/lib/admin-auth';
 import { AdminSidebar } from '@/components/admin/layout/AdminSidebar';
 import { AdminTopNav } from '@/components/admin/layout/AdminTopNav';
 import { Providers } from '@/app/providers';
@@ -14,9 +16,13 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await requireAdmin();
+  const session = await getServerSession(authOptions);
 
   if (!session) {
+    redirect('/auth/signin?callbackUrl=/admin');
+  }
+
+  if (!session.user?.email || !isAdminEmail(session.user.email)) {
     redirect('/auth/signin?error=AccessDenied');
   }
 

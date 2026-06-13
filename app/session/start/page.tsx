@@ -11,6 +11,7 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { QrScanner } from '@/components/carto/QrScanner';
+import { EMPTY_LIST_MESSAGE } from '@/lib/list-constants';
 import { cartQrPayloadSchema } from '@/lib/validations';
 
 function cn(...inputs: ClassValue[]) {
@@ -323,6 +324,43 @@ function StartSessionContent() {
   }
 
   const listItemCount = selectedList?.items?.length ?? 0;
+
+  if (!isListLoading && selectedList && listItemCount === 0) {
+    return (
+      <PageContainer className="min-h-dvh overflow-x-hidden">
+        <Header title="Connect to Cart" showBack />
+
+        <main className="flex flex-1 items-center justify-center px-4 pb-24 pt-6 sm:px-6">
+          <section className="w-full max-w-lg rounded-[2rem] border border-amber-200 bg-white p-6 shadow-card dark:border-amber-400/30 dark:bg-slate-900 sm:p-8">
+            <Badge variant="warning">List needs items</Badge>
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">This list is not ready to activate</h1>
+            <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              {EMPTY_LIST_MESSAGE}
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Button
+                onClick={() => router.push(`/lists/${encodeURIComponent(listId)}`)}
+                className="h-12 flex-1 rounded-2xl"
+              >
+                <span className="material-symbols-outlined">edit</span>
+                Add items
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => router.push('/lists?activate=1')}
+                className="h-12 flex-1 rounded-2xl"
+              >
+                Back to lists
+              </Button>
+            </div>
+          </section>
+        </main>
+
+        <BottomNav />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer className="min-h-dvh overflow-x-hidden">

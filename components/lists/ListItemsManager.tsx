@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { normalizeListItemName } from '@/lib/list-items';
+import { EMPTY_LIST_MESSAGE } from '@/lib/list-constants';
 import { cn, formatCurrency } from '@/lib/utils';
 
 interface ListItemsManagerProps {
@@ -589,6 +590,11 @@ export function ListItemsManager({
   const isCurrentListSession = activeSession?.shoppingList.id === listId;
 
   const handleActivationClick = useCallback(() => {
+    if (itemsRef.current.length === 0) {
+      setError(EMPTY_LIST_MESSAGE);
+      return;
+    }
+
     if (isCurrentListSession && activeSession?.sessionId) {
       router.push(`/session?sessionId=${encodeURIComponent(activeSession.sessionId)}`);
       return;
@@ -781,6 +787,11 @@ export function ListItemsManager({
             </p>
           )}
           {error && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-300">{error}</p>}
+          {!error && items.length === 0 && (
+            <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
+              {EMPTY_LIST_MESSAGE}
+            </p>
+          )}
           {notice && !error && <p className="mt-2 rounded-xl bg-primary/10 px-3 py-2 text-sm font-bold text-primary">{notice}</p>}
         </section>
 

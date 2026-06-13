@@ -270,7 +270,7 @@ export function ListsOverview({
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-red-500">Recently deleted</p>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Lists waiting for permanent deletion</h2>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Recently Deleted</h2>
             </div>
             <Badge variant="warning">{recentlyDeletedLists.length} deleted</Badge>
           </div>

@@ -44,7 +44,7 @@ export default async function ListsPage({
       await purgeExpiredShoppingLists(prisma, ownerFilter);
       const [listsData, deletedListsData, activeSessionData] = await Promise.all([
         prisma.shoppingList.findMany({
-          where: { ...ownerFilter, deletedAt: null },
+          where: { ...ownerFilter, deletedAt: null, items: { some: {} } },
           include: { _count: { select: { items: true } } },
           orderBy: { updatedAt: 'desc' },
         }),
@@ -63,6 +63,7 @@ export default async function ListsPage({
 
   const activationDisabled = isActivationFlow && Boolean(activeSession);
   const activationDisabledMessage = 'Finish or disconnect the current cart session before starting another list.';
+  const canCreateList = !activeSession;
 
   return (
     <PageContainer maxWidth="lg">
@@ -76,10 +77,12 @@ export default async function ListsPage({
               {isActivationFlow ? 'Activation mode' : `${lists.length} lists`}
             </Badge>
             <SignOutButton className="hidden sm:inline-flex" />
-            <Link href="/lists/new" className="hidden h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-glow transition active:scale-95 sm:inline-flex">
-              <span className="material-symbols-outlined text-[20px]">add</span>
-              New List
-            </Link>
+            {canCreateList && (
+              <Link href="/lists/new" className="hidden h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-glow transition active:scale-95 sm:inline-flex">
+                <span className="material-symbols-outlined text-[20px]">add</span>
+                New List
+              </Link>
+            )}
             <SignOutButton variant="icon" className="sm:hidden" />
           </div>
         </div>
@@ -94,16 +97,18 @@ export default async function ListsPage({
             <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">
               {isActivationFlow ? 'Select a list to activate' : 'My Shopping Lists'}
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-              {isActivationFlow
-                ? 'Choose the list you want linked to the physical cart. After selection, scan the QR code on the cart and the list items will be used for the active session.'
-                : 'Build reusable grocery lists, then activate the right one when you are ready to scan a cart.'}
-            </p>
+            {!isActivationFlow && (
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Build reusable grocery lists, then activate the right one when you are ready to scan a cart.
+              </p>
+            )}
           </div>
-          <Link href="/lists/new" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-800 shadow-sm transition hover:border-primary/30 hover:text-primary dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 sm:hidden">
-            <span className="material-symbols-outlined">add</span>
-            Create List
-          </Link>
+          {canCreateList && (
+            <Link href="/lists/new" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-800 shadow-sm transition hover:border-primary/30 hover:text-primary dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 sm:hidden">
+              <span className="material-symbols-outlined">add</span>
+              Create List
+            </Link>
+          )}
         </div>
 
         {isActivationFlow && (
@@ -162,9 +167,11 @@ export default async function ListsPage({
         />
       </main>
 
-      <Link href="/lists/new" className="fixed bottom-24 right-5 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-glow transition hover:scale-105 active:scale-95 md:hidden" aria-label="Create new list">
-        <span className="material-symbols-outlined text-3xl">add</span>
-      </Link>
+      {canCreateList && (
+        <Link href="/lists/new" className="fixed bottom-24 right-5 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-glow transition hover:scale-105 active:scale-95 md:hidden" aria-label="Create new list">
+          <span className="material-symbols-outlined text-3xl">add</span>
+        </Link>
+      )}
 
       <BottomNav />
     </PageContainer>

@@ -281,54 +281,6 @@ function SignInContent() {
     }
   };
 
-  const handleAdminQuickAccess = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (authReadiness && authReadiness.database.connection !== 'ok') {
-      setError(
-        authReadiness.database.prismaErrorMessageSafe
-          ? `Database connection failed: ${authReadiness.database.prismaErrorMessageSafe}`
-          : 'Database connection failed. Admin account cannot be accessed.'
-      );
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const result = await signIn('credentials', {
-        email: 'admin@gmail.com',
-        password: 'Admin_1',
-        redirect: false,
-        callbackUrl: '/admin',
-      });
-
-      if (result?.error) {
-        if (authReadiness && authReadiness.database.connection !== 'ok') {
-          setError(
-            authReadiness.database.prismaErrorMessageSafe
-              ? `Database connection failed: ${authReadiness.database.prismaErrorMessageSafe}`
-              : 'Database connection failed.'
-          );
-        } else {
-          setError(
-            result.error === 'CredentialsSignin'
-              ? 'Admin account not found or password incorrect. Try restarting the dev server.'
-              : readAuthErrorMessage(result.error)
-          );
-        }
-      } else {
-        router.push('/admin');
-      }
-    } catch (err) {
-      console.error('Admin quick access error:', err);
-      setError('An error occurred during admin quick access.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleGoogleSignIn = async () => {
     setError('');
     if (!googleEnabled) {
@@ -610,19 +562,15 @@ function SignInContent() {
         </button>
       </div>
 
-      {process.env.NODE_ENV !== 'production' && (
-        <div className="w-full px-6 pt-2">
-          <button
-            type="button"
-            onClick={handleAdminQuickAccess}
-            disabled={isLoading || isGoogleLoading || isGuestLoading || isPhoneLoading}
-            className="group flex w-full items-center justify-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 py-4 text-indigo-700 transition-all hover:bg-indigo-100 hover:shadow-sm disabled:opacity-50 dark:border-indigo-900/30 dark:bg-indigo-900/20 dark:text-indigo-300 dark:hover:bg-indigo-900/30"
-          >
-            <span className="material-symbols-outlined text-xl transition-transform group-hover:scale-110">admin_panel_settings</span>
-            <span className="font-bold tracking-tight text-base">Admin Dashboard</span>
-          </button>
-        </div>
-      )}
+      <div className="w-full px-6 pt-2">
+        <Link
+          href="/admin"
+          className="group flex w-full items-center justify-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 py-4 text-indigo-700 transition-all hover:bg-indigo-100 hover:shadow-sm dark:border-indigo-900/30 dark:bg-indigo-900/20 dark:text-indigo-300 dark:hover:bg-indigo-900/30"
+        >
+          <span className="material-symbols-outlined text-xl transition-transform group-hover:scale-110">admin_panel_settings</span>
+          <span className="font-bold tracking-tight text-base">Admin Dashboard</span>
+        </Link>
+      </div>
 
       <div className="w-full px-6 pt-2">
         <Link

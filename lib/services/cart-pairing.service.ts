@@ -7,6 +7,7 @@ import { buildCartCodeLookupWhere, normalizeCartCode } from '@/lib/cart-code';
 import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
 import { ApiErrorResponse } from '../api-response';
 import { CartConnectionService } from './cart-connection.service';
+import { EMPTY_LIST_MESSAGE } from '@/lib/list-constants';
 
 export interface LinkCartParams {
   cartCode: string;
@@ -151,11 +152,22 @@ export class CartPairingService {
           ...ownerFilter,
           deletedAt: null,
         },
-        select: { id: true },
+        select: {
+          id: true,
+          _count: {
+            select: {
+              items: true,
+            },
+          },
+        },
       });
 
       if (!list) {
         throw new ApiErrorResponse('List not found or you do not have access to it.', 403, 'FORBIDDEN');
+      }
+
+      if (list._count.items === 0) {
+        throw new ApiErrorResponse(EMPTY_LIST_MESSAGE, 409, 'EMPTY_LIST');
       }
 
       // 2. Find and validate the physical cart

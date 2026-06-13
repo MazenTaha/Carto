@@ -2,9 +2,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createListSchema } from '@/lib/validations';
+import { createListRequestSchema } from '@/lib/validations';
 import { purgeExpiredShoppingLists } from '@/lib/list-retention';
 import { ownerCreateData, ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
+import { ACTIVE_SESSION_CREATE_LIST_MESSAGE } from '@/lib/list-constants';
+import { formatListItemName, normalizeListItemName } from '@/lib/list-items';
 
 export const runtime = "nodejs";
 
@@ -24,6 +27,7 @@ export async function GET(request: NextRequest) {
       where: {
         ...ownerFilter,
         deletedAt: showDeleted ? { not: null } : null,
+        ...(showDeleted ? {} : { items: { some: {} } }),
       },
       include: {
         items: true,
@@ -48,16 +52,58 @@ export async function POST(request: NextRequest) {
     const owner = await requireUserOrGuest();
 
     const body = await request.json();
-    const validatedData = createListSchema.parse(body);
+    const validatedData = createListRequestSchema.parse(body);
 
     if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const ownerFilter = ownerWhere(owner);
+    const existingSession = await prisma.cartSession.findFirst({
+      where: buildCurrentCustomerCartSessionWhere(ownerFilter),
+      select: { id: true },
+    });
+
+    if (existingSession) {
+      return NextResponse.json(
+        { error: ACTIVE_SESSION_CREATE_LIST_MESSAGE },
+        { status: 409 }
+      );
+    }
+
+    const deduplicatedItems = new Map<string, {
+      name: string;
+      quantity: number;
+      price: number;
+      category: string | undefined;
+    }>();
+
+    for (const item of validatedData.items) {
+      const normalizedName = normalizeListItemName(item.name);
+      const existingItem = deduplicatedItems.get(normalizedName);
+
+      if (existingItem) {
+        existingItem.quantity += item.quantity;
+        existingItem.price = item.price ?? existingItem.price;
+        existingItem.category = item.category ?? existingItem.category;
+        continue;
+      }
+
+      deduplicatedItems.set(normalizedName, {
+        name: formatListItemName(item.name),
+        quantity: item.quantity,
+        price: item.price ?? 0,
+        category: item.category,
+      });
     }
 
     const list = await prisma.shoppingList.create({
       data: {
         name: validatedData.name,
         ...ownerCreateData(owner),
+        items: {
+          create: Array.from(deduplicatedItems.values()),
+        },
       },
       select: {
         id: true,

@@ -2,7 +2,7 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createListSchema, updateListSchema } from '@/lib/validations';
+import { updateListSchema } from '@/lib/validations';
 import { getPermanentDeleteAt, purgeExpiredShoppingLists } from '@/lib/list-retention';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { ACTIVE_LIST_LOCK_MESSAGE, isListActiveOnCart } from '@/lib/list-session-lock';
