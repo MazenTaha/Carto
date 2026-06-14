@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ListItem } from '@/types';
 import { PageContainer } from '@/components/layout/PageContainer';
@@ -582,10 +582,6 @@ export function ListItemsManager({
     }
   }, [clearItemPending, isLoading, isLockedForActiveSession, listId, markItemPending, readErrorPayload, removeDeletedItem, upsertDeletedItem]);
 
-  const estimatedTotal = useMemo(
-    () => items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0),
-    [items]
-  );
   const hasOwnedActiveSession = Boolean(activeSession?.sessionId);
   const isCurrentListSession = activeSession?.shoppingList.id === listId;
 
@@ -693,7 +689,7 @@ export function ListItemsManager({
       />
 
       <main className="flex-1 pb-28 pt-6 md:pb-10">
-        <section className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <section>
           <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-soft md:p-6">
             <Badge className="bg-white/10 text-white ring-white/15">
               {hasOwnedActiveSession ? 'Cart connected' : isLockedForActiveSession ? 'Active on cart' : 'Shopping list'}
@@ -724,24 +720,6 @@ export function ListItemsManager({
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">List summary</p>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
-                <p className="text-xl font-black">{items.length}</p>
-                <p className="text-xs text-slate-500">Active</p>
-              </div>
-              <div className="rounded-2xl bg-primary/10 p-3 text-primary">
-                <p className="text-xl font-black">{deletedItems.length}</p>
-                <p className="text-xs font-bold">Deleted</p>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
-                <p className="text-xl font-black">{formatCurrency(estimatedTotal)}</p>
-                <p className="text-xs text-slate-500">Est.</p>
-              </div>
-            </div>
           </div>
         </section>
 
