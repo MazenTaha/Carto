@@ -72,6 +72,24 @@ function ReadySessionContent() {
   const [isValidatingQr, setIsValidatingQr] = useState(false);
   const [error, setError] = useState('');
 
+  const loadSessionSnapshot = useCallback(async (signal?: AbortSignal) => {
+    if (!sessionId) {
+      throw new Error('Missing session ID.');
+    }
+
+    const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`, {
+      cache: 'no-store',
+      signal,
+    });
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok || !data?.success || !data?.data?.session) {
+      throw new Error(getApiErrorMessage(data, 'Could not load your cart session.'));
+    }
+
+    return data.data as ReadySessionResponse;
+  }, [sessionId]);
+
   const fetchSession = useCallback(async (signal?: AbortSignal) => {
     if (!sessionId) {
       setError('Missing session ID.');
@@ -80,17 +98,8 @@ function ReadySessionContent() {
     }
 
     try {
-      const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`, {
-        cache: 'no-store',
-        signal,
-      });
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok || !data?.success || !data?.data?.session) {
-        throw new Error(getApiErrorMessage(data, 'Could not load your cart session.'));
-      }
-
-      setSessionData(data.data as ReadySessionResponse);
+      const nextSessionData = await loadSessionSnapshot(signal);
+      setSessionData(nextSessionData);
       setError('');
     } catch (err: any) {
       if (err.name === 'AbortError') return;
@@ -100,7 +109,7 @@ function ReadySessionContent() {
         setIsLoading(false);
       }
     }
-  }, [sessionId]);
+  }, [loadSessionSnapshot, sessionId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -111,10 +120,21 @@ function ReadySessionContent() {
   const startHostedCheckout = useCallback(async (validatedReceiptId?: string | null) => {
     if (!sessionId || !sessionData || isContinuing || isDisconnecting) return;
 
-    if (sessionData.receipt?.status === 'PAID') {
+    const initialReceiptId = validatedReceiptId || sessionData.receipt?.id || null;
+    const latestSessionData =
+      validatedReceiptId
+        ? sessionData
+        : await loadSessionSnapshot().catch(() => sessionData);
+    const resolvedReceiptId = initialReceiptId || latestSessionData?.receipt?.id || undefined;
+
+    if (latestSessionData && latestSessionData !== sessionData) {
+      setSessionData(latestSessionData);
+    }
+
+    if (latestSessionData?.receipt?.status === 'PAID') {
       const params = new URLSearchParams({ sessionId });
-      if (sessionData.receipt?.id) {
-        params.set('receiptId', sessionData.receipt.id);
+      if (latestSessionData.receipt?.id) {
+        params.set('receiptId', latestSessionData.receipt.id);
       }
       router.replace(`/payment/success?${params.toString()}`);
       return;
@@ -131,7 +151,7 @@ function ReadySessionContent() {
         },
         body: JSON.stringify({
           sessionId,
-          receiptId: validatedReceiptId || sessionData.receipt?.id || undefined,
+          receiptId: resolvedReceiptId,
           paymentMethod: 'CARD',
         }),
       });
@@ -174,7 +194,7 @@ function ReadySessionContent() {
       setError(err.message || 'Could not prepare secure payment.');
       setIsContinuing(false);
     }
-  }, [isContinuing, isDisconnecting, router, sessionData, sessionId]);
+  }, [isContinuing, isDisconnecting, loadSessionSnapshot, router, sessionData, sessionId]);
 
   const handleBypassScan = useCallback(async () => {
     await startHostedCheckout();
@@ -350,48 +370,54 @@ function ReadySessionContent() {
         </section>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-        <div className="mx-auto grid max-w-2xl grid-cols-1 gap-3 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] min-[560px]:grid-cols-2">
+      <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 sm:px-4">
+        <div className="mx-auto max-w-xl rounded-[1.75rem] border border-slate-200 bg-white/96 p-3 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-950/96">
           <Button
             type="button"
-            className="h-12 rounded-2xl"
+            size="md"
+            className="h-11 w-full rounded-2xl"
             onClick={() => setIsScannerOpen(true)}
             disabled={isBusy}
           >
             <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
             {isValidatingQr ? 'Validating QR...' : 'Scan payment QR'}
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            className="h-12 rounded-2xl"
-            onClick={() => void handleBypassScan()}
-            disabled={isBusy}
-          >
-            <span className="material-symbols-outlined text-[18px]">bolt</span>
-            {isContinuing ? 'Preparing payment...' : 'Bypass scan'}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 rounded-2xl"
-            onClick={() => {
-              router.replace('/dashboard');
-              router.refresh();
-            }}
-            disabled={isBusy}
-          >
-            Back to home
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 rounded-2xl border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
-            onClick={() => void handleDisconnect()}
-            disabled={!sessionIsCurrent || isBusy}
-          >
-            {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
-          </Button>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-10 rounded-2xl"
+              onClick={() => void handleBypassScan()}
+              disabled={isBusy}
+            >
+              <span className="material-symbols-outlined text-[16px]">bolt</span>
+              {isContinuing ? 'Preparing...' : 'Bypass scan'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-2xl"
+              onClick={() => {
+                router.replace('/dashboard');
+                router.refresh();
+              }}
+              disabled={isBusy}
+            >
+              Back to home
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="col-span-2 h-10 rounded-2xl border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200 sm:col-span-1"
+              onClick={() => void handleDisconnect()}
+              disabled={!sessionIsCurrent || isBusy}
+            >
+              {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
+            </Button>
+          </div>
         </div>
       </div>
 

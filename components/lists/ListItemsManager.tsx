@@ -778,7 +778,7 @@ export function ListItemsManager({
             <LoadingState label="Loading list items" />
           </div>
         ) : (
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className={cn('mt-6 grid gap-6', deletedItems.length > 0 && 'lg:grid-cols-2')}>
             <section>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-600 dark:text-slate-300">
@@ -796,15 +796,15 @@ export function ListItemsManager({
               </div>
             </section>
 
-            <section>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-500">
-                  Deleted items ({deletedItems.length})
-                </h2>
-              </div>
-              <div className="space-y-3">
-                {deletedItems.length > 0 ? (
-                  deletedItems.map((item) => {
+            {deletedItems.length > 0 && (
+              <section>
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-500">
+                    Deleted items ({deletedItems.length})
+                  </h2>
+                </div>
+                <div className="space-y-3">
+                  {deletedItems.map((item) => {
                     const isPending = pendingItemIds.has(item.id);
                     return (
                       <article
@@ -833,14 +833,10 @@ export function ListItemsManager({
                         </Button>
                       </article>
                     );
-                  })
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm font-medium text-slate-500 dark:border-slate-800 dark:bg-slate-900">
-                    Deleted items will appear here.
-                  </div>
-                )}
-              </div>
-            </section>
+                  })}
+                </div>
+              </section>
+            )}
           </div>
         )}
       </main>

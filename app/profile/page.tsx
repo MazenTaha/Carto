@@ -49,7 +49,6 @@ export default function ProfilePage() {
   const [avatar, setAvatar] = useState('');
   const [activeSession, setActiveSession] = useState<ActiveSessionSummary | null>(null);
   const [isCheckingActiveSession, setIsCheckingActiveSession] = useState(true);
-  const [sessionMessage, setSessionMessage] = useState('');
 
   useEffect(() => {
     const savedAvatar = window.localStorage.getItem(LOCAL_AVATAR_KEY) || '';
@@ -80,14 +79,11 @@ export default function ProfilePage() {
 
       if (payload.data.active) {
         setActiveSession(payload.data.session);
-        setSessionMessage('');
       } else {
         setActiveSession(null);
-        setSessionMessage('No active cart session right now.');
       }
     } catch (error: any) {
       setActiveSession(null);
-      setSessionMessage(error?.message || 'No active cart session right now.');
     } finally {
       setIsCheckingActiveSession(false);
     }
@@ -134,7 +130,7 @@ export default function ProfilePage() {
   };
 
   const displayName = session?.user?.name?.trim() || session?.user?.email?.trim() || 'Guest shopper';
-  const emailLabel = session?.user?.email?.trim() || 'Guest mode';
+  const emailLabel = session?.user?.email?.trim() || '';
   const initials = useMemo(
     () => displayName
       .split(/\s|@/)
@@ -144,10 +140,6 @@ export default function ProfilePage() {
       .join(''),
     [displayName]
   );
-
-  const avatarDescription = status === 'authenticated'
-    ? 'Profile photo preview is stored locally on this browser for now.'
-    : 'Guest profile photo preview is stored locally on this browser.';
 
   return (
     <PageContainer maxWidth="lg">
@@ -178,14 +170,13 @@ export default function ProfilePage() {
               </label>
             </div>
 
-            <Badge className="mt-5 bg-primary/10 text-primary ring-primary/10">
-              {status === 'authenticated' ? 'Signed in' : 'Guest mode'}
-            </Badge>
+            {status === 'authenticated' && (
+              <Badge className="mt-5 bg-primary/10 text-primary ring-primary/10">
+                Signed in
+              </Badge>
+            )}
             <h1 className="mt-4 text-2xl font-black text-slate-900 dark:text-slate-100">{displayName}</h1>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{emailLabel}</p>
-            <p className="mt-4 max-w-xs text-sm leading-6 text-slate-500 dark:text-slate-400">
-              {avatarDescription}
-            </p>
+            {emailLabel && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{emailLabel}</p>}
             <label className="mt-5 inline-flex h-12 cursor-pointer items-center justify-center rounded-2xl bg-primary px-5 text-sm font-black text-white shadow-glow transition active:scale-[0.98]">
               Change photo
               <input
@@ -237,11 +228,6 @@ export default function ProfilePage() {
                   <h2 className="mt-2 text-xl font-black text-slate-950 dark:text-slate-100">
                     {isCheckingActiveSession ? 'Checking your cart session...' : 'No active cart session right now.'}
                   </h2>
-                  {!isCheckingActiveSession && (
-                    <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                      {sessionMessage || 'Start shopping from your dashboard when you are ready to link a cart.'}
-                    </p>
-                  )}
                 </div>
               </div>
             </section>
