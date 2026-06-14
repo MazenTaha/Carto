@@ -3,7 +3,7 @@ export function isCustomerNavActive(pathname: string | null, href: string) {
     return false;
   }
 
-  if (href === '/dashboard') {
+  if (href === '/' || href === '/dashboard') {
     return pathname === '/' || pathname === '/dashboard';
   }
 

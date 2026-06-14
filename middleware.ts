@@ -4,12 +4,6 @@ import { isAdminEmail } from '@/lib/admin-emails';
 import { getAuthSecret } from '@/lib/auth-secret';
 import { GUEST_SESSION_COOKIE, LEGACY_GUEST_SESSION_COOKIES } from '@/lib/guest-session.constants';
 
-const USER_ONLY_PATHS = ['/profile'];
-
-function isUserOnlyPath(pathname: string) {
-  return USER_ONLY_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
-}
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -44,12 +38,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (hasGuestSession && !isUserOnlyPath(pathname)) {
+  if (pathname === '/profile' || pathname.startsWith('/profile/')) {
     return NextResponse.next();
   }
 
-  if (hasGuestSession && isUserOnlyPath(pathname)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  if (hasGuestSession) {
+    return NextResponse.next();
   }
 
   const signInUrl = new URL('/auth/signin', request.url);
