@@ -21,6 +21,8 @@ type CreateHostedCheckoutInput = {
   sessionId: string;
   receiptId?: string | null;
   paymentMethod?: PaymentMethod;
+  mode?: 'standard' | 'bypass';
+  allowZeroTotalPreview?: boolean;
 };
 
 type PaymobWebhookInput = {
@@ -157,6 +159,14 @@ async function reuseRecentAttempt(receiptId: string) {
   return attempt;
 }
 
+function isPreviewCheckoutUrl(checkoutUrl?: string | null) {
+  return Boolean(checkoutUrl && checkoutUrl.startsWith('/'));
+}
+
+function shouldAllowZeroTotalPreview(input: CreateHostedCheckoutInput) {
+  return input.mode === 'bypass' && input.allowZeroTotalPreview === true;
+}
+
 async function recordUserPurchaseArtifacts(input: {
   receiptId: string;
   sessionId: string;
@@ -274,6 +284,9 @@ export class PaymentService {
         sessionId: cartSession.id,
         receiptId: receipt.id,
         attemptId: null,
+        preview: false,
+        amount: receipt.total,
+        currency: PAYMOB_CURRENCY,
         checkoutUrl: null,
       };
     }
@@ -285,12 +298,79 @@ export class PaymentService {
         sessionId: cartSession.id,
         receiptId: receipt.id,
         attemptId: existingAttempt.id,
+        preview: isPreviewCheckoutUrl(existingAttempt.checkoutUrl),
+        amount: receipt.total,
+        currency: existingAttempt.currency,
         checkoutUrl: existingAttempt.checkoutUrl,
       };
     }
 
     const amountCents = amountToCents(receipt.total);
+    const baseMetadata = {
+      cartCode: cartSession.cart?.cartCode ?? null,
+      storeId: cartSession.cart?.storeId ?? null,
+      storeName: cartSession.cart?.store?.name ?? null,
+      listId: cartSession.shoppingList?.id ?? null,
+      listName: cartSession.shoppingList?.name ?? null,
+      paymentMethod: input.paymentMethod ?? receipt.paymentMethod,
+    };
+
     if (amountCents <= 0) {
+      if (shouldAllowZeroTotalPreview(input)) {
+        const paymentAttempt = await prisma.paymentAttempt.create({
+          data: {
+            receiptId: receipt.id,
+            sessionId: cartSession.id,
+            userId: owner.type === 'user' ? owner.userId : null,
+            guestSessionId: owner.type === 'guest' ? owner.guestSessionId : null,
+            merchantOrderId: buildMerchantOrderId(),
+            amountCents: 0,
+            currency: PAYMOB_CURRENCY,
+            status: 'PENDING',
+            metadata: {
+              ...baseMetadata,
+              checkoutMode: 'preview',
+              previewReason: 'ZERO_TOTAL_BYPASS',
+              preview: true,
+            },
+          },
+        });
+        const checkoutUrl = buildSecurePreviewCheckoutUrl(paymentAttempt.id);
+
+        await prisma.$transaction([
+          prisma.paymentAttempt.update({
+            where: { id: paymentAttempt.id },
+            data: {
+              checkoutUrl,
+              metadata: {
+                ...baseMetadata,
+                checkoutMode: 'preview',
+                previewReason: 'ZERO_TOTAL_BYPASS',
+                preview: true,
+              },
+            },
+          }),
+          prisma.receipt.update({
+            where: { id: receipt.id },
+            data: {
+              paymentMethod: input.paymentMethod ?? receipt.paymentMethod,
+              paymentStatus: receipt.paymentStatus === 'FAILED' ? 'PENDING' : receipt.paymentStatus,
+            },
+          }),
+        ]);
+
+        return {
+          alreadyPaid: false,
+          sessionId: cartSession.id,
+          receiptId: receipt.id,
+          attemptId: paymentAttempt.id,
+          preview: true,
+          amount: receipt.total,
+          currency: PAYMOB_CURRENCY,
+          checkoutUrl,
+        };
+      }
+
       throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
     }
 
@@ -305,14 +385,7 @@ export class PaymentService {
         amountCents,
         currency: PAYMOB_CURRENCY,
         status: 'PENDING',
-        metadata: {
-          cartCode: cartSession.cart?.cartCode ?? null,
-          storeId: cartSession.cart?.storeId ?? null,
-          storeName: cartSession.cart?.store?.name ?? null,
-          listId: cartSession.shoppingList?.id ?? null,
-          listName: cartSession.shoppingList?.name ?? null,
-          paymentMethod: input.paymentMethod ?? receipt.paymentMethod,
-        },
+        metadata: baseMetadata,
       },
     });
 
@@ -325,13 +398,10 @@ export class PaymentService {
           data: {
             checkoutUrl,
             metadata: {
-              cartCode: cartSession.cart?.cartCode ?? null,
-              storeId: cartSession.cart?.storeId ?? null,
-              storeName: cartSession.cart?.store?.name ?? null,
-              listId: cartSession.shoppingList?.id ?? null,
-              listName: cartSession.shoppingList?.name ?? null,
-              paymentMethod: input.paymentMethod ?? receipt.paymentMethod,
+              ...baseMetadata,
               checkoutMode: 'preview',
+              previewReason: 'PAYMOB_NOT_CONFIGURED',
+              preview: true,
             },
           },
         }),
@@ -349,6 +419,9 @@ export class PaymentService {
         sessionId: cartSession.id,
         receiptId: receipt.id,
         attemptId: paymentAttempt.id,
+        preview: true,
+        amount: receipt.total,
+        currency: PAYMOB_CURRENCY,
         checkoutUrl,
       };
     }
@@ -396,6 +469,9 @@ export class PaymentService {
         sessionId: cartSession.id,
         receiptId: receipt.id,
         attemptId: paymentAttempt.id,
+        preview: false,
+        amount: receipt.total,
+        currency: PAYMOB_CURRENCY,
         checkoutUrl,
       };
     } catch (error: any) {

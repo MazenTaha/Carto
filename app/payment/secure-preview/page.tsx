@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { SecurePreviewActions } from '@/components/payment/SecurePreviewActions';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -7,9 +7,21 @@ import { requireUserOrGuest } from '@/lib/guest-session';
 import { centsToAmount, formatPaymentCurrency } from '@/lib/payment-money';
 import { PaymentService } from '@/lib/services/payment.service';
 
-function formatPreviewStatus(status: string, paymentStatus: string, receiptStatus: string) {
+function getAttemptMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return {};
+  }
+
+  return metadata as Record<string, unknown>;
+}
+
+function formatPreviewStatus(status: string, paymentStatus: string, receiptStatus: string, isPreviewMode: boolean) {
   if (receiptStatus === 'PAID' || paymentStatus === 'COMPLETED' || status === 'SUCCEEDED') {
     return 'PAID';
+  }
+
+  if (isPreviewMode && status === 'PENDING') {
+    return 'Preview / Pending';
   }
 
   if (status === 'PROCESSING') {
@@ -75,7 +87,16 @@ export default async function SecurePaymentPreviewPage({
     notFound();
   }
 
-  const previewStatus = formatPreviewStatus(attempt.status, attempt.receipt.paymentStatus, attempt.receipt.status);
+  const attemptMetadata = getAttemptMetadata(attempt.metadata);
+  const previewReason = typeof attemptMetadata.previewReason === 'string' ? attemptMetadata.previewReason : null;
+  const isPreviewMode = Boolean(attempt.checkoutUrl?.startsWith('/'));
+  const isZeroTotalPreview = previewReason === 'ZERO_TOTAL_BYPASS' || attempt.amountCents === 0;
+  const previewStatus = formatPreviewStatus(
+    attempt.status,
+    attempt.receipt.paymentStatus,
+    attempt.receipt.status,
+    isPreviewMode,
+  );
   const amountLabel = formatPaymentCurrency(centsToAmount(attempt.amountCents), attempt.currency);
   const returnHref = `/session/ready?sessionId=${encodeURIComponent(attempt.sessionId)}`;
 
@@ -83,10 +104,14 @@ export default async function SecurePaymentPreviewPage({
     <PageContainer maxWidth="md">
       <main className="flex min-h-screen items-center justify-center p-4">
         <section className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-soft dark:border-slate-800 dark:bg-slate-900 md:p-8">
-          <Badge className="bg-primary/10 text-primary ring-primary/10">Secure payment preview</Badge>
+          <Badge className="bg-primary/10 text-primary ring-primary/10">
+            {isZeroTotalPreview ? 'Demo checkout preview' : 'Secure payment preview'}
+          </Badge>
           <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">Secure payment preview</h1>
           <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Paymob credentials are not configured yet. This page previews the secure payment step only.
+            {isZeroTotalPreview
+              ? 'This is a demo checkout preview because the receipt total is EGP 0.00. Real Paymob checkout requires a total greater than zero.'
+              : 'Paymob credentials are not configured yet. This page previews the secure payment step only.'}
           </p>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -130,23 +155,12 @@ export default async function SecurePaymentPreviewPage({
           </div>
 
           <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
-            Opening this preview does not mark the receipt as paid. Only the Paymob webhook should finalize payment.
+            {isZeroTotalPreview
+              ? 'This preview keeps the receipt and payment attempt pending only. It does not create a real Paymob charge, and only a verified Paymob webhook can mark payment as paid.'
+              : 'Opening this preview does not mark the receipt as paid. Only the Paymob webhook should finalize payment.'}
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <Link
-              href="/dashboard"
-              className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 transition hover:border-primary/30 hover:text-primary dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-            >
-              Back to dashboard
-            </Link>
-            <Link
-              href={returnHref}
-              className="inline-flex h-12 items-center justify-center rounded-2xl bg-primary px-5 text-sm font-black text-white shadow-glow transition active:scale-[0.98]"
-            >
-              Return to payment step
-            </Link>
-          </div>
+          <SecurePreviewActions returnHref={returnHref} sessionId={attempt.sessionId} />
         </section>
       </main>
     </PageContainer>

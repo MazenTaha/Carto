@@ -132,6 +132,8 @@ export const createPaymentSchema = z.object({
   sessionId: z.string().min(1, 'Session ID is required'),
   amount: z.number().positive('Amount must be positive').optional(),
   paymentMethod: z.enum(['CARD', 'CASH', 'MOBILE', 'WALLET']).default('CARD'),
+  mode: z.enum(['standard', 'bypass']).default('standard'),
+  allowZeroTotalPreview: z.boolean().optional(),
 });
 
 export const createDevicePaymentQrSchema = z.object({

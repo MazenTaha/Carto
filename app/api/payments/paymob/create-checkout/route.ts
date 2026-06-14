@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
       sessionId: parsed.sessionId,
       receiptId: parsed.receiptId,
       paymentMethod: parsed.paymentMethod,
+      mode: parsed.mode,
+      allowZeroTotalPreview: parsed.allowZeroTotalPreview,
     });
 
     return successResponse({
@@ -36,6 +38,9 @@ export async function POST(request: NextRequest) {
       paymentAttemptId: checkout.attemptId,
       attemptId: checkout.attemptId,
       alreadyPaid: checkout.alreadyPaid,
+      preview: checkout.preview,
+      amount: checkout.amount,
+      currency: checkout.currency,
       checkoutUrl: checkout.checkoutUrl,
       paymentUrl: checkout.checkoutUrl,
     });

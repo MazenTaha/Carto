@@ -47,6 +47,8 @@ type PaymentScanValidationResponse = {
   checkoutUrl?: string | null;
 };
 
+type HostedCheckoutMode = 'standard' | 'bypass';
+
 const LAST_PAYMENT_ATTEMPT_KEY = 'carto_last_payment_attempt';
 
 function getApiErrorMessage(data: any, fallback: string) {
@@ -117,9 +119,14 @@ function ReadySessionContent() {
     return () => controller.abort();
   }, [fetchSession]);
 
-  const startHostedCheckout = useCallback(async (validatedReceiptId?: string | null) => {
+  const startHostedCheckout = useCallback(async (options?: {
+    validatedReceiptId?: string | null;
+    mode?: HostedCheckoutMode;
+  }) => {
     if (!sessionId || !sessionData || isContinuing || isDisconnecting) return;
 
+    const validatedReceiptId = options?.validatedReceiptId;
+    const mode = options?.mode || 'standard';
     const initialReceiptId = validatedReceiptId || sessionData.receipt?.id || null;
     const latestSessionData =
       validatedReceiptId
@@ -153,6 +160,8 @@ function ReadySessionContent() {
           sessionId,
           receiptId: resolvedReceiptId,
           paymentMethod: 'CARD',
+          mode,
+          allowZeroTotalPreview: mode === 'bypass',
         }),
       });
       const data = await response.json().catch(() => null);
@@ -197,7 +206,7 @@ function ReadySessionContent() {
   }, [isContinuing, isDisconnecting, loadSessionSnapshot, router, sessionData, sessionId]);
 
   const handleBypassScan = useCallback(async () => {
-    await startHostedCheckout();
+    await startHostedCheckout({ mode: 'bypass' });
   }, [startHostedCheckout]);
 
   const handleScanDetected = useCallback(async (qrValue: string) => {
@@ -238,7 +247,7 @@ function ReadySessionContent() {
         window.location.href = validationData.checkoutUrl;
         return true;
       }
-      await startHostedCheckout(validationData.receiptId);
+      await startHostedCheckout({ validatedReceiptId: validationData.receiptId });
       return true;
     } catch (err: any) {
       setError(err.message || 'Invalid payment QR code.');
@@ -392,7 +401,7 @@ function ReadySessionContent() {
               disabled={isBusy}
             >
               <span className="material-symbols-outlined text-[16px]">bolt</span>
-              {isContinuing ? 'Preparing...' : 'Bypass scan'}
+              {isContinuing ? 'Preparing checkout...' : 'Bypass scan'}
             </Button>
             <Button
               type="button"
