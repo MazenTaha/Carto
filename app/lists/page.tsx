@@ -94,9 +94,11 @@ export default async function ListsPage({
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
               {isActivationFlow ? 'Cart linking' : 'Shopping plans'}
             </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">
-              {isActivationFlow ? 'Select a list to activate' : 'My Shopping Lists'}
-            </h1>
+            {!isActivationFlow ? (
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">
+                My Shopping Lists
+              </h1>
+            ) : null}
             {!isActivationFlow && (
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
                 Build reusable grocery lists, then activate the right one when you are ready to scan a cart.

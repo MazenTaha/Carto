@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createListRequestSchema } from '@/lib/validations';
+import { createListDraftRequestSchema, createListRequestSchema } from '@/lib/validations';
 import { purgeExpiredShoppingLists } from '@/lib/list-retention';
 import { ownerCreateData, ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
     const owner = await requireUserOrGuest();
 
     const body = await request.json();
-    const validatedData = createListRequestSchema.parse(body);
 
     if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -71,6 +70,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const hasItemsPayload = typeof body === 'object' && body !== null && 'items' in body;
+
+    if (!hasItemsPayload) {
+      const validatedData = createListDraftRequestSchema.parse(body);
+
+      const draftList = await prisma.shoppingList.create({
+        data: {
+          name: validatedData.name,
+          ...ownerCreateData(owner),
+        },
+        select: {
+          id: true,
+          name: true,
+          userId: true,
+          guestSessionId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      return NextResponse.json({ success: true, data: draftList }, { status: 201 });
+    }
+
+    const validatedData = createListRequestSchema.parse(body);
     const deduplicatedItems = new Map<string, {
       name: string;
       quantity: number;

@@ -45,6 +45,10 @@ export const createListSchema = z.object({
   name: z.string().min(1, 'List name is required').max(100, 'List name is too long'),
 });
 
+export const createListDraftRequestSchema = z.object({
+  name: z.string().min(1, 'List name is required').max(100, 'List name is too long'),
+});
+
 export const createListRequestSchema = z.object({
   name: z.string().min(1, 'List name is required').max(100, 'List name is too long'),
   items: z.array(z.object({
