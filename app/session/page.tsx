@@ -8,9 +8,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useSessionStore } from '@/store/session-store';
-import { calculateProgress, formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
 
 type SessionFetchResult = 'live' | 'stopped' | 'missing' | 'error';
@@ -28,14 +27,15 @@ function SessionContent() {
 
   const session = useSessionStore((state) => state.session);
   const receipt = useSessionStore((state) => state.receipt);
-  const progress = useSessionStore((state) => state.progress);
   const isConnected = useSessionStore((state) => state.isConnected);
   const setSession = useSessionStore((state) => state.setSession);
   const setReceipt = useSessionStore((state) => state.setReceipt);
   const updateProgress = useSessionStore((state) => state.updateProgress);
   const setConnected = useSessionStore((state) => state.setConnected);
+  const resetSessionStore = useSessionStore((state) => state.reset);
   const [isLoading, setIsLoading] = useState(true);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [error, setError] = useState('');
   const sessionRequestInFlightRef = useRef(false);
   const activeRequestInFlightRef = useRef(false);
@@ -186,6 +186,37 @@ function SessionContent() {
     }
   };
 
+  const handleDisconnectCart = async () => {
+    if (!session || isDisconnecting || !isSessionLive) {
+      return;
+    }
+
+    setIsDisconnecting(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/cart/current-session/disconnect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId: session.id }),
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(getApiErrorMessage(data, 'Could not disconnect this cart.'));
+      }
+
+      resetSessionStore();
+      router.replace('/dashboard');
+      router.refresh();
+    } catch (err: any) {
+      setError(err?.message || 'Could not disconnect this cart.');
+      setIsDisconnecting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <PageContainer>
@@ -211,7 +242,6 @@ function SessionContent() {
     );
   }
 
-  const progressData = calculateProgress(progress.total, progress.collected);
   const isSessionLive = isActiveCartSessionStatus(session.status);
 
   return (
@@ -255,7 +285,6 @@ function SessionContent() {
               <p className="text-2xl font-black">{formatCurrency(receipt?.total || 0)}</p>
             </div>
           </div>
-          <ProgressBar value={progressData.percentage} label={`${progress.collected}/${progress.total} items collected`} className="mt-6" />
         </section>
 
         {session.cart && (
@@ -293,15 +322,37 @@ function SessionContent() {
             <span className="text-sm font-bold text-slate-500">Estimated total</span>
             <span className="text-2xl font-black text-slate-950 dark:text-slate-100">{formatCurrency(receipt?.total || 0)}</span>
           </div>
-          <Button size="lg" className="w-full" onClick={handleFinishShopping} disabled={isFinishing || !isSessionLive}>
-            <span className="material-symbols-outlined">shopping_cart_checkout</span>
-            {isFinishing ? 'Preparing checkout...' : 'Finish Shopping'}
-          </Button>
+          <div className="grid grid-cols-1 gap-3 min-[520px]:grid-cols-2">
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
+              onClick={handleDisconnectCart}
+              disabled={isDisconnecting || isFinishing || !isSessionLive}
+            >
+              <span className="material-symbols-outlined">link_off</span>
+              {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
+            </Button>
+            <Button size="lg" className="w-full" onClick={handleFinishShopping} disabled={isFinishing || isDisconnecting || !isSessionLive}>
+              <span className="material-symbols-outlined">shopping_cart_checkout</span>
+              {isFinishing ? 'Preparing checkout...' : 'Finish Shopping'}
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="hidden lg:fixed lg:bottom-6 lg:right-6 lg:z-40 lg:block">
-        <Button size="lg" onClick={handleFinishShopping} disabled={isFinishing || !isSessionLive}>
+      <div className="hidden lg:fixed lg:bottom-6 lg:right-6 lg:z-40 lg:flex lg:items-center lg:gap-3">
+        <Button
+          size="lg"
+          variant="outline"
+          className="border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
+          onClick={handleDisconnectCart}
+          disabled={isDisconnecting || isFinishing || !isSessionLive}
+        >
+          <span className="material-symbols-outlined">link_off</span>
+          {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
+        </Button>
+        <Button size="lg" onClick={handleFinishShopping} disabled={isFinishing || isDisconnecting || !isSessionLive}>
           <span className="material-symbols-outlined">shopping_cart_checkout</span>
           {isFinishing ? 'Preparing checkout...' : 'Finish Shopping'}
         </Button>
