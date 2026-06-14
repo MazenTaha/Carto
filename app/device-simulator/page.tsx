@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { RefreshCw, Receipt, ShoppingCart, Wifi, WifiOff } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { DEMO_CART_CODE, normalizeCartCode } from '@/lib/cart-code';
+import { formatCurrency } from '@/lib/utils';
 
 const STORAGE_KEY = 'carto_device_simulator_config';
 
@@ -64,6 +65,7 @@ type DeviceResponse =
       receipt: {
         id: string;
         status: string;
+        paymentStatus?: string | null;
         subtotal: number;
         tax: number;
         total: number;
@@ -74,6 +76,13 @@ type DeviceResponse =
           price: number;
           category: string | null;
         }>;
+      } | null;
+      payment?: {
+        receiptId: string;
+        status: string;
+        currency: string;
+        amount: number;
+        paymentUrl: string | null;
       } | null;
     };
 
@@ -93,10 +102,38 @@ type DisconnectResponse = {
   activeSessionReleased: boolean;
 };
 
+type PaymentQrResponse = {
+  paymentAttemptId: string;
+  paymentUrl: string;
+  qrValue: string;
+  receiptId: string;
+  cartSessionId: string;
+  amount: number;
+  currency: string;
+  paymentStatus: string;
+  expiresAt: string;
+};
+
+type PaymentStatusResponse = {
+  receiptId: string;
+  cartSessionId: string;
+  paymentStatus: string;
+  receiptStatus: string;
+  cartSessionStatus: string;
+  cartStatus: string;
+  amount: number;
+  currency: string;
+  paidAt: string | null;
+};
+
 function getApiErrorMessage(data: any, fallback: string) {
   if (data?.error?.message) return data.error.message;
   if (typeof data?.error === 'string') return data.error;
   return fallback;
+}
+
+function formatDeviceMoney(amount: number, currency = 'EGP') {
+  return formatCurrency(amount, currency);
 }
 
 const jsonFetcher = async ([url, deviceSecret]: [string, string]) => {
@@ -124,6 +161,12 @@ export default function DeviceSimulatorPage() {
   const [isResetting, setIsResetting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [eventLogs, setEventLogs] = useState<string[]>([]);
+  const [paymentQrData, setPaymentQrData] = useState<PaymentQrResponse | null>(null);
+  const [paymentStatusData, setPaymentStatusData] = useState<PaymentStatusResponse | null>(null);
+  const [paymentError, setPaymentError] = useState<string>('');
+  const [isGeneratingPaymentQr, setIsGeneratingPaymentQr] = useState(false);
+  const [isCheckingPaymentStatus, setIsCheckingPaymentStatus] = useState(false);
+  const paymentCompletionHandledRef = useRef(false);
 
   const appendLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -180,6 +223,11 @@ export default function DeviceSimulatorPage() {
 
   const cartStatus = deviceData?.cartStatus ?? deviceData?.cart?.status ?? 'OFFLINE';
   const isActive = deviceData?.active === true;
+  const activeDeviceData = isActive ? deviceData : null;
+  const currentReceiptId = paymentQrData?.receiptId || activeDeviceData?.receiptId || activeDeviceData?.payment?.receiptId || null;
+  const activeCartSessionId = activeDeviceData?.cartSessionId || null;
+  const activeReceiptStatus = activeDeviceData?.receipt?.status || null;
+  const activeSessionStatus = activeDeviceData?.session.status || null;
 
   const qrKey = useMemo(
     () =>
@@ -210,9 +258,171 @@ export default function DeviceSimulatorPage() {
     return () => window.clearTimeout(timeoutId);
   }, [isConnected, isActive, qrData?.expiresAt, refreshQr]);
 
+  useEffect(() => {
+    if (!isActive) {
+      setPaymentQrData(null);
+      setPaymentStatusData(null);
+      setPaymentError('');
+      paymentCompletionHandledRef.current = false;
+      return;
+    }
+
+    if (paymentQrData?.cartSessionId && activeDeviceData?.cartSessionId && paymentQrData.cartSessionId !== activeDeviceData.cartSessionId) {
+      setPaymentQrData(null);
+      setPaymentStatusData(null);
+      setPaymentError('');
+      paymentCompletionHandledRef.current = false;
+    }
+  }, [activeDeviceData?.cartSessionId, isActive, paymentQrData?.cartSessionId]);
+
+  const fetchPaymentStatus = useCallback(async () => {
+    if (!trimmedCartCode || !trimmedDeviceSecret || !currentReceiptId) {
+      return null;
+    }
+
+    setIsCheckingPaymentStatus(true);
+
+    try {
+      const response = await fetch(
+        `/api/carts/${encodeURIComponent(trimmedCartCode)}/payment-status?receiptId=${encodeURIComponent(currentReceiptId)}`,
+        {
+          cache: 'no-store',
+          headers: {
+            Authorization: `Bearer ${trimmedDeviceSecret}`,
+          },
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(getApiErrorMessage(data, 'Could not fetch payment status.'));
+      }
+
+      const nextStatus = data.data as PaymentStatusResponse;
+      setPaymentStatusData(nextStatus);
+      setPaymentError('');
+      return nextStatus;
+    } catch (error: any) {
+      setPaymentError(error.message || 'Could not fetch payment status.');
+      appendLog(`Payment status failed: ${error.message || 'Safe error unavailable.'}`);
+      return null;
+    } finally {
+      setIsCheckingPaymentStatus(false);
+    }
+  }, [appendLog, currentReceiptId, trimmedCartCode, trimmedDeviceSecret]);
+
+  useEffect(() => {
+    if (!paymentQrData || !currentReceiptId || !isActive) {
+      return;
+    }
+
+    let cancelled = false;
+    let intervalId: number | null = null;
+    let successTimeoutId: number | null = null;
+
+    const poll = async () => {
+      const status = await fetchPaymentStatus();
+      if (cancelled || !status) {
+        return;
+      }
+
+      if (status.paymentStatus === 'PAID' && !paymentCompletionHandledRef.current) {
+        paymentCompletionHandledRef.current = true;
+        appendLog(`Payment confirmed for receipt ${status.receiptId.slice(-6).toUpperCase()}`);
+        successTimeoutId = window.setTimeout(() => {
+          setPaymentQrData(null);
+          setPaymentStatusData(status);
+          void refreshDevice();
+          void refreshQr();
+        }, 2200);
+      }
+    };
+
+    void poll();
+    intervalId = window.setInterval(() => {
+      void poll();
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
+      if (successTimeoutId) {
+        window.clearTimeout(successTimeoutId);
+      }
+    };
+  }, [appendLog, currentReceiptId, fetchPaymentStatus, isActive, paymentQrData, refreshDevice, refreshQr]);
+
+  const handleGeneratePaymentQr = useCallback(async () => {
+    if (!isActive || !trimmedCartCode || !trimmedDeviceSecret || !activeCartSessionId || !currentReceiptId || isGeneratingPaymentQr) {
+      return;
+    }
+
+    setIsGeneratingPaymentQr(true);
+    setPaymentError('');
+    paymentCompletionHandledRef.current = false;
+    appendLog(`Requesting payment QR for session ${activeCartSessionId.slice(-6).toUpperCase()}`);
+
+    try {
+      const response = await fetch(`/api/carts/${encodeURIComponent(trimmedCartCode)}/payment-qr`, {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {
+          Authorization: `Bearer ${trimmedDeviceSecret}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cartSessionId: activeCartSessionId,
+          receiptId: currentReceiptId,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(getApiErrorMessage(data, 'Could not create payment QR.'));
+      }
+
+      const nextPaymentQr = data.data as PaymentQrResponse;
+      setPaymentQrData(nextPaymentQr);
+      setPaymentStatusData({
+        receiptId: nextPaymentQr.receiptId,
+        cartSessionId: nextPaymentQr.cartSessionId,
+        paymentStatus: nextPaymentQr.paymentStatus,
+        receiptStatus: activeReceiptStatus || 'LOCKED',
+        cartSessionStatus: activeSessionStatus || 'ACTIVE',
+        cartStatus,
+        amount: nextPaymentQr.amount,
+        currency: nextPaymentQr.currency,
+        paidAt: null,
+      });
+      appendLog(`Payment QR ready for receipt ${nextPaymentQr.receiptId.slice(-6).toUpperCase()}`);
+    } catch (error: any) {
+      setPaymentError(error.message || 'Could not create payment QR.');
+      appendLog(`Payment QR failed: ${error.message || 'Safe error unavailable.'}`);
+    } finally {
+      setIsGeneratingPaymentQr(false);
+    }
+  }, [
+    appendLog,
+    activeCartSessionId,
+    activeReceiptStatus,
+    activeSessionStatus,
+    cartStatus,
+    currentReceiptId,
+    isActive,
+    isGeneratingPaymentQr,
+    trimmedCartCode,
+    trimmedDeviceSecret,
+  ]);
+
   const handleConnect = (event: React.FormEvent) => {
     event.preventDefault();
     if (!trimmedCartCode || !trimmedDeviceSecret) return;
+    setPaymentQrData(null);
+    setPaymentStatusData(null);
+    setPaymentError('');
+    paymentCompletionHandledRef.current = false;
     setIsConnected(true);
     appendLog(`Connected simulator to cart: ${trimmedCartCode}`);
   };
@@ -256,6 +466,10 @@ export default function DeviceSimulatorPage() {
 
       await refreshDevice(waitingState, { revalidate: false });
       await refreshQr(freshQr, { revalidate: false });
+      setPaymentQrData(null);
+      setPaymentStatusData(null);
+      setPaymentError('');
+      paymentCompletionHandledRef.current = false;
       setLastPollAt(new Date().toISOString());
       appendLog(`Disconnected cart: ${disconnectData.cartCode}`);
       appendLog('Cart released and QR refreshed');
@@ -295,6 +509,10 @@ export default function DeviceSimulatorPage() {
       }
 
       setLastPollAt(null);
+      setPaymentQrData(null);
+      setPaymentStatusData(null);
+      setPaymentError('');
+      paymentCompletionHandledRef.current = false;
       await refreshDevice();
       await refreshQr();
     } catch (error: any) {
@@ -390,6 +608,12 @@ export default function DeviceSimulatorPage() {
                 </div>
               )}
 
+              {paymentError && (
+                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
+                  {paymentError}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 {isConnected ? (
                   <button
@@ -450,6 +674,10 @@ export default function DeviceSimulatorPage() {
                 {qrData && !isActive && <p>&gt; QR refreshed until {new Date(qrData.expiresAt).toLocaleTimeString()}</p>}
                 {isQrLoading && !qrData && <p>&gt; Requesting fresh pairing QR...</p>}
                 {deviceData?.active && <p>&gt; Session {(deviceData.cartSessionId || deviceData.session.id).slice(-6).toUpperCase()} pushed to device screen</p>}
+                {paymentQrData && <p>&gt; Payment QR live for receipt {paymentQrData.receiptId.slice(-6).toUpperCase()}</p>}
+                {paymentStatusData && <p>&gt; Payment status: {paymentStatusData.paymentStatus}</p>}
+                {isGeneratingPaymentQr && <p>&gt; Creating secure payment QR...</p>}
+                {isCheckingPaymentStatus && <p>&gt; Polling payment status every 2s...</p>}
                 {isDisconnecting && <p>&gt; Releasing cart session and refreshing QR...</p>}
                 {isResetting && <p>&gt; Resetting cart lifecycle from simulator...</p>}
                 {eventLogs.map((entry) => (
@@ -543,7 +771,17 @@ export default function DeviceSimulatorPage() {
                     </div>
 
                     <div className="flex flex-col overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
-                      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">Current Receipt</h3>
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Receipt</h3>
+                        <button
+                          type="button"
+                          onClick={() => void handleGeneratePaymentQr()}
+                          disabled={!deviceData.receipt?.id || isGeneratingPaymentQr || Boolean(paymentQrData)}
+                          className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {paymentQrData ? 'Payment QR ready' : isGeneratingPaymentQr ? 'Preparing...' : 'Generate payment QR'}
+                        </button>
+                      </div>
                       {!deviceData.receipt || deviceData.receipt.items.length === 0 ? (
                         <p className="flex-1 italic text-slate-500">Scan items to add them</p>
                       ) : (
@@ -554,20 +792,58 @@ export default function DeviceSimulatorPage() {
                                 {item.name} <span className="text-slate-600">x{item.quantity}</span>
                               </span>
                               <span className="font-mono text-slate-300">
-                                ${(item.price * item.quantity).toFixed(2)}
+                                {formatDeviceMoney(item.price * item.quantity)}
                               </span>
                             </li>
                           ))}
                         </ul>
                       )}
-                      <div className="mt-auto border-t border-slate-800 pt-4">
+                      <div className="mt-4 border-t border-slate-800 pt-4">
                         <div className="flex items-center justify-between">
                           <span className="text-slate-400">Total</span>
                           <span className="font-mono text-2xl font-bold text-white">
-                            ${deviceData.receipt?.total?.toFixed(2) || '0.00'}
+                            {formatDeviceMoney(deviceData.receipt?.total || 0)}
                           </span>
                         </div>
                       </div>
+
+                      {paymentQrData ? (
+                        <div className="mt-4 rounded-3xl border border-emerald-500/30 bg-slate-950 p-4">
+                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Scan to pay</p>
+                          <div className="mt-4 flex justify-center rounded-3xl bg-white p-4">
+                            <QRCode value={paymentQrData.qrValue} size={164} />
+                          </div>
+                          <div className="mt-4 space-y-2 text-sm">
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400">Amount</span>
+                              <span className="font-bold text-white">{formatDeviceMoney(paymentQrData.amount, paymentQrData.currency)}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400">Payment status</span>
+                              <span className="font-bold text-emerald-300">{paymentStatusData?.paymentStatus || paymentQrData.paymentStatus}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400">Expires</span>
+                              <span className="font-semibold text-slate-200">{new Date(paymentQrData.expiresAt).toLocaleTimeString()}</span>
+                            </div>
+                          </div>
+                          {paymentStatusData?.paymentStatus === 'PAID' ? (
+                            <div className="mt-4 rounded-2xl bg-emerald-500/15 px-4 py-3 text-sm font-bold text-emerald-200">
+                              Payment successful. Returning cart to pairing mode...
+                            </div>
+                          ) : (
+                            <p className="mt-4 text-sm text-slate-400">
+                              Customer scans this QR on their phone to open the secure Carto checkout page, then completes payment in Paymob.
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-2xl border border-dashed border-slate-700 px-4 py-3 text-sm text-slate-400">
+                          {deviceData.payment?.status === 'PENDING'
+                            ? `Payment is pending for ${formatDeviceMoney(deviceData.payment.amount, deviceData.payment.currency)}. Generate a fresh QR to continue on a phone.`
+                            : 'Generate a payment QR when the shopper is ready to pay on their phone.'}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

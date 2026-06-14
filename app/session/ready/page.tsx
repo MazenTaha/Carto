@@ -44,6 +44,7 @@ type DisconnectCartResponse = {
 type PaymentScanValidationResponse = {
   sessionId: string;
   receiptId: string | null;
+  checkoutUrl?: string | null;
 };
 
 const LAST_PAYMENT_ATTEMPT_KEY = 'carto_last_payment_attempt';
@@ -208,6 +209,15 @@ function ReadySessionContent() {
       }
 
       setIsScannerOpen(false);
+      if (validationData.checkoutUrl) {
+        if (isInternalCheckoutUrl(validationData.checkoutUrl)) {
+          router.push(validationData.checkoutUrl);
+          return true;
+        }
+
+        window.location.href = validationData.checkoutUrl;
+        return true;
+      }
       await startHostedCheckout(validationData.receiptId);
       return true;
     } catch (err: any) {
@@ -216,7 +226,7 @@ function ReadySessionContent() {
     } finally {
       setIsValidatingQr(false);
     }
-  }, [isContinuing, isDisconnecting, isValidatingQr, sessionId, startHostedCheckout]);
+  }, [isContinuing, isDisconnecting, isValidatingQr, router, sessionId, startHostedCheckout]);
 
   const handleDisconnect = useCallback(async () => {
     if (!sessionId || !sessionData || isDisconnecting || isContinuing) return;

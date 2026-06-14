@@ -191,6 +191,7 @@ model Receipt {
   total          Float         @default(0)
   createdAt      DateTime      @default(now())
   lockedAt       DateTime?
+  paidAt         DateTime?
   paymentId      String?
 
   // New fields
@@ -248,6 +249,8 @@ model PaymentAttempt {
   amountCents           Int
   currency              String               @default("EGP")
   checkoutUrl           String?
+  paymentTokenHash      String?
+  expiresAt             DateTime?
   status                PaymentAttemptStatus @default(PENDING)
   lastError             String?
   rawResponse           Json?

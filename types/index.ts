@@ -106,6 +106,7 @@ export interface Receipt {
   total: number;
   createdAt: Date;
   lockedAt: Date | null;
+  paidAt?: Date | null;
   paymentId: string | null;
   storeId: string | null;
   cartId: string | null;

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { errorResponse, successResponse } from '@/lib/api-response';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { validatePaymentQrToken } from '@/lib/payment-qr';
+import { DevicePaymentService } from '@/lib/services/device-payment.service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,10 @@ type ParsedPaymentQr =
   | {
       sessionId: string;
       receiptId: string | null;
+      paymentToken: string | null;
+    }
+  | {
+      attemptId: string;
       paymentToken: string | null;
     }
   | { error: string };
@@ -93,8 +98,25 @@ function parsePaymentQrValue(qrValue: string, request: NextRequest): ParsedPayme
       return { error: 'This payment QR code does not belong to this Carto app.' };
     }
 
-    if (!['/checkout', '/payment/scan', '/session/ready', '/payment/pending'].includes(parsedUrl.pathname)) {
+    if (
+      !['/checkout', '/payment/scan', '/session/ready', '/payment/pending'].includes(parsedUrl.pathname) &&
+      !parsedUrl.pathname.startsWith('/checkout/')
+    ) {
       return { error: 'This QR code is not a valid Carto payment route.' };
+    }
+
+    if (parsedUrl.pathname.startsWith('/checkout/')) {
+      const attemptId = parsedUrl.pathname.slice('/checkout/'.length).trim();
+      const paymentToken = parsedUrl.searchParams.get('token')?.trim() || parsedUrl.searchParams.get('paymentToken')?.trim() || null;
+
+      if (!attemptId) {
+        return { error: 'This payment QR code is missing the checkout attempt ID.' };
+      }
+
+      return {
+        attemptId,
+        paymentToken,
+      };
     }
 
     return readPaymentParams(parsedUrl.searchParams);
@@ -105,18 +127,36 @@ function parsePaymentQrValue(qrValue: string, request: NextRequest): ParsedPayme
 
 export async function POST(request: NextRequest) {
   try {
-    const owner = await requireUserOrGuest();
-
-    if (!owner) {
-      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
-    }
-
     const body = await request.json().catch(() => null);
     const qrValue = typeof body?.qrValue === 'string' ? body.qrValue : '';
     const parsedQr = parsePaymentQrValue(qrValue, request);
 
     if ('error' in parsedQr) {
       return errorResponse(parsedQr.error, 400, 'INVALID_PAYMENT_QR');
+    }
+
+    if ('attemptId' in parsedQr) {
+      if (!parsedQr.paymentToken) {
+        return errorResponse('This payment QR code is missing its access token.', 400, 'INVALID_PAYMENT_QR_TOKEN');
+      }
+
+      const attempt = await DevicePaymentService.getPublicCheckoutAttempt(parsedQr.attemptId, parsedQr.paymentToken);
+
+      if (!attempt) {
+        return errorResponse('This payment QR code is not available anymore.', 404, 'PAYMENT_QR_NOT_FOUND');
+      }
+
+      return successResponse({
+        sessionId: attempt.attempt.sessionId,
+        receiptId: attempt.attempt.receiptId,
+        checkoutUrl: `/checkout/${encodeURIComponent(parsedQr.attemptId)}?token=${encodeURIComponent(parsedQr.paymentToken)}`,
+      });
+    }
+
+    const owner = await requireUserOrGuest();
+
+    if (!owner) {
+      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
     const cartSession = await prisma.cartSession.findFirst({

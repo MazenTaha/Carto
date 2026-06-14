@@ -544,6 +544,7 @@ export class PaymentService {
         data: {
           status: 'PAID',
           lockedAt: receipt.lockedAt ?? now,
+          paidAt: now,
           subtotal,
           tax,
           total,

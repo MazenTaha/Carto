@@ -5,6 +5,7 @@ import { normalizeCartCode } from '@/lib/cart-code';
 import { ApiErrorResponse } from '../api-response';
 import { calculateTax } from '../utils';
 import { CartSessionService } from './cart-session.service';
+import { DevicePaymentService } from './device-payment.service';
 
 const activeDeviceSessionSelect = {
   id: true,
@@ -82,8 +83,13 @@ type DeviceSessionSnapshot = {
   };
   receipt: {
     id: string;
+    status: string;
     total: number;
     paymentStatus?: string | null;
+    paymentAttempts?: Array<{
+      id: string;
+      status: string;
+    }>;
     items: Array<{
       id: string;
       name: string;
@@ -234,6 +240,9 @@ export class CartDeviceService {
     session: DeviceSessionSnapshot
   ) {
     const canonicalCartCode = normalizeCartCode(cart.cartCode);
+    const payment = DevicePaymentService.buildActiveSessionPaymentSummary({
+      receipt: session.receipt,
+    });
 
     return {
       status: 'active' as const,
@@ -257,7 +266,8 @@ export class CartDeviceService {
       },
       cartItems: session.receipt?.items ?? [],
       total: session.receipt?.total ?? 0,
-      paymentStatus: session.receipt?.paymentStatus ?? null,
+      paymentStatus: payment?.status ?? session.receipt?.paymentStatus ?? null,
+      payment,
       cart: {
         cartCode: canonicalCartCode,
         status: cart.status,

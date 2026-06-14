@@ -39,9 +39,19 @@ export class PollingService {
           select: {
             id: true,
             status: true,
+            paymentStatus: true,
             subtotal: true,
             tax: true,
             total: true,
+            paidAt: true,
+            paymentAttempts: {
+              select: {
+                id: true,
+                status: true,
+              },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
             items: {
               select: {
                 id: true,

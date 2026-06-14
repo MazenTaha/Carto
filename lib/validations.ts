@@ -133,3 +133,12 @@ export const createPaymentSchema = z.object({
   amount: z.number().positive('Amount must be positive').optional(),
   paymentMethod: z.enum(['CARD', 'CASH', 'MOBILE', 'WALLET']).default('CARD'),
 });
+
+export const createDevicePaymentQrSchema = z.object({
+  cartSessionId: z.string().min(1, 'Cart session ID is required'),
+  receiptId: z.string().min(1, 'Receipt ID is required'),
+});
+
+export const devicePaymentStatusQuerySchema = z.object({
+  receiptId: z.string().min(1, 'Receipt ID is required'),
+});
