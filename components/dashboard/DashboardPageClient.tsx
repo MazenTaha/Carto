@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Logo } from '@/components/ui/Logo';
@@ -74,59 +74,65 @@ export function DashboardPageClient({
   const [activeSession, setActiveSession] = useState<ActiveSessionSummary | null>(initialActiveSession);
   const [isCheckingActiveSession, setIsCheckingActiveSession] = useState(!initialActiveSession);
 
+  const refreshActiveSession = useCallback(async () => {
+    try {
+      const response = await fetch('/api/cart/current-session', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
+
+      const payload: CurrentSessionResponse = await response.json().catch(() => ({ success: false }));
+
+      if (!response.ok || payload?.success === false) {
+        throw new Error(readApiErrorMessage(payload, 'Could not check the current cart session.'));
+      }
+
+      if (payload.data.active) {
+        setActiveSession(payload.data.session);
+      } else {
+        setActiveSession(null);
+      }
+    } catch {
+      setActiveSession((current) => current ?? initialActiveSession);
+    } finally {
+      setIsCheckingActiveSession(false);
+    }
+  }, [initialActiveSession]);
+
   useEffect(() => {
     let cancelled = false;
+    let intervalId: number | null = null;
 
-    async function refreshActiveSession() {
-      try {
-        const response = await fetch('/api/cart/current-session', {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        });
-
-        const payload: CurrentSessionResponse = await response.json().catch(() => ({ success: false }));
-
-        if (!response.ok || payload?.success === false) {
-          throw new Error(readApiErrorMessage(payload, 'Could not check the current cart session.'));
-        }
-
-        if (cancelled) {
-          return;
-        }
-
-        if (payload.data.active) {
-          setActiveSession(payload.data.session);
-        } else {
-          setActiveSession(null);
-        }
-      } catch {
-        if (!cancelled) {
-          setActiveSession((current) => current ?? initialActiveSession);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsCheckingActiveSession(false);
-        }
+    const refreshIfMounted = async () => {
+      await refreshActiveSession();
+      if (cancelled) {
+        return;
       }
-    }
+    };
 
-    void refreshActiveSession();
+    void refreshIfMounted();
 
     const handleWindowFocus = () => {
-      void refreshActiveSession();
+      void refreshIfMounted();
     };
 
     const handlePageShow = () => {
-      void refreshActiveSession();
+      void refreshIfMounted();
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        void refreshActiveSession();
+        void refreshIfMounted();
       }
     };
+
+    if (activeSession) {
+      intervalId = window.setInterval(() => {
+        void refreshIfMounted();
+      }, 4000);
+    }
 
     window.addEventListener('focus', handleWindowFocus);
     window.addEventListener('pageshow', handlePageShow);
@@ -134,11 +140,14 @@ export function DashboardPageClient({
 
     return () => {
       cancelled = true;
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
       window.removeEventListener('focus', handleWindowFocus);
       window.removeEventListener('pageshow', handlePageShow);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [initialActiveSession]);
+  }, [activeSession, refreshActiveSession]);
 
   const hasActiveSession = Boolean(activeSession);
   const showNormalFlow = !hasActiveSession && !isCheckingActiveSession;

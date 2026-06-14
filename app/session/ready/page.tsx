@@ -9,7 +9,19 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { isCurrentCustomerSessionLive } from '@/lib/current-cart-session';
+
+type ActiveSessionSummary = {
+  sessionId: string;
+  status: string;
+  cartCode: string;
+  cartStatus: string;
+  receiptId: string | null;
+  shoppingList: {
+    id: string;
+    name: string;
+    itemsCount: number;
+  };
+};
 
 type ReadySessionResponse = {
   session: {
@@ -49,6 +61,11 @@ type PaymentScanValidationResponse = {
 
 type HostedCheckoutMode = 'standard' | 'bypass';
 
+type CurrentSessionResponse =
+  | { success: true; data: { active: false } }
+  | { success: true; data: { active: true; session: ActiveSessionSummary } }
+  | { success: false; error?: string | { message?: string } };
+
 const LAST_PAYMENT_ATTEMPT_KEY = 'carto_last_payment_attempt';
 
 function getApiErrorMessage(data: any, fallback: string) {
@@ -68,6 +85,8 @@ function ReadySessionContent() {
 
   const [sessionData, setSessionData] = useState<ReadySessionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCheckingCurrentSession, setIsCheckingCurrentSession] = useState(true);
+  const [currentSession, setCurrentSession] = useState<ActiveSessionSummary | null>(null);
   const [isContinuing, setIsContinuing] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -118,6 +137,77 @@ function ReadySessionContent() {
     void fetchSession(controller.signal);
     return () => controller.abort();
   }, [fetchSession]);
+
+  const refreshCurrentSession = useCallback(async () => {
+    try {
+      const response = await fetch('/api/cart/current-session', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
+      const data: CurrentSessionResponse = await response.json().catch(() => ({ success: false }));
+
+      if (!response.ok || data.success === false) {
+        throw new Error(getApiErrorMessage(data, 'Could not check the current cart session.'));
+      }
+
+      if (data.data.active) {
+        setCurrentSession(data.data.session);
+      } else {
+        setCurrentSession(null);
+        setIsScannerOpen(false);
+      }
+    } catch (err: any) {
+      setError((current) => current || err.message || 'Could not check the current cart session.');
+    } finally {
+      setIsCheckingCurrentSession(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let intervalId: number | null = null;
+
+    const refreshLiveState = async () => {
+      if (cancelled) return;
+      await refreshCurrentSession();
+      if (cancelled) return;
+    };
+
+    void refreshLiveState();
+    intervalId = window.setInterval(() => {
+      void refreshLiveState();
+    }, 3000);
+
+    const handleWindowFocus = () => {
+      void refreshLiveState();
+    };
+
+    const handlePageShow = () => {
+      void refreshLiveState();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshLiveState();
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshCurrentSession]);
 
   const startHostedCheckout = useCallback(async (options?: {
     validatedReceiptId?: string | null;
@@ -258,13 +348,13 @@ function ReadySessionContent() {
   }, [isContinuing, isDisconnecting, isValidatingQr, router, sessionId, startHostedCheckout]);
 
   const handleDisconnect = useCallback(async () => {
-    if (!sessionId || !sessionData || isDisconnecting || isContinuing) return;
+    if (!sessionId || !sessionData || isDisconnecting) return;
 
     setIsDisconnecting(true);
     setError('');
 
     try {
-      const response = await fetch('/api/cart/disconnect', {
+      const response = await fetch('/api/cart/current-session/disconnect', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -283,15 +373,16 @@ function ReadySessionContent() {
         throw new Error('Could not disconnect this cart.');
       }
 
+      setCurrentSession(null);
       router.replace('/dashboard');
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'Could not disconnect this cart.');
       setIsDisconnecting(false);
     }
-  }, [isContinuing, isDisconnecting, router, sessionData, sessionId]);
+  }, [isDisconnecting, router, sessionData, sessionId]);
 
-  if (isLoading) {
+  if (isLoading || isCheckingCurrentSession) {
     return (
       <PageContainer>
         <LoadingState label="Preparing your cart" />
@@ -316,17 +407,26 @@ function ReadySessionContent() {
     );
   }
 
-  const listName = sessionData.session.shoppingList?.name || 'Selected list';
-  const itemCount = sessionData.session.shoppingList?.items?.length || 0;
-  const cartCode = sessionData.session.cart?.cartCode || 'Cart connected';
-  const sessionIsCurrent = isCurrentCustomerSessionLive({
-    status: sessionData.session.status,
-    endedAt: sessionData.session.endedAt ? new Date(sessionData.session.endedAt) : null,
-    cartStatus: sessionData.session.cart?.status,
-    receiptStatus: sessionData.receipt?.status,
-    paymentStatus: sessionData.receipt?.paymentStatus,
-  });
+  const currentSessionMatchesPage = currentSession?.sessionId === sessionId;
+  const hasActiveSession = Boolean(currentSessionMatchesPage);
+  const isPaymentRetryState =
+    !hasActiveSession &&
+    (sessionData.session.status === 'COMPLETED' || sessionData.session.status === 'CHECKED_OUT') &&
+    sessionData.receipt?.status !== 'PAID' &&
+    sessionData.receipt?.paymentStatus !== 'COMPLETED';
+  const sessionEndedOrDisconnected = !hasActiveSession && !isPaymentRetryState;
+  const listName = currentSessionMatchesPage
+    ? currentSession.shoppingList.name
+    : sessionData.session.shoppingList?.name || 'Selected list';
+  const itemCount = currentSessionMatchesPage
+    ? currentSession.shoppingList.itemsCount
+    : sessionData.session.shoppingList?.items?.length || 0;
+  const cartCode = currentSessionMatchesPage
+    ? currentSession.cartCode
+    : sessionData.session.cart?.cartCode || 'Carto cart';
   const isBusy = isContinuing || isDisconnecting || isValidatingQr;
+  const scanDisabled = isBusy || sessionEndedOrDisconnected;
+  const bypassDisabled = isBusy || sessionEndedOrDisconnected;
 
   return (
     <PageContainer maxWidth="md">
@@ -335,10 +435,16 @@ function ReadySessionContent() {
       <main className="flex min-h-[calc(100dvh-4.5rem)] flex-col justify-center px-4 pb-32 pt-6 sm:px-6">
         <section className="overflow-hidden rounded-[2rem] bg-slate-950 text-white shadow-soft">
           <div className="bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_transparent_42%)] p-6 sm:p-8">
-            <Badge variant="connected">Cart connected</Badge>
+            <Badge variant={hasActiveSession ? 'connected' : 'warning'}>
+              {hasActiveSession ? 'Cart connected' : isPaymentRetryState ? 'Payment ready' : 'Session ended'}
+            </Badge>
             <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Enjoy your shopping :)</h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-white/75 sm:text-base">
-              Your smart cart session is live on {cartCode}. Continue whenever you are ready to move into payment.
+              {hasActiveSession
+                ? `Your smart cart session is live on ${cartCode}. Continue whenever you are ready to move into payment.`
+                : isPaymentRetryState
+                  ? 'This cart session is no longer connected, but your payment step is still available to retry safely.'
+                  : 'This cart session has ended or been disconnected. Return home to start a new activation when you are ready.'}
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -364,9 +470,11 @@ function ReadySessionContent() {
             <div className="min-w-0">
               <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Next step: payment</h2>
               <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-                {sessionIsCurrent
+                {hasActiveSession
                   ? 'Scan the checkout QR code to continue to payment. Bypass scan is available for demos and testing only.'
-                  : 'This session is already finalized, so scanning or bypassing will open checkout directly.'}
+                  : isPaymentRetryState
+                    ? 'This session is already finalized, so scanning or bypassing will open checkout directly.'
+                    : 'Session ended or disconnected. Payment actions are unavailable on this page now.'}
               </p>
             </div>
           </div>
@@ -386,7 +494,7 @@ function ReadySessionContent() {
             size="md"
             className="h-11 w-full rounded-2xl"
             onClick={() => setIsScannerOpen(true)}
-            disabled={isBusy}
+            disabled={scanDisabled}
           >
             <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
             {isValidatingQr ? 'Validating QR...' : 'Scan payment QR'}
@@ -398,7 +506,7 @@ function ReadySessionContent() {
               size="sm"
               className="h-10 rounded-2xl"
               onClick={() => void handleBypassScan()}
-              disabled={isBusy}
+              disabled={bypassDisabled}
             >
               <span className="material-symbols-outlined text-[16px]">bolt</span>
               {isContinuing ? 'Preparing checkout...' : 'Bypass scan'}
@@ -412,7 +520,6 @@ function ReadySessionContent() {
                 router.replace('/dashboard');
                 router.refresh();
               }}
-              disabled={isBusy}
             >
               Back to home
             </Button>
@@ -422,7 +529,7 @@ function ReadySessionContent() {
               size="sm"
               className="col-span-2 h-10 rounded-2xl border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200 sm:col-span-1"
               onClick={() => void handleDisconnect()}
-              disabled={!sessionIsCurrent || isBusy}
+              disabled={!hasActiveSession || isDisconnecting}
             >
               {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
             </Button>

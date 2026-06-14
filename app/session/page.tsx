@@ -174,6 +174,41 @@ function SessionContent() {
     };
   }, [sessionId, fetchSession, fetchActiveSession]);
 
+  useEffect(() => {
+    const refreshCurrentSession = () => {
+      if (sessionId) {
+        void fetchSession();
+        return;
+      }
+
+      void fetchActiveSession();
+    };
+
+    const handleWindowFocus = () => {
+      refreshCurrentSession();
+    };
+
+    const handlePageShow = () => {
+      refreshCurrentSession();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshCurrentSession();
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchActiveSession, fetchSession, sessionId]);
+
   const handleFinishShopping = async () => {
     if (!session || isFinishing || !isActiveCartSessionStatus(session.status)) return;
     setIsFinishing(true);

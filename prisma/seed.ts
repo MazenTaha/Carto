@@ -18,13 +18,13 @@ const DEMO_STORE_ID = 'dev-carto-store'
 // Curated product dataset - 300+ generic grocery items
 const products = [
     // Fresh Fruits (40 items)
-    { name: "apple", category: "Fresh Fruits", emoji: "🍎", price: 0, popularity: 95 },
-    { name: "banana", category: "Fresh Fruits", emoji: "🍌", price: 0, popularity: 98 },
-    { name: "orange", category: "Fresh Fruits", emoji: "🍊", price: 0, popularity: 92 },
-    { name: "strawberry", category: "Fresh Fruits", emoji: "🍓", price: 0, popularity: 88 },
-    { name: "grape", category: "Fresh Fruits", emoji: "🍇", price: 0, popularity: 85 },
-    { name: "watermelon", category: "Fresh Fruits", emoji: "🍉", price: 0, popularity: 80 },
-    { name: "pineapple", category: "Fresh Fruits", emoji: "🍍", price: 0, popularity: 75 },
+    { name: "apple", category: "Fresh Fruits", emoji: "🍎", price: 1, popularity: 95 },
+    { name: "banana", category: "Fresh Fruits", emoji: "🍌", price: 1, popularity: 98 },
+    { name: "orange", category: "Fresh Fruits", emoji: "🍊", price: 1, popularity: 92 },
+    { name: "strawberry", category: "Fresh Fruits", emoji: "🍓", price: 2, popularity: 88 },
+    { name: "grape", category: "Fresh Fruits", emoji: "🍇", price: 1, popularity: 85 },
+    { name: "watermelon", category: "Fresh Fruits", emoji: "🍉", price: 2, popularity: 80 },
+    { name: "pineapple", category: "Fresh Fruits", emoji: "🍍", price: 2, popularity: 75 },
     { name: "mango", category: "Fresh Fruits", emoji: "🥭", price: 0, popularity: 78 },
     { name: "peach", category: "Fresh Fruits", emoji: "🍑", price: 0, popularity: 72 },
     { name: "pear", category: "Fresh Fruits", emoji: "🍐", price: 0, popularity: 70 },

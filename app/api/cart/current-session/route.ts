@@ -27,6 +27,13 @@ export async function GET() {
 
     return withNoStoreHeaders(successResponse({
       active: true,
+      cartSessionId: activeSession.sessionId,
+      receiptId: activeSession.receiptId,
+      cartCode: activeSession.cartCode,
+      cartStatus: activeSession.cartStatus,
+      listName: activeSession.shoppingList.name,
+      itemsCount: activeSession.shoppingList.itemsCount,
+      status: activeSession.status,
       session: activeSession,
     }));
   } catch (error) {
