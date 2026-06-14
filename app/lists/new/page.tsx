@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Header } from '@/components/layout/Header';
@@ -30,11 +30,6 @@ export default function NewListPage() {
   const [notice, setNotice] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
-
-  const estimatedTotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    [items]
-  );
 
   const addDraftItem = (rawName: string, category?: string | null) => {
     const trimmedName = rawName.trim();
@@ -144,36 +139,16 @@ export default function NewListPage() {
     <PageContainer maxWidth="lg">
       <Header title="Create List" showBack showLogo />
 
-      <main className="flex-1 pb-28 pt-6 md:pb-10">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-soft md:p-7">
-            <Badge className="bg-white/10 text-white ring-white/15">Draft list</Badge>
-            <h1 className="mt-4 text-3xl font-black tracking-tight">Build your next shopping list</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">
-              Name the list, add at least one item, then save it when you are ready.
-            </p>
-          </section>
+      <main className="flex-1 pb-56 pt-6 md:pb-10">
+        <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-soft md:p-7">
+          <Badge className="bg-white/10 text-white ring-white/15">Draft list</Badge>
+          <h1 className="mt-4 text-3xl font-black tracking-tight">Build your next shopping list</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">
+            Name the list, add at least one item, then save it when you are ready.
+          </p>
+        </section>
 
-          <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Summary</p>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
-                <p className="text-xl font-black">{items.length}</p>
-                <p className="text-xs text-slate-500">Items</p>
-              </div>
-              <div className="rounded-2xl bg-primary/10 p-3 text-primary">
-                <p className="text-xl font-black">{items.reduce((sum, item) => sum + item.quantity, 0)}</p>
-                <p className="text-xs font-bold">Qty</p>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
-                <p className="text-xl font-black">{formatCurrency(estimatedTotal)}</p>
-                <p className="text-xs text-slate-500">Est.</p>
-              </div>
-            </div>
-          </aside>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+        <form id="create-list-form" onSubmit={handleSubmit} className="mt-6 space-y-6">
           <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
             <label className="block">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">List Name</p>
@@ -301,10 +276,10 @@ export default function NewListPage() {
             </div>
           </section>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="hidden gap-4 md:flex md:items-center md:justify-end md:pb-2">
             <Button
               type="submit"
-              className="h-12 flex-1 rounded-2xl"
+              className="h-14 min-w-[190px] rounded-2xl px-6 text-base font-black shadow-glow"
               disabled={isLoading}
             >
               <span className={cn('material-symbols-outlined text-[18px]', isLoading && 'animate-spin')}>
@@ -315,7 +290,7 @@ export default function NewListPage() {
             <Button
               type="button"
               variant="outline"
-              className="h-12 flex-1 rounded-2xl"
+              className="h-14 min-w-[160px] rounded-2xl border-primary/20 bg-white px-6 text-base font-black text-primary shadow-sm hover:border-primary/35 hover:bg-primary/5 dark:bg-slate-900"
               onClick={() => router.back()}
               disabled={isLoading}
             >
@@ -344,6 +319,31 @@ export default function NewListPage() {
           </div>
         </div>
       )}
+
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] z-40 border-t border-slate-200 bg-white/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 md:hidden">
+        <div className="mx-auto flex max-w-lg flex-col gap-3">
+          <Button
+            type="submit"
+            form="create-list-form"
+            className="h-14 rounded-2xl text-base font-black shadow-glow"
+            disabled={isLoading}
+          >
+            <span className={cn('material-symbols-outlined text-[18px]', isLoading && 'animate-spin')}>
+              {isLoading ? 'progress_activity' : 'save'}
+            </span>
+            {isLoading ? 'Saving...' : 'Save List'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-14 rounded-2xl border-primary/20 bg-white text-base font-black text-primary shadow-sm hover:border-primary/35 hover:bg-primary/5 dark:bg-slate-900"
+            onClick={() => router.back()}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
 
       <BottomNav />
     </PageContainer>

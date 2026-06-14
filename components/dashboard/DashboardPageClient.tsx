@@ -337,15 +337,6 @@ export function DashboardPageClient({
                       <span className="text-sm text-slate-500">Plan your next trip</span>
                     </span>
                   </Link>
-                  <Link href="/session" prefetch={false} className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-primary/30 hover:bg-primary/5 dark:border-slate-800">
-                    <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <span className="material-symbols-outlined">sensors</span>
-                    </span>
-                    <span>
-                      <span className="block font-black text-slate-950 dark:text-slate-100">Active session</span>
-                      <span className="text-sm text-slate-500">View cart progress</span>
-                    </span>
-                  </Link>
                 </div>
               </aside>
             </section>
