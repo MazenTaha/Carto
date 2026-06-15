@@ -189,7 +189,7 @@ function CheckoutContent() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Platform fee</span>
-                <span className="font-bold">$0.00</span>
+                <span className="font-bold">{formatCurrency(0)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Estimated tax</span>
@@ -207,7 +207,7 @@ function CheckoutContent() {
                 Secure Paymob checkout
               </div>
               <Button size="lg" className="mt-4 w-full" onClick={handlePayment} disabled={isProcessing}>
-                {isProcessing ? 'Opening Paymob...' : `Continue to Paymob ${formatCurrency(receipt.total)}`}
+                {isProcessing ? 'Opening Paymob...' : 'Continue to Paymob'}
               </Button>
             </div>
           </ReceiptPanel>

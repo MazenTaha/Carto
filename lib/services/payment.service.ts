@@ -5,7 +5,13 @@ import { ApiErrorResponse } from '@/lib/api-response';
 import type { RequestOwner } from '@/lib/guest-session';
 import { ownerWhere } from '@/lib/guest-session';
 import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
-import { amountToCents, formatPaymentCurrency, PAYMOB_CURRENCY } from '@/lib/payment-money';
+import {
+  amountToCents,
+  centsToAmount,
+  formatPaymentCurrency,
+  getCheckoutAmountEGP,
+  PAYMOB_CURRENCY,
+} from '@/lib/payment-money';
 import {
   buildPaymobBillingData,
   buildPaymobHostedCheckoutUrl,
@@ -29,6 +35,43 @@ type PaymobWebhookInput = {
   hmacVerified: boolean;
   rawPayload: unknown;
   transaction: Record<string, any>;
+};
+
+type OwnedAttemptView = {
+  id: string;
+  receiptId: string;
+  sessionId: string;
+  userId: string | null;
+  guestSessionId: string | null;
+  provider: string;
+  merchantOrderId: string;
+  providerOrderId: string | null;
+  providerTransactionId: string | null;
+  amountCents: number;
+  currency: string;
+  checkoutUrl: string | null;
+  paymentTokenHash: string | null;
+  expiresAt: Date | null;
+  status: string;
+  lastError: string | null;
+  rawResponse: Prisma.JsonValue | null;
+  rawWebhook: Prisma.JsonValue | null;
+  metadata: Prisma.JsonValue | null;
+  completedAt: Date | null;
+  failedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  receipt: {
+    id: string;
+    total: number;
+    status: string;
+    paymentStatus: string;
+    paidAt: Date | null;
+  };
+  cartSession: {
+    status: string;
+    endedAt: Date | null;
+  } | null;
 };
 
 function buildMerchantOrderId() {
@@ -130,7 +173,21 @@ async function prepareOwnedReceiptForCheckout(owner: RequestOwner, input: Create
   return cartSession;
 }
 
-function buildPaymobItems(receipt: { items: Array<{ name: string; price: number; quantity: number; category: string | null }> }) {
+function buildPaymobItems(
+  receipt: { items: Array<{ name: string; price: number; quantity: number; category: string | null }> },
+  options?: { demoAmountFallback?: boolean; payableAmountEGP?: number }
+) {
+  if (options?.demoAmountFallback) {
+    return [
+      {
+        name: 'Carto demo checkout',
+        amount_cents: amountToCents(options.payableAmountEGP ?? 0),
+        description: 'Demo fallback amount while receipt prices are still zero.',
+        quantity: 1,
+      },
+    ];
+  }
+
   return receipt.items.map((item) => ({
     name: item.name,
     amount_cents: amountToCents(item.price),
@@ -139,7 +196,15 @@ function buildPaymobItems(receipt: { items: Array<{ name: string; price: number;
   }));
 }
 
-async function reuseRecentAttempt(receiptId: string) {
+function readAttemptMetadata(metadata: Prisma.JsonValue | null | undefined) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return {};
+  }
+
+  return metadata as Prisma.JsonObject;
+}
+
+async function reuseRecentAttempt(receiptId: string, amountCents: number) {
   const attempt = await prisma.paymentAttempt.findFirst({
     where: {
       receiptId,
@@ -152,6 +217,7 @@ async function reuseRecentAttempt(receiptId: string) {
       createdAt: {
         gte: new Date(Date.now() - REUSABLE_ATTEMPT_WINDOW_MS),
       },
+      amountCents,
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -163,8 +229,37 @@ function isPreviewCheckoutUrl(checkoutUrl?: string | null) {
   return Boolean(checkoutUrl && checkoutUrl.startsWith('/'));
 }
 
-function shouldAllowZeroTotalPreview(input: CreateHostedCheckoutInput) {
-  return input.mode === 'bypass' && input.allowZeroTotalPreview === true;
+async function attachCartSessionState(
+  attempt: Prisma.PaymentAttemptGetPayload<{
+    include: {
+      receipt: {
+        select: {
+          id: true;
+          total: true;
+          status: true;
+          paymentStatus: true;
+          paidAt: true;
+        };
+      };
+    };
+  }> | null
+): Promise<OwnedAttemptView | null> {
+  if (!attempt) {
+    return null;
+  }
+
+  const cartSession = await prisma.cartSession.findUnique({
+    where: { id: attempt.sessionId },
+    select: {
+      status: true,
+      endedAt: true,
+    },
+  });
+
+  return {
+    ...attempt,
+    cartSession,
+  };
 }
 
 async function recordUserPurchaseArtifacts(input: {
@@ -285,27 +380,35 @@ export class PaymentService {
         receiptId: receipt.id,
         attemptId: null,
         preview: false,
+        demoAmountFallback: false,
         amount: receipt.total,
         currency: PAYMOB_CURRENCY,
         checkoutUrl: null,
       };
     }
 
-    const existingAttempt = await reuseRecentAttempt(receipt.id);
+    const checkoutAmount = getCheckoutAmountEGP(receipt);
+
+    if (checkoutAmount.demoAmountFallback && !checkoutAmount.fallbackAllowed) {
+      throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
+    }
+
+    const existingAttempt = await reuseRecentAttempt(receipt.id, checkoutAmount.amountCents);
     if (existingAttempt?.checkoutUrl) {
+      const attemptMetadata = readAttemptMetadata(existingAttempt.metadata);
+
       return {
         alreadyPaid: false,
         sessionId: cartSession.id,
         receiptId: receipt.id,
         attemptId: existingAttempt.id,
         preview: isPreviewCheckoutUrl(existingAttempt.checkoutUrl),
-        amount: receipt.total,
+        amount: centsToAmount(existingAttempt.amountCents),
         currency: existingAttempt.currency,
         checkoutUrl: existingAttempt.checkoutUrl,
+        demoAmountFallback: attemptMetadata.demoAmountFallback === true,
       };
     }
-
-    const amountCents = amountToCents(receipt.total);
     const baseMetadata = {
       cartCode: cartSession.cart?.cartCode ?? null,
       storeId: cartSession.cart?.storeId ?? null,
@@ -313,66 +416,10 @@ export class PaymentService {
       listId: cartSession.shoppingList?.id ?? null,
       listName: cartSession.shoppingList?.name ?? null,
       paymentMethod: input.paymentMethod ?? receipt.paymentMethod,
+      actualReceiptTotal: receipt.total,
+      payableAmountEGP: checkoutAmount.amount,
+      demoAmountFallback: checkoutAmount.demoAmountFallback,
     };
-
-    if (amountCents <= 0) {
-      if (shouldAllowZeroTotalPreview(input)) {
-        const paymentAttempt = await prisma.paymentAttempt.create({
-          data: {
-            receiptId: receipt.id,
-            sessionId: cartSession.id,
-            userId: owner.type === 'user' ? owner.userId : null,
-            guestSessionId: owner.type === 'guest' ? owner.guestSessionId : null,
-            merchantOrderId: buildMerchantOrderId(),
-            amountCents: 0,
-            currency: PAYMOB_CURRENCY,
-            status: 'PENDING',
-            metadata: {
-              ...baseMetadata,
-              checkoutMode: 'preview',
-              previewReason: 'ZERO_TOTAL_BYPASS',
-              preview: true,
-            },
-          },
-        });
-        const checkoutUrl = buildSecurePreviewCheckoutUrl(paymentAttempt.id);
-
-        await prisma.$transaction([
-          prisma.paymentAttempt.update({
-            where: { id: paymentAttempt.id },
-            data: {
-              checkoutUrl,
-              metadata: {
-                ...baseMetadata,
-                checkoutMode: 'preview',
-                previewReason: 'ZERO_TOTAL_BYPASS',
-                preview: true,
-              },
-            },
-          }),
-          prisma.receipt.update({
-            where: { id: receipt.id },
-            data: {
-              paymentMethod: input.paymentMethod ?? receipt.paymentMethod,
-              paymentStatus: receipt.paymentStatus === 'FAILED' ? 'PENDING' : receipt.paymentStatus,
-            },
-          }),
-        ]);
-
-        return {
-          alreadyPaid: false,
-          sessionId: cartSession.id,
-          receiptId: receipt.id,
-          attemptId: paymentAttempt.id,
-          preview: true,
-          amount: receipt.total,
-          currency: PAYMOB_CURRENCY,
-          checkoutUrl,
-        };
-      }
-
-      throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
-    }
 
     const merchantOrderId = buildMerchantOrderId();
     const paymentAttempt = await prisma.paymentAttempt.create({
@@ -382,7 +429,7 @@ export class PaymentService {
         userId: owner.type === 'user' ? owner.userId : null,
         guestSessionId: owner.type === 'guest' ? owner.guestSessionId : null,
         merchantOrderId,
-        amountCents,
+        amountCents: checkoutAmount.amountCents,
         currency: PAYMOB_CURRENCY,
         status: 'PENDING',
         metadata: baseMetadata,
@@ -420,9 +467,10 @@ export class PaymentService {
         receiptId: receipt.id,
         attemptId: paymentAttempt.id,
         preview: true,
-        amount: receipt.total,
+        amount: checkoutAmount.amount,
         currency: PAYMOB_CURRENCY,
         checkoutUrl,
+        demoAmountFallback: checkoutAmount.demoAmountFallback,
       };
     }
 
@@ -432,13 +480,13 @@ export class PaymentService {
       const order = await createPaymobOrder({
         authToken,
         merchantOrderId,
-        amountCents,
-        items: buildPaymobItems(receipt),
+        amountCents: checkoutAmount.amountCents,
+        items: buildPaymobItems(receipt, checkoutAmount),
       });
       const paymentKey = await createPaymobPaymentKey({
         authToken,
         orderId: order.id,
-        amountCents,
+        amountCents: checkoutAmount.amountCents,
         billingData: buildPaymobBillingData(profile ?? {}),
       });
       const checkoutUrl = buildPaymobHostedCheckoutUrl(paymentKey);
@@ -470,9 +518,10 @@ export class PaymentService {
         receiptId: receipt.id,
         attemptId: paymentAttempt.id,
         preview: false,
-        amount: receipt.total,
+        amount: checkoutAmount.amount,
         currency: PAYMOB_CURRENCY,
         checkoutUrl,
+        demoAmountFallback: checkoutAmount.demoAmountFallback,
       };
     } catch (error: any) {
       await prisma.paymentAttempt.update({
@@ -489,7 +538,7 @@ export class PaymentService {
   }
 
   public static async getOwnedAttempt(owner: RequestOwner, attemptId: string) {
-    return prisma.paymentAttempt.findFirst({
+    const attempt = await prisma.paymentAttempt.findFirst({
       where: {
         id: attemptId,
         ...ownerWhere(owner),
@@ -501,14 +550,17 @@ export class PaymentService {
             total: true,
             status: true,
             paymentStatus: true,
+            paidAt: true,
           },
         },
       },
     });
+
+    return attachCartSessionState(attempt);
   }
 
   public static async getLatestOwnedAttempt(owner: RequestOwner, sessionId?: string | null) {
-    return prisma.paymentAttempt.findFirst({
+    const attempt = await prisma.paymentAttempt.findFirst({
       where: {
         ...ownerWhere(owner),
         ...(sessionId ? { sessionId } : {}),
@@ -521,10 +573,13 @@ export class PaymentService {
             total: true,
             status: true,
             paymentStatus: true,
+            paidAt: true,
           },
         },
       },
     });
+
+    return attachCartSessionState(attempt);
   }
 
   public static async markPaymobPaymentSucceeded(input: PaymobWebhookInput) {
@@ -532,9 +587,11 @@ export class PaymentService {
     const merchantOrderId = input.transaction?.order?.merchant_order_id
       ? String(input.transaction.order.merchant_order_id)
       : null;
+    const providerTransactionId = input.transaction?.id ? String(input.transaction.id) : null;
     const lookup = [
       ...(providerOrderId ? [{ providerOrderId }] : []),
       ...(merchantOrderId ? [{ merchantOrderId }] : []),
+      ...(providerTransactionId ? [{ providerTransactionId }] : []),
     ];
 
     if (lookup.length === 0) {
@@ -652,9 +709,11 @@ export class PaymentService {
     const merchantOrderId = input.transaction?.order?.merchant_order_id
       ? String(input.transaction.order.merchant_order_id)
       : null;
+    const providerTransactionId = input.transaction?.id ? String(input.transaction.id) : null;
     const lookup = [
       ...(providerOrderId ? [{ providerOrderId }] : []),
       ...(merchantOrderId ? [{ merchantOrderId }] : []),
+      ...(providerTransactionId ? [{ providerTransactionId }] : []),
     ];
 
     if (lookup.length === 0) {

@@ -43,6 +43,15 @@ export default async function ReceiptDetailPage({
           id: params.id,
           ...ownerWhere(owner),
           status: 'PAID',
+          paymentStatus: 'COMPLETED',
+          cartSession: {
+            is: {
+              status: 'CHECKED_OUT',
+              endedAt: {
+                not: null,
+              },
+            },
+          },
         },
         select: {
           id: true,

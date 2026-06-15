@@ -2,6 +2,7 @@
 
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { formatCurrencyEGP } from '@/lib/payment-money';
 
 /**
  * Merge Tailwind CSS classes
@@ -14,6 +15,10 @@ export function cn(...inputs: ClassValue[]) {
  * Format currency
  */
 export function formatCurrency(amount: number, currency = 'EGP'): string {
+  if ((currency || '').toUpperCase() === 'EGP') {
+    return formatCurrencyEGP(amount);
+  }
+
   return new Intl.NumberFormat('en-EG', {
     style: 'currency',
     currency,

@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       preview: checkout.preview,
       amount: checkout.amount,
       currency: checkout.currency,
+      demoAmountFallback: checkout.demoAmountFallback,
       checkoutUrl: checkout.checkoutUrl,
       paymentUrl: checkout.checkoutUrl,
     });

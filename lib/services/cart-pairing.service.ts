@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { RequestOwner, ownerCreateData, ownerWhere } from '@/lib/guest-session';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { buildCartCodeLookupWhere, normalizeCartCode } from '@/lib/cart-code';
-import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
+import { buildCurrentCustomerCartSessionWhere, isCurrentCustomerSessionLive } from '@/lib/current-cart-session';
+import { buildReceiptItemsFromListItems, calculateReceiptTotals } from '@/lib/receipt-items';
 import { ApiErrorResponse } from '../api-response';
 import { CartConnectionService } from './cart-connection.service';
 import { EMPTY_LIST_MESSAGE } from '@/lib/list-constants';
@@ -14,6 +15,15 @@ export interface LinkCartParams {
   pairingCode: string;
   listId: string;
 }
+
+type LinkCartResult = {
+  id: string;
+  cartCode: string;
+  receiptId: string | null;
+  status: 'ACTIVE';
+  reused: boolean;
+  alreadyLinked: boolean;
+};
 
 const PAIRING_TTL_MINUTES = 5;
 
@@ -35,6 +45,79 @@ function sessionBelongsToOwner(
 }
 
 export class CartPairingService {
+  public static async getOwnedExistingLinkedSession(
+    owner: RequestOwner,
+    params: Pick<LinkCartParams, 'cartCode' | 'listId'>
+  ): Promise<LinkCartResult | null> {
+    let cartSession = await prisma.cartSession.findFirst({
+      where: buildCurrentCustomerCartSessionWhere({
+        ...ownerWhere(owner),
+        listId: params.listId,
+        cart: {
+          is: buildCartCodeLookupWhere(params.cartCode),
+        },
+      }),
+      select: {
+        id: true,
+        status: true,
+        endedAt: true,
+        cart: {
+          select: {
+            cartCode: true,
+            status: true,
+          },
+        },
+        receipt: {
+          select: {
+            id: true,
+            status: true,
+            paymentStatus: true,
+          },
+        },
+      },
+      orderBy: { startedAt: 'desc' },
+    });
+
+    if (!cartSession?.cart?.cartCode) {
+      return null;
+    }
+
+    const reconciliation = await CartConnectionService.reconcileCartByCode(cartSession.cart.cartCode);
+
+    if (reconciliation?.activeSessionClosed) {
+      return null;
+    }
+
+    if (reconciliation?.cart) {
+      cartSession = {
+        ...cartSession,
+        cart: {
+          ...cartSession.cart,
+          status: reconciliation.cart.status,
+        },
+      };
+    }
+
+    if (!isCurrentCustomerSessionLive({
+      status: cartSession.status,
+      endedAt: cartSession.endedAt,
+      cartStatus: cartSession.cart.status,
+      receiptStatus: cartSession.receipt?.status,
+      paymentStatus: cartSession.receipt?.paymentStatus,
+    })) {
+      return null;
+    }
+
+    return {
+      id: cartSession.id,
+      cartCode: normalizeCartCode(cartSession.cart.cartCode),
+      receiptId: cartSession.receipt?.id ?? null,
+      status: 'ACTIVE',
+      reused: true,
+      alreadyLinked: true,
+    };
+  }
+
   private static async normalizeCartAvailability(
     tx: Prisma.TransactionClient,
     cart: { id: string; status: string }
@@ -136,13 +219,13 @@ export class CartPairingService {
    * Handles security validation of the pairingCode and cart availability.
    * Returns the new (or reused) CartSession ID.
    */
-  public static async linkCart(owner: RequestOwner, params: LinkCartParams) {
+  public static async linkCart(owner: RequestOwner, params: LinkCartParams): Promise<LinkCartResult> {
     const ownerFilter = ownerWhere(owner);
     const ownerData = ownerCreateData(owner);
 
     await CartConnectionService.reconcileCartByCode(params.cartCode);
 
-    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return await prisma.$transaction(async (tx: Prisma.TransactionClient): Promise<LinkCartResult> => {
       const now = new Date();
 
       // 1. Verify list ownership
@@ -154,9 +237,13 @@ export class CartPairingService {
         },
         select: {
           id: true,
-          _count: {
+          items: {
             select: {
-              items: true,
+              id: true,
+              name: true,
+              quantity: true,
+              price: true,
+              category: true,
             },
           },
         },
@@ -166,9 +253,12 @@ export class CartPairingService {
         throw new ApiErrorResponse('List not found or you do not have access to it.', 403, 'FORBIDDEN');
       }
 
-      if (list._count.items === 0) {
+      if (list.items.length === 0) {
         throw new ApiErrorResponse(EMPTY_LIST_MESSAGE, 409, 'EMPTY_LIST');
       }
+
+      const receiptItems = buildReceiptItemsFromListItems(list.items);
+      const receiptTotals = calculateReceiptTotals(receiptItems);
 
       // 2. Find and validate the physical cart
       const cart = await tx.cart.findFirst({
@@ -189,9 +279,15 @@ export class CartPairingService {
         },
         select: {
           id: true,
+          status: true,
           listId: true,
           userId: true,
           guestSessionId: true,
+          receipt: {
+            select: {
+              id: true,
+            },
+          },
         },
       });
 
@@ -207,7 +303,10 @@ export class CartPairingService {
           return {
             id: existingCartSession.id,
             cartCode: normalizeCartCode(cart.cartCode),
+            receiptId: existingCartSession.receipt?.id ?? null,
+            status: 'ACTIVE',
             reused: true,
+            alreadyLinked: true,
           };
         }
 
@@ -304,14 +403,23 @@ export class CartPairingService {
               status: 'DRAFT',
               paymentMethod: 'CARD',
               paymentStatus: 'PENDING',
-              subtotal: 0,
-              tax: 0,
-              total: 0,
+              subtotal: receiptTotals.subtotal,
+              tax: receiptTotals.tax,
+              total: receiptTotals.total,
+              items: {
+                create: receiptItems,
+              },
             },
           },
         },
         select: {
           id: true,
+          status: true,
+          receipt: {
+            select: {
+              id: true,
+            },
+          },
         },
       });
 
@@ -331,7 +439,10 @@ export class CartPairingService {
       return {
         id: createdSession.id,
         cartCode: normalizeCartCode(cart.cartCode),
+        receiptId: createdSession.receipt?.id ?? null,
+        status: 'ACTIVE',
         reused: false,
+        alreadyLinked: false,
       };
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,

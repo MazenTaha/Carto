@@ -90,7 +90,6 @@ export default async function SecurePaymentPreviewPage({
   const attemptMetadata = getAttemptMetadata(attempt.metadata);
   const previewReason = typeof attemptMetadata.previewReason === 'string' ? attemptMetadata.previewReason : null;
   const isPreviewMode = Boolean(attempt.checkoutUrl?.startsWith('/'));
-  const isZeroTotalPreview = previewReason === 'ZERO_TOTAL_BYPASS' || attempt.amountCents === 0;
   const previewStatus = formatPreviewStatus(
     attempt.status,
     attempt.receipt.paymentStatus,
@@ -99,19 +98,22 @@ export default async function SecurePaymentPreviewPage({
   );
   const amountLabel = formatPaymentCurrency(centsToAmount(attempt.amountCents), attempt.currency);
   const returnHref = `/session/ready?sessionId=${encodeURIComponent(attempt.sessionId)}`;
+  const isMissingPaymobConfig = previewReason === 'PAYMOB_NOT_CONFIGURED';
 
   return (
     <PageContainer maxWidth="md">
       <main className="flex min-h-screen items-center justify-center p-4">
         <section className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-soft dark:border-slate-800 dark:bg-slate-900 md:p-8">
           <Badge className="bg-primary/10 text-primary ring-primary/10">
-            {isZeroTotalPreview ? 'Demo checkout preview' : 'Secure payment preview'}
+            {isMissingPaymobConfig ? 'Paymob configuration required' : 'Secure payment preview'}
           </Badge>
-          <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">Secure payment preview</h1>
+          <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">
+            {isMissingPaymobConfig ? 'Paymob checkout is not configured yet' : 'Secure payment preview'}
+          </h1>
           <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
-            {isZeroTotalPreview
-              ? 'This is a demo checkout preview because the receipt total is EGP 0.00. Real Paymob checkout requires a total greater than zero.'
-              : 'Paymob credentials are not configured yet. This page previews the secure payment step only.'}
+            {isMissingPaymobConfig
+              ? 'Add the required Paymob server credentials before trying to charge this receipt. This page is only a safe preview and does not mark payment as paid.'
+              : 'This preview does not complete payment by itself. Only the verified Paymob webhook can finalize the receipt.'}
           </p>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -155,9 +157,7 @@ export default async function SecurePaymentPreviewPage({
           </div>
 
           <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
-            {isZeroTotalPreview
-              ? 'This preview keeps the receipt and payment attempt pending only. It does not create a real Paymob charge, and only a verified Paymob webhook can mark payment as paid.'
-              : 'Opening this preview does not mark the receipt as paid. Only the Paymob webhook should finalize payment.'}
+            Opening this preview does not mark the receipt as paid. Only the verified Paymob webhook should finalize payment.
           </div>
 
           <SecurePreviewActions returnHref={returnHref} sessionId={attempt.sessionId} />

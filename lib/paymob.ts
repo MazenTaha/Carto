@@ -85,6 +85,10 @@ export function getPaymobConfig() {
   };
 }
 
+function getPaymobHmacSecret() {
+  return process.env.PAYMOB_HMAC_SECRET?.trim() || '';
+}
+
 async function paymobRequest<T>(path: string, options: PaymobRequestOptions) {
   const response = await fetch(`${getPaymobApiBaseUrl()}${path}`, {
     method: options.method || 'POST',
@@ -255,7 +259,7 @@ function paymobHmacFields(transaction: PaymobTransactionLike) {
 }
 
 export function verifyPaymobHmac(transaction: PaymobTransactionLike, hmac: string | null | undefined) {
-  const { hmacSecret } = getPaymobConfig();
+  const hmacSecret = getPaymobHmacSecret();
 
   if (!hmacSecret || !hmac) {
     return false;
@@ -280,5 +284,5 @@ export function verifyPaymobHmac(transaction: PaymobTransactionLike, hmac: strin
 }
 
 export function getPaymobPendingReturnUrl(requestUrl?: string) {
-  return `${getAppBaseUrl(requestUrl)}/payment/pending`;
+  return `${getAppBaseUrl(requestUrl)}/payment/return`;
 }

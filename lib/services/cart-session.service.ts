@@ -1,11 +1,10 @@
 import { PaymentMethod, Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { calculateTax } from '@/lib/utils';
-import { ReceiptItem } from '@/types';
 import { RequestOwner, ownerCreateData, ownerWhere } from '@/lib/guest-session';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { buildCartCodeLookupWhere, normalizeCartCode } from '@/lib/cart-code';
 import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
+import { buildReceiptItemsFromListItems, calculateReceiptTotals, type ReceiptLineInput } from '@/lib/receipt-items';
 import { ApiErrorResponse } from '../api-response';
 
 const DEFAULT_ACTIVE_SESSION_TIMEOUT_MS = 2 * 60 * 60 * 1000;
@@ -28,6 +27,14 @@ type SessionWithReceipt = {
   startedAt: Date;
   endedAt: Date | null;
   cart: { storeId: string | null } | null;
+  shoppingList: {
+    items: Array<{
+      name: string;
+      quantity: number;
+      price: number;
+      category: string | null;
+    }>;
+  } | null;
   receipt: {
     id: string;
     status: string;
@@ -35,7 +42,12 @@ type SessionWithReceipt = {
     paymentId: string | null;
     paymentMethod: PaymentMethod;
     paymentStatus: string;
-    items: ReceiptItem[];
+    items: Array<{
+      name: string;
+      quantity: number;
+      price: number;
+      category: string | null;
+    }>;
   } | null;
 };
 
@@ -101,14 +113,28 @@ export class CartSessionService {
     });
 
     let receiptId = cartSession.receipt?.id ?? null;
+    const fallbackReceiptItems = buildReceiptItemsFromListItems(cartSession.shoppingList?.items ?? []);
 
     if (cartSession.receipt) {
-      const subtotal = cartSession.receipt.items.reduce(
-        (sum: number, item: ReceiptItem) => sum + item.price * item.quantity,
-        0
-      );
-      const tax = calculateTax(subtotal);
-      const total = subtotal + tax;
+      let receiptItems: ReceiptLineInput[] = cartSession.receipt.items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        category: item.category ?? null,
+      }));
+
+      if (receiptItems.length === 0 && fallbackReceiptItems.length > 0) {
+        await tx.receiptItem.createMany({
+          data: fallbackReceiptItems.map((item) => ({
+            receiptId: cartSession.receipt!.id,
+            ...item,
+          })),
+        });
+
+        receiptItems = fallbackReceiptItems;
+      }
+
+      const { subtotal, tax, total } = calculateReceiptTotals(receiptItems);
 
       const receiptUpdate: Record<string, unknown> = {
         subtotal,
@@ -138,6 +164,8 @@ export class CartSessionService {
         ? ownerCreateData({ type: 'user', userId: cartSession.userId })
         : ownerCreateData({ type: 'guest', guestSessionId: cartSession.guestSessionId! });
 
+      const receiptTotals = calculateReceiptTotals(fallbackReceiptItems);
+
       const receipt = await tx.receipt.create({
         data: {
           sessionId: cartSession.id,
@@ -149,9 +177,12 @@ export class CartSessionService {
           paymentId: options.paymentId ?? null,
           paymentMethod: options.paymentMethod ?? 'CARD',
           paymentStatus: options.paymentStatus ?? (options.paymentId ? 'COMPLETED' : 'PENDING'),
-          subtotal: 0,
-          tax: 0,
-          total: 0,
+          subtotal: receiptTotals.subtotal,
+          tax: receiptTotals.tax,
+          total: receiptTotals.total,
+          items: {
+            create: fallbackReceiptItems,
+          },
         },
       });
 
@@ -174,6 +205,19 @@ export class CartSessionService {
         },
         cart: {
           select: { storeId: true },
+        },
+        shoppingList: {
+          select: {
+            items: {
+              select: {
+                name: true,
+                quantity: true,
+                price: true,
+                category: true,
+              },
+              orderBy: { id: 'asc' },
+            },
+          },
         },
       },
     });

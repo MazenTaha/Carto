@@ -20,6 +20,15 @@ export async function getCompletedReceiptHistory(owner: RequestOwner): Promise<R
     where: {
       ...ownerWhere(owner),
       status: 'PAID',
+      paymentStatus: 'COMPLETED',
+      cartSession: {
+        is: {
+          status: 'CHECKED_OUT',
+          endedAt: {
+            not: null,
+          },
+        },
+      },
     },
     select: {
       id: true,
@@ -27,6 +36,7 @@ export async function getCompletedReceiptHistory(owner: RequestOwner): Promise<R
       status: true,
       paymentStatus: true,
       createdAt: true,
+      paidAt: true,
       lockedAt: true,
       items: {
         select: {
@@ -54,12 +64,11 @@ export async function getCompletedReceiptHistory(owner: RequestOwner): Promise<R
   });
 
   return receipts
-    .filter((receipt) => receipt.cartSession?.endedAt || receipt.cartSession?.status === 'CHECKED_OUT')
     .map((receipt) => ({
       id: receipt.id,
       receiptNumber: receipt.id.slice(-6).toUpperCase(),
       createdAt: receipt.createdAt.toISOString(),
-      paidAt: receipt.lockedAt?.toISOString() ?? null,
+      paidAt: receipt.paidAt?.toISOString() ?? receipt.lockedAt?.toISOString() ?? null,
       total: receipt.total,
       status: receipt.status,
       paymentStatus: receipt.paymentStatus,

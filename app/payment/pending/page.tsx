@@ -10,13 +10,12 @@ import { Button } from '@/components/ui/Button';
 const LAST_PAYMENT_ATTEMPT_KEY = 'carto_last_payment_attempt';
 
 type AttemptStatusResponse = {
-  id: string;
-  sessionId: string;
-  receiptId: string;
-  status: string;
   paymentStatus: string;
   receiptStatus: string;
-  lastError: string | null;
+  cartSessionStatus: string | null;
+  amount: number;
+  currency: string;
+  paidAt: string | null;
 };
 
 function getApiErrorMessage(data: any, fallback: string) {
@@ -26,7 +25,7 @@ function getApiErrorMessage(data: any, fallback: string) {
 }
 
 async function fetchAttemptById(attemptId: string) {
-  const response = await fetch(`/api/payments/attempts/${encodeURIComponent(attemptId)}`, {
+  const response = await fetch(`/api/payments/status?attemptId=${encodeURIComponent(attemptId)}`, {
     cache: 'no-store',
   });
   const data = await response.json().catch(() => null);
@@ -40,8 +39,8 @@ async function fetchAttemptById(attemptId: string) {
 
 async function fetchLatestAttempt(sessionId: string | null) {
   const url = sessionId
-    ? `/api/payments/attempts/latest?sessionId=${encodeURIComponent(sessionId)}`
-    : '/api/payments/attempts/latest';
+    ? `/api/payments/status?sessionId=${encodeURIComponent(sessionId)}`
+    : '/api/payments/status';
   const response = await fetch(url, {
     cache: 'no-store',
   });
@@ -84,16 +83,19 @@ export default function PaymentPendingPage() {
 
     const routeFromStatus = (attempt: AttemptStatusResponse) => {
       const params = new URLSearchParams();
-      params.set('attemptId', attempt.id);
-      params.set('sessionId', attempt.sessionId);
-      params.set('receiptId', attempt.receiptId);
+      if (attemptId) {
+        params.set('attemptId', attemptId);
+      }
+      if (sessionId) {
+        params.set('sessionId', sessionId);
+      }
 
-      if (attempt.status === 'SUCCEEDED' || attempt.receiptStatus === 'PAID' || attempt.paymentStatus === 'COMPLETED') {
+      if (attempt.paymentStatus === 'PAID' || attempt.receiptStatus === 'PAID') {
         router.replace(`/payment/success?${params.toString()}`);
         return true;
       }
 
-      if (attempt.status === 'FAILED' || attempt.paymentStatus === 'FAILED') {
+      if (attempt.paymentStatus === 'FAILED') {
         router.replace(`/payment/failure?${params.toString()}`);
         return true;
       }
@@ -117,15 +119,12 @@ export default function PaymentPendingPage() {
 
         if (cancelled) return;
 
-        setAttemptId(resolvedAttempt.id);
-        window.localStorage.setItem(LAST_PAYMENT_ATTEMPT_KEY, resolvedAttempt.id);
-
         if (routeFromStatus(resolvedAttempt)) {
           return;
         }
 
         setMessage(
-          resolvedAttempt.status === 'PROCESSING'
+          resolvedAttempt.paymentStatus === 'PROCESSING'
             ? 'Payment is still processing. We will move you forward automatically as soon as Paymob confirms the result.'
             : 'Payment is pending confirmation. Keep this page open while we wait for Paymob.'
         );
@@ -172,7 +171,7 @@ export default function PaymentPendingPage() {
           <div className="mt-6 rounded-2xl bg-slate-50 p-4 dark:bg-slate-950">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Current state</p>
             <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">
-              {isChecking ? 'Checking with Paymob...' : 'Still waiting on the final gateway result'}
+              {isChecking ? 'Checking with Paymob...' : 'Payment confirmation is still processing'}
             </p>
           </div>
 

@@ -32,6 +32,21 @@ type ExistingSessionSummary = {
   listName: string;
 };
 
+type ActiveSessionResponse =
+  | { success: true; data: { active: false } }
+  | {
+      success: true;
+      data: {
+        active: true;
+        session: {
+          id: string;
+          cart?: { cartCode?: string | null } | null;
+          shoppingList?: { id?: string | null; name?: string | null } | null;
+        };
+      };
+    }
+  | { success: false; error?: string | { message?: string; code?: string } };
+
 type PairingStep = 'scanning' | 'confirming' | 'submitting';
 
 function getApiErrorMessage(data: any, fallback: string) {
@@ -70,6 +85,7 @@ function StartSessionContent() {
   const [pairingStep, setPairingStep] = useState<PairingStep>('scanning');
   const [scannerKey, setScannerKey] = useState(0);
   const linkInFlightRef = useRef(false);
+  const latestScannedSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!scannedCart) {
@@ -174,8 +190,42 @@ function StartSessionContent() {
     setError('');
     setIsLoading(false);
     setPairingStep('scanning');
+    latestScannedSignatureRef.current = null;
     setScannerKey((current) => current + 1);
   }, []);
+
+  const redirectToExistingSession = useCallback(async (options?: {
+    preferredCartCode?: string | null;
+    preferredListId?: string | null;
+  }) => {
+    try {
+      const response = await fetch('/api/sessions/active', {
+        cache: 'no-store',
+      });
+      const data: ActiveSessionResponse = await response.json().catch(() => ({ success: false }));
+
+      if (!response.ok || data.success === false || !data.data.active || !data.data.session?.id) {
+        return false;
+      }
+
+      const session = data.data.session;
+      const matchesPreferredCart =
+        !options?.preferredCartCode ||
+        session.cart?.cartCode?.toLowerCase() === options.preferredCartCode.toLowerCase();
+      const matchesPreferredList =
+        !options?.preferredListId ||
+        session.shoppingList?.id === options.preferredListId;
+
+      if (!matchesPreferredCart || !matchesPreferredList) {
+        return false;
+      }
+
+      router.replace(`/session/ready?sessionId=${encodeURIComponent(session.id)}`);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [router]);
 
   const linkCart = useCallback(async () => {
     if (!listId) {
@@ -211,10 +261,43 @@ function StartSessionContent() {
       const data = await response.json();
 
       if (!response.ok || data?.success === false) {
+        const errorCode = data?.error?.code;
+
+        if (errorCode === 'ACTIVE_SESSION_EXISTS') {
+          const redirected = await redirectToExistingSession();
+          if (redirected) {
+            return;
+          }
+        }
+
+        if (errorCode === 'CART_LINK_CONFLICT') {
+          const redirected = await redirectToExistingSession({
+            preferredCartCode: scannedCart.cartCode,
+            preferredListId: listId,
+          });
+          if (redirected) {
+            return;
+          }
+        }
+
+        if (errorCode === 'EXPIRED_PAIRING_CODE') {
+          throw new Error('QR expired. Please scan the refreshed QR.');
+        }
+
+        if (errorCode === 'CART_IN_USE') {
+          throw new Error('This cart is already in use.');
+        }
+
         throw new Error(getApiErrorMessage(data, 'Failed to link cart.'));
       }
 
-      const sessionId = data?.data?.sessionId || data?.data?.id;
+      const redirectUrl = data?.data?.redirectUrl;
+      const sessionId = data?.data?.sessionId || data?.data?.cartSessionId || data?.data?.id;
+
+      if (redirectUrl) {
+        router.replace(redirectUrl);
+        return;
+      }
 
       if (!sessionId) {
         throw new Error('Cart linked, but the backend did not return a session ID.');
@@ -228,7 +311,7 @@ function StartSessionContent() {
       linkInFlightRef.current = false;
       setIsLoading(false);
     }
-  }, [listId, router, scannedCart]);
+  }, [listId, redirectToExistingSession, router, scannedCart]);
 
   const handleDetected = useCallback((raw: string) => {
     setError('');
@@ -241,6 +324,14 @@ function StartSessionContent() {
       return false;
     }
 
+    const nextSignature = `${result.cart.type}:${result.cart.cartCode}:${result.cart.pairingCode}`;
+
+    if (latestScannedSignatureRef.current === nextSignature) {
+      setPairingStep('confirming');
+      return true;
+    }
+
+    latestScannedSignatureRef.current = nextSignature;
     setScannedCart(result.cart);
     setPairingStep('confirming');
     return true;
@@ -398,7 +489,22 @@ function StartSessionContent() {
           </div>
         </div>
 
-        <QrScanner key={scannerKey} onDetected={handleDetected} />
+        {scannedCart ? (
+          <div className="w-full max-w-sm rounded-3xl border border-primary/20 bg-primary/5 p-6 text-center shadow-sm dark:border-primary/25 dark:bg-primary/10">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-white text-primary shadow-sm dark:bg-slate-900">
+              <span className="material-symbols-outlined text-3xl">qr_code_scanner</span>
+            </div>
+            <p className="mt-4 text-xs font-bold uppercase tracking-[0.18em] text-primary">Scanner paused</p>
+            <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">
+              {scannedCart.cartCode} detected
+            </p>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Review the confirmation below, then send the list when you are ready.
+            </p>
+          </div>
+        ) : (
+          <QrScanner key={scannerKey} onDetected={handleDetected} />
+        )}
 
         <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Connection status</p>
