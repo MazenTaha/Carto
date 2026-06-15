@@ -17,20 +17,6 @@ export async function middleware(request: NextRequest) {
   );
 
   if (pathname.startsWith('/admin')) {
-    if (!token?.id) {
-      const signInUrl = new URL('/auth/signin', request.url);
-      signInUrl.searchParams.set('callbackUrl', pathname);
-      signInUrl.searchParams.set('error', 'SessionRequired');
-      return NextResponse.redirect(signInUrl);
-    }
-
-    const email = (token.email as string | null | undefined) ?? null;
-    if (!isAdminEmail(email)) {
-      const signInUrl = new URL('/auth/signin', request.url);
-      signInUrl.searchParams.set('error', 'AccessDenied');
-      return NextResponse.redirect(signInUrl);
-    }
-
     return NextResponse.next();
   }
 
