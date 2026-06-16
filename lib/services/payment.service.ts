@@ -303,9 +303,6 @@ async function reuseRecentAttempt(receiptId: string, amountCents: number) {
       status: {
         in: ['PENDING', 'PROCESSING'],
       },
-      checkoutUrl: {
-        not: null,
-      },
       createdAt: {
         gte: new Date(Date.now() - REUSABLE_ATTEMPT_WINDOW_MS),
       },
@@ -315,6 +312,53 @@ async function reuseRecentAttempt(receiptId: string, amountCents: number) {
   });
 
   return attempt;
+}
+
+function buildPaymobItemsFromDeviceReportedMetadata(metadata: Prisma.JsonValue | null | undefined) {
+  const normalizedMetadata = readAttemptMetadata(metadata);
+  const rawItems = normalizedMetadata.deviceReportedItems;
+
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    return null;
+  }
+
+  const items = rawItems
+    .map((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return null;
+      }
+
+      const source = item as Record<string, unknown>;
+      const name = typeof source.name === 'string' ? source.name.trim() : '';
+      const quantity = Number(source.quantity);
+      const unitPrice = Number(source.unitPrice);
+      const total = Number(source.total);
+
+      if (!name || !Number.isFinite(quantity) || quantity <= 0) {
+        return null;
+      }
+
+      const resolvedUnitPrice = Number.isFinite(unitPrice) && unitPrice >= 0
+        ? unitPrice
+        : Number.isFinite(total) && total >= 0
+          ? total / quantity
+          : 0;
+
+      return {
+        name,
+        amount: toPaymobAmountCents(resolvedUnitPrice),
+        description: name,
+        quantity,
+      };
+    })
+    .filter((item): item is {
+      name: string;
+      amount: number;
+      description: string;
+      quantity: number;
+    } => Boolean(item));
+
+  return items.length > 0 ? items : null;
 }
 
 function isPreviewCheckoutUrl(checkoutUrl?: string | null) {
@@ -479,11 +523,7 @@ export class PaymentService {
       };
     }
 
-    const checkoutAmount = getPaymobAmountMinorUnits(receipt);
-
-    if (checkoutAmount.demoAmountFallback && !checkoutAmount.fallbackAllowed) {
-      throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
-    }
+    const receiptCheckoutAmount = getPaymobAmountMinorUnits(receipt);
 
     const paymobEnvStatus = getHostedPaymobEnvStatus();
     const previewModeEnabled = isPaymobPreviewModeEnabled();
@@ -507,7 +547,7 @@ export class PaymentService {
       );
     }
 
-    const existingAttempt = await reuseRecentAttempt(receipt.id, checkoutAmount.amountMinorUnits);
+    const existingAttempt = await reuseRecentAttempt(receipt.id, receiptCheckoutAmount.amountMinorUnits);
     if (existingAttempt?.checkoutUrl) {
       const attemptMetadata = readAttemptMetadata(existingAttempt.metadata);
       const existingAttemptIsPreview = isPreviewAttempt(existingAttempt);
@@ -529,7 +569,29 @@ export class PaymentService {
         };
       }
     }
+
+    const reusablePendingAttempt = existingAttempt && !existingAttempt.checkoutUrl
+      ? existingAttempt
+      : null;
+    const reusableAttemptMetadata = readAttemptMetadata(reusablePendingAttempt?.metadata);
+    const checkoutAmount = reusablePendingAttempt
+      ? {
+          amount: centsToAmount(reusablePendingAttempt.amountCents),
+          amountMinorUnits: reusablePendingAttempt.amountCents,
+          actualReceiptTotal: typeof reusableAttemptMetadata.actualReceiptTotal === 'number'
+            ? reusableAttemptMetadata.actualReceiptTotal
+            : receipt.total,
+          demoAmountFallback: reusableAttemptMetadata.demoAmountFallback === true,
+          fallbackAllowed: true,
+        }
+      : receiptCheckoutAmount;
+
+    if (checkoutAmount.demoAmountFallback && !checkoutAmount.fallbackAllowed) {
+      throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
+    }
+
     const baseMetadata = {
+      ...reusableAttemptMetadata,
       cartCode: cartSession.cart?.cartCode ?? null,
       storeId: cartSession.cart?.storeId ?? null,
       storeName: cartSession.cart?.store?.name ?? null,
@@ -543,20 +605,41 @@ export class PaymentService {
       checkoutEntryMode: input.mode ?? 'standard',
     };
 
-    const merchantOrderId = buildMerchantOrderId();
-    const paymentAttempt = await prisma.paymentAttempt.create({
-      data: {
-        receiptId: receipt.id,
-        sessionId: cartSession.id,
-        userId: owner.type === 'user' ? owner.userId : null,
-        guestSessionId: owner.type === 'guest' ? owner.guestSessionId : null,
-        merchantOrderId,
-        amountCents: checkoutAmount.amountMinorUnits,
-        currency: PAYMOB_CURRENCY,
-        status: 'PENDING',
-        metadata: baseMetadata,
-      },
-    });
+    const merchantOrderId = reusablePendingAttempt?.merchantOrderId || buildMerchantOrderId();
+    const paymentAttempt = reusablePendingAttempt
+      ? await prisma.paymentAttempt.update({
+          where: { id: reusablePendingAttempt.id },
+          data: {
+            merchantOrderId,
+            amountCents: checkoutAmount.amountMinorUnits,
+            currency: PAYMOB_CURRENCY,
+            status: 'PENDING',
+            checkoutUrl: null,
+            providerOrderId: null,
+            providerTransactionId: null,
+            completedAt: null,
+            failedAt: null,
+            lastError: null,
+            rawResponse: Prisma.JsonNull,
+            rawWebhook: Prisma.JsonNull,
+            metadata: baseMetadata,
+            userId: owner.type === 'user' ? owner.userId : null,
+            guestSessionId: owner.type === 'guest' ? owner.guestSessionId : null,
+          },
+        })
+      : await prisma.paymentAttempt.create({
+          data: {
+            receiptId: receipt.id,
+            sessionId: cartSession.id,
+            userId: owner.type === 'user' ? owner.userId : null,
+            guestSessionId: owner.type === 'guest' ? owner.guestSessionId : null,
+            merchantOrderId,
+            amountCents: checkoutAmount.amountMinorUnits,
+            currency: PAYMOB_CURRENCY,
+            status: 'PENDING',
+            metadata: baseMetadata,
+          },
+        });
 
     if (usePreviewMode) {
       const checkoutUrl = buildSecurePreviewCheckoutUrl(paymentAttempt.id);
@@ -602,9 +685,11 @@ export class PaymentService {
       const profile = await getReceiptOwnerProfile(owner);
       const billingData = buildPaymobBillingData(profile ?? {});
       const customer = buildPaymobCustomer(profile ?? {});
+      const paymobItems = buildPaymobItemsFromDeviceReportedMetadata(paymentAttempt.metadata)
+        || buildPaymobItems(receipt, checkoutAmount);
       const intention = await createPaymobIntention({
         amount: checkoutAmount.amountMinorUnits,
-        items: buildPaymobItems(receipt, checkoutAmount),
+        items: paymobItems,
         billingData,
         customer,
         extras: {

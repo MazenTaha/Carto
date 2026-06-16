@@ -5,7 +5,6 @@ import { ApiErrorResponse } from '@/lib/api-response';
 import { getAppBaseUrl } from '@/lib/app-url';
 import {
   centsToAmount,
-  getPaymobAmountMinorUnits,
   PAYMOB_CURRENCY,
   toPaymobAmountCents,
 } from '@/lib/payment-money';
@@ -17,13 +16,6 @@ import {
   hashToken,
   isPaymentQrExpired,
 } from '@/lib/payment-checkout-qr';
-import {
-  buildPaymobBillingData,
-  buildPaymobCustomer,
-  buildPaymobUnifiedCheckoutUrl,
-  createPaymobIntention,
-} from '@/lib/paymob';
-import { getHostedPaymobEnvDebugInfo, getHostedPaymobEnvStatus, isPaymobPreviewModeEnabled } from '@/lib/paymob/env';
 import { calculateTax } from '@/lib/utils';
 
 const REUSABLE_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
@@ -93,6 +85,17 @@ type PublicCheckoutSession = {
   } | null;
 };
 
+type CreateDevicePaymentQrInput = {
+  amount: number;
+  currency?: string;
+  items?: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+};
+
 type ActiveCheckoutSession = {
   id: string;
   status: SessionStatus;
@@ -148,10 +151,6 @@ function buildMerchantOrderId() {
   return `carto_${crypto.randomUUID().replace(/-/g, '')}`;
 }
 
-function buildSecurePreviewCheckoutUrl(attemptId: string) {
-  return `/payment/secure-preview?attemptId=${encodeURIComponent(attemptId)}`;
-}
-
 function isReceiptPaidStatus(status?: string | null, paymentStatus?: string | null) {
   return status === 'PAID' || paymentStatus === 'COMPLETED';
 }
@@ -177,35 +176,6 @@ function isPreviewAttempt(input: {
   );
 }
 
-function buildPaymobConfigErrorMessage(missing: string[]) {
-  return `Paymob test mode is not configured. Missing: ${missing.join(', ')}. If you just added these variables in Vercel, redeploy the project.`;
-}
-
-function buildPaymobProviderErrorDetails(input: {
-  error: unknown;
-  amountMinorUnits: number;
-  receiptId: string;
-  sessionId: string;
-  paymentAttemptId: string;
-}) {
-  const message = input.error instanceof Error
-    ? input.error.message
-    : typeof input.error === 'string'
-      ? input.error
-      : 'Could not initialize Paymob checkout.';
-  const normalizedMessage = message.replace(/\s+/g, ' ').trim();
-
-  return {
-    provider: 'PAYMOB',
-    providerMessage: normalizedMessage,
-    amountMinorUnits: input.amountMinorUnits,
-    currency: PAYMOB_CURRENCY,
-    receiptId: input.receiptId,
-    sessionId: input.sessionId,
-    paymentAttemptId: input.paymentAttemptId,
-  };
-}
-
 function mapDevicePaymentStatus(input: {
   receiptStatus?: string | null;
   receiptPaymentStatus?: string | null;
@@ -225,59 +195,12 @@ function mapDevicePaymentStatus(input: {
   return 'PENDING' as const;
 }
 
-function buildPaymobItems(
-  receipt: { items: Array<{ name: string; price: number; quantity: number; category: string | null }> },
-  options?: { demoAmountFallback?: boolean; payableAmountEGP?: number }
-) {
-  if (options?.demoAmountFallback) {
-      return [
-        {
-          name: 'Carto demo checkout',
-          amount: toPaymobAmountCents(options.payableAmountEGP ?? 0),
-          description: 'Demo fallback amount while receipt prices are still zero.',
-          quantity: 1,
-        },
-    ];
-  }
-
-  return receipt.items.map((item) => ({
-    name: item.name,
-    amount: toPaymobAmountCents(item.price),
-    description: item.category || item.name,
-    quantity: item.quantity,
-  }));
-}
-
-async function getDeviceCheckoutProfile(session: {
-  userId: string | null;
-}) {
-  if (!session.userId) {
-    return {
-      name: 'Guest Shopper',
-      email: null,
-      phoneNumber: null,
-    };
-  }
-
-  return prisma.user.findUnique({
-    where: { id: session.userId },
-    select: {
-      name: true,
-      email: true,
-      phoneNumber: true,
-    },
-  });
-}
-
 async function reuseRecentAttempt(receiptId: string, amountCents: number) {
   return prisma.paymentAttempt.findFirst({
     where: {
       receiptId,
       status: {
-        in: ['PENDING', 'PROCESSING'],
-      },
-      checkoutUrl: {
-        not: null,
+        in: ['PENDING'],
       },
       createdAt: {
         gte: new Date(Date.now() - REUSABLE_ATTEMPT_WINDOW_MS),
@@ -369,7 +292,8 @@ async function loadActiveCheckoutSession(
 
 async function lockActiveReceiptForDeviceCheckout(
   tx: Prisma.TransactionClient,
-  cart: DeviceCart
+  cart: DeviceCart,
+  input: CreateDevicePaymentQrInput
 ) {
   const cartSession = await loadActiveCheckoutSession(tx, cart.id);
 
@@ -389,26 +313,30 @@ async function lockActiveReceiptForDeviceCheckout(
     throw new ApiErrorResponse('Payment for this receipt has already been completed.', 409, 'PAYMENT_ALREADY_COMPLETED');
   }
 
-  const subtotal = cartSession.receipt.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const tax = calculateTax(subtotal);
-  const total = subtotal + tax;
+  const normalizedCurrency = (input.currency || PAYMOB_CURRENCY).trim().toUpperCase() || PAYMOB_CURRENCY;
 
-  if (!Number.isFinite(total) || total <= 0) {
-    throw new ApiErrorResponse(
-      'Cannot generate a payment QR because the receipt total is invalid.',
-      400,
-      'INVALID_RECEIPT_TOTAL',
-    );
-  }
-
-  const storeCurrency = cartSession.cart?.store?.currency?.trim().toUpperCase() || PAYMOB_CURRENCY;
-  if (storeCurrency !== PAYMOB_CURRENCY) {
+  if (normalizedCurrency !== PAYMOB_CURRENCY) {
     throw new ApiErrorResponse(
       `Cannot generate a payment QR because the receipt currency must be ${PAYMOB_CURRENCY}.`,
       400,
       'INVALID_RECEIPT_CURRENCY',
     );
   }
+
+  const normalizedAmount = Number(input.amount);
+
+  if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+    throw new ApiErrorResponse(
+      'Payment amount must be greater than 0.',
+      400,
+      'INVALID_PAYMENT_AMOUNT',
+    );
+  }
+
+  const normalizedReceiptTotal = Math.round((normalizedAmount + Number.EPSILON) * 100) / 100;
+  const subtotal = normalizedReceiptTotal;
+  const tax = 0;
+  const total = normalizedReceiptTotal;
 
   await tx.receipt.update({
     where: { id: cartSession.receipt.id },
@@ -448,10 +376,11 @@ export class DevicePaymentService {
 
   public static async createPaymentQr(
     cart: DeviceCart,
+    input: CreateDevicePaymentQrInput,
     requestUrl?: string
   ) {
     const lockedSession = await prisma.$transaction((tx) => (
-      lockActiveReceiptForDeviceCheckout(tx, cart)
+      lockActiveReceiptForDeviceCheckout(tx, cart, input)
     ));
     const receipt = lockedSession.receipt;
 
@@ -459,54 +388,39 @@ export class DevicePaymentService {
       throw new ApiErrorResponse('Receipt is not ready for payment.', 409, 'RECEIPT_NOT_READY');
     }
 
-    const checkoutAmount = getPaymobAmountMinorUnits(receipt);
+    const normalizedCurrency = (input.currency || PAYMOB_CURRENCY).trim().toUpperCase() || PAYMOB_CURRENCY;
 
-    if (checkoutAmount.demoAmountFallback || checkoutAmount.amountMinorUnits <= 0) {
+    if (normalizedCurrency !== PAYMOB_CURRENCY) {
       throw new ApiErrorResponse(
-        'Cannot generate a payment QR because the receipt total is invalid.',
+        `Cannot generate a payment QR because the receipt currency must be ${PAYMOB_CURRENCY}.`,
         400,
-        'INVALID_RECEIPT_TOTAL',
+        'INVALID_RECEIPT_CURRENCY',
       );
     }
 
-    const paymobEnvStatus = getHostedPaymobEnvStatus();
-    const previewModeEnabled = isPaymobPreviewModeEnabled();
-    const usePreviewMode = !paymobEnvStatus.configured && previewModeEnabled;
+    const normalizedAmount = Number(input.amount);
 
-    if (!paymobEnvStatus.configured && !previewModeEnabled) {
-      const debugInfo = getHostedPaymobEnvDebugInfo();
-      console.warn('Paymob hosted checkout is not configured for device checkout.', debugInfo);
+    if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
       throw new ApiErrorResponse(
-        buildPaymobConfigErrorMessage(paymobEnvStatus.missing),
-        503,
-        'PAYMOB_NOT_CONFIGURED',
-        {
-          missing: paymobEnvStatus.missing,
-          hasApiKey: debugInfo.hasApiKey,
-          hasSecretKey: debugInfo.hasSecretKey,
-          hasPublicKey: debugInfo.hasPublicKey,
-          hasHmacSecret: debugInfo.hasHmacSecret,
-          integrationIdParsed: debugInfo.integrationIdParsed,
-        },
+        'Payment amount must be greater than 0.',
+        400,
+        'INVALID_PAYMENT_AMOUNT',
       );
     }
 
-    let attempt = await reuseRecentAttempt(receipt.id, checkoutAmount.amountMinorUnits);
-
-    if (attempt && isPreviewAttempt(attempt) !== usePreviewMode) {
-      attempt = null;
-    }
+    const amountCents = toPaymobAmountCents(normalizedAmount);
+    let attempt = await reuseRecentAttempt(receipt.id, amountCents);
 
     if (!attempt) {
-      const paymentAttempt = await prisma.paymentAttempt.create({
+      attempt = await prisma.paymentAttempt.create({
         data: {
           receiptId: receipt.id,
           sessionId: lockedSession.id,
           userId: lockedSession.userId,
           guestSessionId: lockedSession.guestSessionId,
           merchantOrderId: buildMerchantOrderId(),
-          amountCents: checkoutAmount.amountMinorUnits,
-          currency: PAYMOB_CURRENCY,
+          amountCents,
+          currency: normalizedCurrency,
           status: 'PENDING',
           metadata: {
             cartCode: lockedSession.cart?.cartCode ?? cart.cartCode,
@@ -514,113 +428,49 @@ export class DevicePaymentService {
             storeName: lockedSession.cart?.store?.name ?? null,
             listId: lockedSession.shoppingList?.id ?? null,
             listName: lockedSession.shoppingList?.name ?? null,
-            actualReceiptTotal: receipt.total,
-            payableAmountEGP: checkoutAmount.amount,
-            demoAmountFallback: checkoutAmount.demoAmountFallback,
-            checkoutMode: usePreviewMode ? 'preview' : 'hosted',
+            actualReceiptTotal: normalizedAmount,
+            payableAmountEGP: normalizedAmount,
+            demoAmountFallback: false,
+            checkoutMode: 'pending_qr',
             source: 'device_payment_qr',
+            deviceReportedAmount: normalizedAmount,
+            deviceReportedCurrency: normalizedCurrency,
+            deviceReportedItems: input.items ?? null,
           },
         },
       });
-
-      if (usePreviewMode) {
-        attempt = await prisma.paymentAttempt.update({
-          where: { id: paymentAttempt.id },
-          data: {
-            checkoutUrl: buildSecurePreviewCheckoutUrl(paymentAttempt.id),
-            metadata: {
-              cartCode: lockedSession.cart?.cartCode ?? cart.cartCode,
-              storeId: lockedSession.cart?.storeId ?? null,
-              storeName: lockedSession.cart?.store?.name ?? null,
-              listId: lockedSession.shoppingList?.id ?? null,
-              listName: lockedSession.shoppingList?.name ?? null,
-              actualReceiptTotal: receipt.total,
-              payableAmountEGP: checkoutAmount.amount,
-              demoAmountFallback: checkoutAmount.demoAmountFallback,
-              checkoutMode: 'preview',
-              source: 'device_payment_qr',
-              previewReason: 'PAYMOB_NOT_CONFIGURED',
-              previewMissing: paymobEnvStatus.missing,
-              previewExplicit: true,
-              preview: true,
-            },
+    } else {
+      attempt = await prisma.paymentAttempt.update({
+        where: { id: attempt.id },
+        data: {
+          amountCents,
+          currency: normalizedCurrency,
+          status: 'PENDING',
+          checkoutUrl: null,
+          providerOrderId: null,
+          providerTransactionId: null,
+          completedAt: null,
+          failedAt: null,
+          lastError: null,
+          rawResponse: Prisma.JsonNull,
+          metadata: {
+            ...readAttemptMetadata(attempt.metadata),
+            cartCode: lockedSession.cart?.cartCode ?? cart.cartCode,
+            storeId: lockedSession.cart?.storeId ?? null,
+            storeName: lockedSession.cart?.store?.name ?? null,
+            listId: lockedSession.shoppingList?.id ?? null,
+            listName: lockedSession.shoppingList?.name ?? null,
+            actualReceiptTotal: normalizedAmount,
+            payableAmountEGP: normalizedAmount,
+            demoAmountFallback: false,
+            checkoutMode: 'pending_qr',
+            source: 'device_payment_qr',
+            deviceReportedAmount: normalizedAmount,
+            deviceReportedCurrency: normalizedCurrency,
+            deviceReportedItems: input.items ?? null,
           },
-        });
-
-        await prisma.receipt.update({
-          where: { id: receipt.id },
-          data: {
-            paymentStatus: 'PENDING',
-          },
-        });
-      } else {
-        try {
-          const profile = await getDeviceCheckoutProfile(lockedSession);
-          const billingData = buildPaymobBillingData(profile ?? {});
-          const customer = buildPaymobCustomer(profile ?? {});
-          const intention = await createPaymobIntention({
-            amount: paymentAttempt.amountCents,
-            items: buildPaymobItems(receipt, checkoutAmount),
-            billingData,
-            customer,
-            extras: {
-              receiptId: receipt.id,
-              cartSessionId: lockedSession.id,
-              paymentAttemptId: paymentAttempt.id,
-              internalReference: paymentAttempt.merchantOrderId,
-              merchantOrderId: paymentAttempt.merchantOrderId,
-            },
-          });
-          const checkoutUrl = buildPaymobUnifiedCheckoutUrl(intention.clientSecret);
-
-          attempt = await prisma.paymentAttempt.update({
-            where: { id: paymentAttempt.id },
-            data: {
-              providerOrderId: intention.id,
-              checkoutUrl,
-              status: 'PROCESSING',
-              rawResponse: {
-                intention: intention.raw,
-              },
-            },
-          });
-
-          await prisma.receipt.update({
-            where: { id: receipt.id },
-            data: {
-              paymentStatus: 'PROCESSING',
-            },
-          });
-        } catch (error: any) {
-          const providerErrorDetails = buildPaymobProviderErrorDetails({
-            error,
-            amountMinorUnits: paymentAttempt.amountCents,
-            receiptId: receipt.id,
-            sessionId: lockedSession.id,
-            paymentAttemptId: paymentAttempt.id,
-          });
-
-          await prisma.paymentAttempt.update({
-            where: { id: paymentAttempt.id },
-            data: {
-              status: 'FAILED',
-              failedAt: new Date(),
-              lastError: providerErrorDetails.providerMessage,
-            },
-          });
-
-          throw new ApiErrorResponse(
-            `Could not initialize secure payment checkout. ${providerErrorDetails.providerMessage}`,
-            502,
-            'PAYMENT_PROVIDER_ERROR',
-            providerErrorDetails,
-          );
-        }
-      }
-    }
-
-    if (!attempt.checkoutUrl) {
-      throw new ApiErrorResponse('Secure payment checkout URL is missing.', 500, 'PAYMENT_URL_MISSING');
+        },
+      });
     }
 
     const accessToken = generateSecureToken();
@@ -643,16 +493,15 @@ export class DevicePaymentService {
       receiptId: receipt.id,
       sessionId: lockedSession.id,
       cartSessionId: lockedSession.id,
-      amountCents: checkoutAmount.amountMinorUnits,
-      amount: checkoutAmount.amount,
-      amountDisplay: formatMoney(checkoutAmount.amountMinorUnits, PAYMOB_CURRENCY),
-      currency: PAYMOB_CURRENCY,
+      amountCents,
+      amount: normalizedAmount,
+      amountDisplay: formatMoney(amountCents, normalizedCurrency),
+      currency: normalizedCurrency,
       paymentStatus: mapDevicePaymentStatus({
         receiptStatus: receipt.status,
         receiptPaymentStatus: receipt.paymentStatus,
-        attemptStatus: attempt.status,
+        attemptStatus: 'PENDING',
       }),
-      demoAmountFallback: checkoutAmount.demoAmountFallback,
       expiresAt: tokenExpiresAt.toISOString(),
     };
   }
@@ -803,6 +652,8 @@ export class DevicePaymentService {
       paymentAttempts?: Array<{
         id: string;
         status: string;
+        amountCents?: number;
+        currency?: string;
       }>;
     } | null;
     requestUrl?: string;
@@ -822,8 +673,9 @@ export class DevicePaymentService {
         receiptPaymentStatus: receipt.paymentStatus,
         attemptStatus: latestAttempt?.status ?? null,
       }),
-      currency: PAYMOB_CURRENCY,
-      amount: receipt.total,
+      currency: latestAttempt?.currency || PAYMOB_CURRENCY,
+      amount: latestAttempt ? centsToAmount(latestAttempt.amountCents ?? 0) : receipt.total,
+      amountCents: latestAttempt?.amountCents ?? toPaymobAmountCents(receipt.total),
       paymentUrl: latestAttempt
         ? this.buildDeviceCheckoutUrl(latestAttempt.id, input.requestUrl)
         : null,

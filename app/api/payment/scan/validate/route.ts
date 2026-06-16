@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
       return successResponse({
         sessionId: attempt.sessionId,
         receiptId: attempt.receiptId,
-        checkoutUrl: `/checkout/${encodeURIComponent(attempt.id)}`,
+        checkoutUrl: `/checkout?sessionId=${encodeURIComponent(attempt.sessionId)}`,
       });
     }
 

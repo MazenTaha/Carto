@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { normalizeCartCode } from '@/lib/cart-code';
+import { PAYMOB_CURRENCY } from '@/lib/payment-money';
 import { ApiErrorResponse } from '../api-response';
 import { calculateTax } from '../utils';
 import { CartSessionService } from './cart-session.service';
@@ -56,6 +57,16 @@ const activeDeviceSessionSelect = {
         },
         orderBy: { scannedAt: 'desc' as const },
       },
+      paymentAttempts: {
+        select: {
+          id: true,
+          status: true,
+          amountCents: true,
+          currency: true,
+        },
+        orderBy: { createdAt: 'desc' as const },
+        take: 1,
+      },
     },
   },
 } satisfies Prisma.CartSessionSelect;
@@ -85,10 +96,13 @@ type DeviceSessionSnapshot = {
     id: string;
     status: string;
     total: number;
+    currency?: string;
     paymentStatus?: string | null;
     paymentAttempts?: Array<{
       id: string;
       status: string;
+      amountCents?: number;
+      currency?: string;
     }>;
     items: Array<{
       id: string;
@@ -243,6 +257,12 @@ export class CartDeviceService {
     const payment = DevicePaymentService.buildActiveSessionPaymentSummary({
       receipt: session.receipt,
     });
+    const receipt = session.receipt
+      ? {
+          ...session.receipt,
+          currency: PAYMOB_CURRENCY,
+        }
+      : null;
 
     return {
       status: 'active' as const,
@@ -265,8 +285,8 @@ export class CartDeviceService {
         })),
       },
       cartItems: session.receipt?.items ?? [],
-      total: session.receipt?.total ?? 0,
-      paymentStatus: payment?.status ?? session.receipt?.paymentStatus ?? null,
+      total: receipt?.total ?? 0,
+      paymentStatus: payment?.status ?? receipt?.paymentStatus ?? null,
       payment,
       cart: {
         cartCode: canonicalCartCode,
@@ -279,7 +299,7 @@ export class CartDeviceService {
         endedAt: session.endedAt,
       },
       list: session.shoppingList,
-      receipt: session.receipt,
+      receipt,
     };
   }
 

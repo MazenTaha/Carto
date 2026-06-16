@@ -96,7 +96,7 @@ export default async function CheckoutScanPage({
 
   try {
     const attempt = await PaymentService.getOwnedAttemptByPaymentQrToken(owner, token);
-    redirect(`/checkout/${encodeURIComponent(attempt.id)}`);
+    redirect(`/checkout?sessionId=${encodeURIComponent(attempt.sessionId)}`);
   } catch (error) {
     if (error instanceof ApiErrorResponse) {
       return (

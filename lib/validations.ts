@@ -141,8 +141,16 @@ export const createPaymentSchema = z.object({
 });
 
 export const createDevicePaymentQrSchema = z.object({
-  cartSessionId: z.string().min(1, 'Cart session ID is required'),
-  receiptId: z.string().min(1, 'Receipt ID is required'),
+  amount: z.number().finite('Payment amount must be a valid number.').positive('Payment amount must be greater than 0.'),
+  currency: z.string().trim().min(1).default('EGP'),
+  items: z.array(
+    z.object({
+      name: z.string().trim().min(1, 'Item name is required'),
+      quantity: z.number().int().positive('Item quantity must be greater than 0.'),
+      unitPrice: z.number().finite('Item unit price must be a valid number.').nonnegative('Item unit price cannot be negative.'),
+      total: z.number().finite('Item total must be a valid number.').nonnegative('Item total cannot be negative.'),
+    })
+  ).optional(),
 });
 
 export const devicePaymentStatusQuerySchema = z.object({

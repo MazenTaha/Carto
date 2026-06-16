@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { DeviceAuthService } from '@/lib/services/device-auth.service';
 import { DevicePaymentService } from '@/lib/services/device-payment.service';
 import { errorResponse, successResponse, ApiErrorResponse } from '@/lib/api-response';
+import { createDevicePaymentQrSchema } from '@/lib/validations';
 import { getPrismaConnectivityMessage, logSafeDatabaseError } from '@/lib/prisma-errors';
 import { applyDeviceApiHeaders, handleDeviceOptions } from '@/lib/device-api-http';
 
@@ -10,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export function OPTIONS(request: NextRequest) {
-  return handleDeviceOptions(request, ['GET', 'POST']);
+  return handleDeviceOptions(request, ['POST']);
 }
 
 async function createPaymentQrResponse(
@@ -19,19 +20,21 @@ async function createPaymentQrResponse(
 ) {
   try {
     const cart = await DeviceAuthService.authenticateDevice(request, params.cartCode);
-    const result = await DevicePaymentService.createPaymentQr(cart, request.url);
+    const body = await request.json().catch(() => null);
+    const parsed = createDevicePaymentQrSchema.parse(body);
+    const result = await DevicePaymentService.createPaymentQr(cart, parsed, request.url);
 
     return applyDeviceApiHeaders(
       request,
       successResponse(result),
-      ['GET', 'POST', 'OPTIONS']
+      ['POST', 'OPTIONS']
     );
   } catch (error: any) {
     if (error?.name === 'ZodError') {
       return applyDeviceApiHeaders(
         request,
         errorResponse(error.errors[0]?.message || 'Invalid payment QR payload.', 400, 'VALIDATION_ERROR'),
-        ['GET', 'POST', 'OPTIONS']
+        ['POST', 'OPTIONS']
       );
     }
 
@@ -39,17 +42,17 @@ async function createPaymentQrResponse(
       return applyDeviceApiHeaders(
         request,
         errorResponse(error.message, error.statusCode, error.code, error.details),
-        ['GET', 'POST', 'OPTIONS']
+        ['POST', 'OPTIONS']
       );
     }
 
     const databaseMessage = getPrismaConnectivityMessage(error);
     if (databaseMessage) {
-      logSafeDatabaseError('carts/[cartCode]/payment-qr GET', error);
+      logSafeDatabaseError('carts/[cartCode]/payment-qr POST', error);
       return applyDeviceApiHeaders(
         request,
         errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE'),
-        ['GET', 'POST', 'OPTIONS']
+        ['POST', 'OPTIONS']
       );
     }
 
@@ -57,16 +60,20 @@ async function createPaymentQrResponse(
     return applyDeviceApiHeaders(
       request,
       errorResponse('Failed to create payment QR.', 500, 'INTERNAL_SERVER_ERROR'),
-      ['GET', 'POST', 'OPTIONS']
+      ['POST', 'OPTIONS']
     );
   }
 }
 
 export async function GET(
   request: NextRequest,
-  context: { params: { cartCode: string } }
+  _context: { params: { cartCode: string } }
 ) {
-  return createPaymentQrResponse(request, context);
+  return applyDeviceApiHeaders(
+    request,
+    errorResponse('Use POST /api/carts/[cartCode]/payment-qr with { amount, currency, items? }.', 405, 'METHOD_NOT_ALLOWED'),
+    ['POST', 'OPTIONS']
+  );
 }
 
 export async function POST(
