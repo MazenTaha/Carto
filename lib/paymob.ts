@@ -1,9 +1,7 @@
 import crypto from 'crypto';
 import { getAppBaseUrl } from '@/lib/app-url';
 import { PAYMOB_CURRENCY } from '@/lib/payment-money';
-
-const DEFAULT_PAYMOB_API_BASE_URL = 'https://accept.paymob.com/api';
-const DEFAULT_PAYMOB_HOSTED_BASE_URL = 'https://accept.paymob.com';
+import { getPaymobEnvStatus, getPaymobServerEnv } from '@/lib/paymob/env';
 
 type PaymobBillingData = {
   apartment: string;
@@ -36,57 +34,54 @@ type PaymobRequestOptions = {
 type PaymobTransactionLike = Record<string, any>;
 
 function getPaymobApiBaseUrl() {
-  return (process.env.PAYMOB_API_BASE_URL || DEFAULT_PAYMOB_API_BASE_URL).replace(/\/+$/, '');
+  const { apiBaseUrl } = getPaymobServerEnv();
+  return apiBaseUrl.endsWith('/api') ? apiBaseUrl : `${apiBaseUrl}/api`;
 }
 
 function getPaymobHostedBaseUrl() {
-  return (process.env.PAYMOB_HOSTED_BASE_URL || DEFAULT_PAYMOB_HOSTED_BASE_URL).replace(/\/+$/, '');
+  return getPaymobServerEnv().hostedBaseUrl;
 }
 
 export function isPaymobConfigured() {
-  const apiKey = process.env.PAYMOB_API_KEY?.trim();
-  const integrationId = Number(process.env.PAYMOB_INTEGRATION_ID);
-  const iframeId = Number(process.env.PAYMOB_IFRAME_ID);
-
-  return Boolean(
-    apiKey &&
-    Number.isInteger(integrationId) &&
-    integrationId > 0 &&
-    Number.isInteger(iframeId) &&
-    iframeId > 0
-  );
+  return getPaymobEnvStatus({ requireIframe: true }).configured;
 }
 
 export function getPaymobConfig() {
-  const apiKey = process.env.PAYMOB_API_KEY?.trim();
-  const integrationId = Number(process.env.PAYMOB_INTEGRATION_ID);
-  const iframeId = Number(process.env.PAYMOB_IFRAME_ID);
-  const hmacSecret = process.env.PAYMOB_HMAC_SECRET?.trim() || '';
+  const {
+    authTokenKey,
+    publicKey,
+    integrationId,
+    iframeId,
+    hmacSecret,
+    apiBaseUrl,
+    hostedBaseUrl,
+  } = getPaymobServerEnv();
 
-  if (!apiKey) {
-    throw new Error('PAYMOB_API_KEY is missing.');
+  if (!authTokenKey) {
+    throw new Error('Either PAYMOB_API_KEY or PAYMOB_SECRET_KEY must be configured.');
   }
 
-  if (!Number.isInteger(integrationId) || integrationId <= 0) {
+  if (!integrationId) {
     throw new Error('PAYMOB_INTEGRATION_ID must be a positive integer.');
   }
 
-  if (!Number.isInteger(iframeId) || iframeId <= 0) {
+  if (!iframeId) {
     throw new Error('PAYMOB_IFRAME_ID must be a positive integer.');
   }
 
   return {
-    apiKey,
+    apiKey: authTokenKey,
+    publicKey,
     integrationId,
     iframeId,
     hmacSecret,
-    apiBaseUrl: getPaymobApiBaseUrl(),
-    hostedBaseUrl: getPaymobHostedBaseUrl(),
+    apiBaseUrl,
+    hostedBaseUrl,
   };
 }
 
 function getPaymobHmacSecret() {
-  return process.env.PAYMOB_HMAC_SECRET?.trim() || '';
+  return getPaymobServerEnv().hmacSecret;
 }
 
 async function paymobRequest<T>(path: string, options: PaymobRequestOptions) {

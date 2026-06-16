@@ -12,12 +12,14 @@ Real settlement details belong in the Paymob merchant dashboard, not in `.env`.
 
 ## 2. Collect the Paymob values Carto needs
 
-Get these values from Paymob:
+Get these values from Paymob Dashboard -> Settings -> API Keys and Payment Integrations:
 
 - API key
+- Public key
+- Secret key
 - Card integration ID
-- Iframe ID
 - HMAC secret
+- Iframe ID only if you keep the legacy iframe checkout flow
 
 ## 3. Add local and Vercel environment variables
 
@@ -28,18 +30,21 @@ Add these variables to:
 
 ```env
 PAYMOB_API_KEY=your_paymob_api_key
-PAYMOB_INTEGRATION_ID=your_card_integration_id
-PAYMOB_IFRAME_ID=your_iframe_id
+PAYMOB_PUBLIC_KEY=your_paymob_public_key
+PAYMOB_SECRET_KEY=your_paymob_secret_key
 PAYMOB_HMAC_SECRET=your_hmac_secret
-PAYMOB_API_BASE_URL=https://accept.paymob.com/api
+PAYMOB_INTEGRATION_ID=your_card_integration_id
+PAYMOB_API_BASE_URL=https://accept.paymob.com
 PAYMOB_HOSTED_BASE_URL=https://accept.paymob.com
 PAYMENT_ALLOW_ZERO_TOTAL_FALLBACK=true
 PAYMENT_MIN_TEST_AMOUNT_EGP=1
 APP_URL=https://cartovercel1.vercel.app
 NEXTAUTH_URL=https://cartovercel1.vercel.app
+PAYMOB_IFRAME_ID=your_iframe_id
 ```
 
 Do not commit real Paymob secrets.
+Do not paste Paymob secrets into GitHub, chat, or client-side code.
 
 ## 4. Configure Paymob callback URLs
 
@@ -51,8 +56,13 @@ Set these URLs in the Paymob dashboard:
   `https://cartovercel1.vercel.app/payment/return`
 
 The redirect page is only a waiting/status page. It must not mark the receipt as paid.
+Keep Paymob test mode enabled while validating the integration.
 
-## 5. Deploy database changes if needed
+## 5. Add the same values to Vercel and redeploy
+
+After saving the same Paymob variables in Vercel Project Settings -> Environment Variables, redeploy the project so the server routes pick them up.
+
+## 6. Deploy database changes if needed
 
 Run:
 
@@ -61,7 +71,7 @@ npx prisma generate
 npx prisma migrate deploy
 ```
 
-## 6. Test the checkout flow
+## 7. Test the checkout flow
 
 1. Create a list and link it to a cart.
 2. Finish shopping and open `/session/ready`.
@@ -74,7 +84,7 @@ npx prisma migrate deploy
    - `CartSession` as checked out
    - `Cart` as available
 
-## 7. Demo zero-total fallback
+## 8. Demo zero-total fallback
 
 If a receipt total is still `EGP 0.00`, Carto can use a demo fallback checkout amount of `EGP 1.00` when:
 
@@ -83,7 +93,7 @@ If a receipt total is still `EGP 0.00`, Carto can use a demo fallback checkout a
 
 This is only for testing while list/product prices are still incomplete.
 
-## 8. Production reminder
+## 9. Production reminder
 
 Before real production charging:
 

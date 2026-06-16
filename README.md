@@ -10,7 +10,7 @@ A comprehensive Next.js application for managing smart shopping carts with real-
 - **Authentication**: NextAuth.js with credentials, Google OAuth, Firebase phone OTP, and guest access
 - **State Management**: Zustand
 - **Styling**: Tailwind CSS
-- **Payment**: Stripe (sandbox)
+- **Payment**: Paymob Egypt hosted checkout
 
 ## Features
 
@@ -47,7 +47,7 @@ cp .env.example .env
 - NextAuth URL and secret
 - Google OAuth credentials
 - Firebase client and Admin credentials for phone OTP
-- Stripe keys (optional for sandbox)
+- Paymob server credentials and callback URLs
 
 Required authentication variables:
 
@@ -83,6 +83,25 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
+
+### Paymob Environment Variables
+
+Server-only Paymob variables:
+
+```env
+PAYMOB_API_KEY=""
+PAYMOB_PUBLIC_KEY=""
+PAYMOB_SECRET_KEY=""
+PAYMOB_HMAC_SECRET=""
+PAYMOB_INTEGRATION_ID=""
+PAYMOB_API_BASE_URL="https://accept.paymob.com"
+PAYMOB_HOSTED_BASE_URL="https://accept.paymob.com"
+PAYMOB_IFRAME_ID=""
+APP_URL="https://cartovercel1.vercel.app"
+NEXTAUTH_URL="https://cartovercel1.vercel.app"
+```
+
+Keep Paymob secrets server-side only. Do not use `NEXT_PUBLIC_` for Paymob API keys, secret keys, or HMAC values.
 
 ### iPhone Camera Testing
 
