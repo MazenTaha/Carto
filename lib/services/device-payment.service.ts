@@ -15,7 +15,7 @@ import {
   buildPaymobUnifiedCheckoutUrl,
   createPaymobIntention,
 } from '@/lib/paymob';
-import { getHostedPaymobEnvStatus, isPaymobPreviewModeEnabled } from '@/lib/paymob/env';
+import { getHostedPaymobEnvDebugInfo, getHostedPaymobEnvStatus, isPaymobPreviewModeEnabled } from '@/lib/paymob/env';
 import { calculateTax } from '@/lib/utils';
 
 const REUSABLE_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
@@ -134,7 +134,7 @@ function isPreviewAttempt(input: {
 }
 
 function buildPaymobConfigErrorMessage(missing: string[]) {
-  return `Paymob test mode is not configured. Missing: ${missing.join(', ')}. Add these server environment variables and redeploy before opening checkout.`;
+  return `Paymob test mode is not configured. Missing: ${missing.join(', ')}. If you just added these variables in Vercel, redeploy the project.`;
 }
 
 function mapDevicePaymentStatus(input: {
@@ -377,6 +377,7 @@ export class DevicePaymentService {
     const usePreviewMode = !paymobEnvStatus.configured && previewModeEnabled;
 
     if (!paymobEnvStatus.configured && !previewModeEnabled) {
+      console.warn('Paymob hosted checkout is not configured for device checkout.', getHostedPaymobEnvDebugInfo());
       throw new ApiErrorResponse(
         buildPaymobConfigErrorMessage(paymobEnvStatus.missing),
         503,

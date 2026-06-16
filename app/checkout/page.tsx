@@ -34,7 +34,10 @@ function CheckoutContent() {
 
   const fetchReceipt = useCallback(async (signal?: AbortSignal) => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId}`, { signal });
+      const response = await fetch(`/api/sessions/${sessionId}`, {
+        signal,
+        cache: 'no-store',
+      });
       const data = await response.json();
       if (data.success && data.data.receipt) {
         setReceipt(data.data.receipt);
@@ -71,6 +74,7 @@ function CheckoutContent() {
     try {
       const response = await fetch('/api/payment/create', {
         method: 'POST',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           receiptId: receipt.id,
