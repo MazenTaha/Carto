@@ -5,10 +5,21 @@ import useSWR from 'swr';
 import { RefreshCw, Receipt, ShoppingCart, Wifi, WifiOff } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { PageContainer } from '@/components/layout/PageContainer';
-import { DEMO_CART_CODE, normalizeCartCode } from '@/lib/cart-code';
+import {
+  DEFAULT_SIMULATOR_CART_CODE,
+  DEMO_CART_CODE,
+  DEMO_CART_PRESETS,
+  DEMO_DEVICE_SECRET,
+  getDefaultSimulatorCartPreset,
+  getDemoCartPreset,
+  normalizeCartCode,
+} from '@/lib/cart-code';
 import { formatCurrency } from '@/lib/utils';
 
-const STORAGE_KEY = 'carto_device_simulator_config';
+const STORAGE_KEY = 'carto_device_simulator_config_v2';
+const LEGACY_STORAGE_KEY = 'carto_device_simulator_config';
+const DEFAULT_SIMULATOR_PRESET = getDefaultSimulatorCartPreset();
+const KNOWN_PRESET_SECRETS = new Set(DEMO_CART_PRESETS.map((preset) => preset.deviceSecret));
 
 type DeviceResponse =
   | {
@@ -153,8 +164,8 @@ const jsonFetcher = async ([url, deviceSecret]: [string, string]) => {
 };
 
 export default function DeviceSimulatorPage() {
-  const [deviceSecret, setDeviceSecret] = useState('dev-device-secret');
-  const [cartCode, setCartCode] = useState(DEMO_CART_CODE);
+  const [deviceSecret, setDeviceSecret] = useState(DEFAULT_SIMULATOR_PRESET.deviceSecret);
+  const [cartCode, setCartCode] = useState(DEFAULT_SIMULATOR_CART_CODE);
   const [isConnected, setIsConnected] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [lastPollAt, setLastPollAt] = useState<string | null>(null);
@@ -173,18 +184,52 @@ export default function DeviceSimulatorPage() {
     setEventLogs((current) => [`[${timestamp}] ${message}`, ...current].slice(0, 10));
   }, []);
 
+  const applyCartPreset = useCallback((nextCartCode: string, nextDeviceSecret?: string | null) => {
+    const normalizedCartCode = normalizeCartCode(nextCartCode) || DEFAULT_SIMULATOR_PRESET.cartCode;
+    const preset = getDemoCartPreset(normalizedCartCode);
+
+    setCartCode(normalizedCartCode);
+    setDeviceSecret((currentDeviceSecret) => {
+      const trimmedCurrentSecret = currentDeviceSecret.trim();
+
+      if (nextDeviceSecret && nextDeviceSecret.trim()) {
+        return nextDeviceSecret.trim();
+      }
+
+      if (!preset) {
+        return trimmedCurrentSecret;
+      }
+
+      if (!trimmedCurrentSecret || KNOWN_PRESET_SECRETS.has(trimmedCurrentSecret)) {
+        return preset.deviceSecret;
+      }
+
+      return trimmedCurrentSecret;
+    });
+  }, []);
+
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
+      const raw = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as { cartCode?: string; deviceSecret?: string };
-        if (parsed.cartCode) setCartCode(parsed.cartCode);
-        if (parsed.deviceSecret) setDeviceSecret(parsed.deviceSecret);
+        const normalizedCartCode = normalizeCartCode(parsed.cartCode ?? '');
+        const trimmedDeviceSecret = parsed.deviceSecret?.trim() ?? '';
+
+        const shouldMigrateOldDefault =
+          normalizedCartCode === DEMO_CART_CODE &&
+          trimmedDeviceSecret === DEMO_DEVICE_SECRET;
+
+        if (shouldMigrateOldDefault) {
+          applyCartPreset(DEFAULT_SIMULATOR_PRESET.cartCode, DEFAULT_SIMULATOR_PRESET.deviceSecret);
+        } else if (normalizedCartCode) {
+          applyCartPreset(normalizedCartCode, trimmedDeviceSecret);
+        }
       }
     } catch {}
 
     setHydrated(true);
-  }, []);
+  }, [applyCartPreset]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -200,6 +245,7 @@ export default function DeviceSimulatorPage() {
 
   const trimmedCartCode = normalizeCartCode(cartCode);
   const trimmedDeviceSecret = deviceSecret.trim();
+  const selectedPresetCartCode = getDemoCartPreset(cartCode)?.cartCode ?? '';
   const activeSessionKey = useMemo(
     () =>
       isConnected && trimmedCartCode && trimmedDeviceSecret
@@ -551,6 +597,24 @@ export default function DeviceSimulatorPage() {
             <form onSubmit={handleConnect} className="space-y-4">
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Demo Cart
+                </label>
+                <select
+                  value={selectedPresetCartCode}
+                  onChange={(event) => applyCartPreset(event.target.value)}
+                  disabled={isConnected}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950"
+                >
+                  {DEMO_CART_PRESETS.map((preset) => (
+                    <option key={preset.cartCode} value={preset.cartCode}>
+                      {preset.label} ({preset.cartCode})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Cart Code
                 </label>
                 <input
@@ -559,7 +623,7 @@ export default function DeviceSimulatorPage() {
                   onChange={(event) => setCartCode(event.target.value)}
                   disabled={isConnected}
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950"
-                  placeholder="cart-01"
+                  placeholder="cart-02"
                 />
               </div>
 
@@ -573,8 +637,11 @@ export default function DeviceSimulatorPage() {
                   onChange={(event) => setDeviceSecret(event.target.value)}
                   disabled={isConnected}
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950"
-                  placeholder="dev-device-secret"
+                  placeholder="Device secret for the selected cart"
                 />
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Presets default to the repo demo secrets. If your current database uses a custom secret for {trimmedCartCode || DEFAULT_SIMULATOR_CART_CODE}, replace it here before connecting.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3 rounded-2xl bg-slate-50 p-4 text-sm dark:bg-slate-950">

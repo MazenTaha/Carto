@@ -1,7 +1,8 @@
 import { errorResponse, successResponse } from '@/lib/api-response';
 import { getAdminEmails, isAdminEmail } from '@/lib/admin-emails';
 import { requireDemoSetupToken } from '@/lib/demo-setup-auth';
-import { DEMO_ADMIN_EMAIL, DEMO_CART_CODE, provisionDemoState } from '@/lib/demo-setup';
+import { DEMO_ADMIN_EMAIL, provisionDemoState } from '@/lib/demo-setup';
+import { DEFAULT_SIMULATOR_CART_CODE, DEMO_CART_PRESETS } from '@/lib/cart-code';
 import { prisma } from '@/lib/prisma';
 import { getPrismaConnectivityCode, getPrismaConnectivityMessage, logSafeDatabaseError } from '@/lib/prisma-errors';
 
@@ -32,7 +33,8 @@ export async function POST(request: Request) {
         adminAccessConfigured: isAdminEmail(DEMO_ADMIN_EMAIL),
       },
       cart: {
-        cartCode: DEMO_CART_CODE,
+        cartCode: DEFAULT_SIMULATOR_CART_CODE,
+        supportedCartCodes: DEMO_CART_PRESETS.map((preset) => preset.cartCode),
         exists: result.cartExists,
         hasDeviceSecret: result.hasDeviceSecret,
         status: result.cartStatus,

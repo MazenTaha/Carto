@@ -2,9 +2,9 @@ import { PrismaClient, SessionStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { config as loadEnv } from 'dotenv';
 import {
+    DEFAULT_SIMULATOR_CART_CODE,
     DEMO_CART_CODE,
-    DEMO_DEVICE_SECRET,
-    LEGACY_DEMO_CART_CODE,
+    DEMO_CART_PRESETS,
     getDemoCartBluetoothName,
 } from '../lib/cart-code';
 
@@ -1608,87 +1608,62 @@ async function main() {
         },
     })
 
-    const existingCart = await prisma.cart.findFirst({
-        where: {
-            OR: [
-                { cartCode: DEMO_CART_CODE },
-                { cartCode: LEGACY_DEMO_CART_CODE },
-            ],
-        },
-        select: {
-            id: true,
-            cartCode: true,
-        },
-    })
-
-    const hasActiveSession = existingCart
-        ? Boolean(await prisma.cartSession.findFirst({
-            where: {
-                cartId: existingCart.id,
-                status: { in: [SessionStatus.ACTIVE, SessionStatus.DISCONNECTED] },
-                endedAt: null,
-            },
-            select: { id: true },
-        }))
-        : false
-    const targetCartStatus = hasActiveSession ? 'IN_USE' : 'AVAILABLE'
-
     await prisma.$transaction(async (tx) => {
-        const canonicalCart = await tx.cart.findUnique({
-            where: { cartCode: DEMO_CART_CODE },
-            select: { id: true },
-        })
-        const legacyCart = canonicalCart
-            ? null
-            : await tx.cart.findUnique({
-                where: { cartCode: LEGACY_DEMO_CART_CODE },
-                select: { id: true },
+        for (const preset of DEMO_CART_PRESETS) {
+            const existingCart = await tx.cart.findFirst({
+                where: {
+                    OR: [
+                        { cartCode: preset.cartCode },
+                        ...((preset.legacyCartCodes ?? []).map((legacyCode) => ({ cartCode: legacyCode }))),
+                    ],
+                },
+                select: {
+                    id: true,
+                },
             })
 
-        if (canonicalCart) {
-            await tx.cart.update({
-                where: { id: canonicalCart.id },
-                data: {
-                    cartCode: DEMO_CART_CODE,
-                    bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
-                    pairingCode: null,
-                    pairingExpiresAt: null,
-                    qrSessionId: null,
-                    deviceSecret: DEMO_DEVICE_SECRET,
-                    status: targetCartStatus,
-                    storeId: store.id,
-                    lastSeen: now,
-                },
-            })
-        } else if (legacyCart) {
-            await tx.cart.update({
-                where: { id: legacyCart.id },
-                data: {
-                    cartCode: DEMO_CART_CODE,
-                    bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
-                    pairingCode: null,
-                    pairingExpiresAt: null,
-                    qrSessionId: null,
-                    deviceSecret: DEMO_DEVICE_SECRET,
-                    status: targetCartStatus,
-                    storeId: store.id,
-                    lastSeen: now,
-                },
-            })
-        } else {
-            await tx.cart.create({
-                data: {
-                    cartCode: DEMO_CART_CODE,
-                    bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
-                    pairingCode: null,
-                    pairingExpiresAt: null,
-                    qrSessionId: null,
-                    deviceSecret: DEMO_DEVICE_SECRET,
-                    storeId: store.id,
-                    status: targetCartStatus,
-                    lastSeen: now,
-                },
-            })
+            const hasActiveSession = existingCart
+                ? Boolean(await tx.cartSession.findFirst({
+                    where: {
+                        cartId: existingCart.id,
+                        status: { in: [SessionStatus.ACTIVE, SessionStatus.DISCONNECTED] },
+                        endedAt: null,
+                    },
+                    select: { id: true },
+                }))
+                : false
+            const targetCartStatus = hasActiveSession ? 'IN_USE' : 'AVAILABLE'
+
+            if (existingCart) {
+                await tx.cart.update({
+                    where: { id: existingCart.id },
+                    data: {
+                        cartCode: preset.cartCode,
+                        bluetoothName: getDemoCartBluetoothName(preset.cartCode),
+                        pairingCode: null,
+                        pairingExpiresAt: null,
+                        qrSessionId: null,
+                        deviceSecret: preset.deviceSecret,
+                        status: targetCartStatus,
+                        storeId: store.id,
+                        lastSeen: now,
+                    },
+                })
+            } else {
+                await tx.cart.create({
+                    data: {
+                        cartCode: preset.cartCode,
+                        bluetoothName: getDemoCartBluetoothName(preset.cartCode),
+                        pairingCode: null,
+                        pairingExpiresAt: null,
+                        qrSessionId: null,
+                        deviceSecret: preset.deviceSecret,
+                        storeId: store.id,
+                        status: targetCartStatus,
+                        lastSeen: now,
+                    },
+                })
+            }
         }
     })
 
@@ -1697,6 +1672,7 @@ async function main() {
     console.log(`Total unique products in database: ${totalCount}`)
     console.log(`Admin test account ready: ${ADMIN_EMAIL}`)
     console.log(`Demo cart ready: ${DEMO_CART_CODE}`)
+    console.log(`Simulator default cart ready: ${DEFAULT_SIMULATOR_CART_CODE}`)
 }
 
 main()

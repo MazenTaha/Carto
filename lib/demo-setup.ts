@@ -1,9 +1,10 @@
 import { type CartStatus, type PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import {
+  DEFAULT_SIMULATOR_CART_CODE,
   DEMO_CART_CODE,
+  DEMO_CART_PRESETS,
   DEMO_DEVICE_SECRET,
-  LEGACY_DEMO_CART_CODE,
   getDemoCartBluetoothName,
 } from '@/lib/cart-code';
 
@@ -27,6 +28,13 @@ export type DemoProvisionResult = {
   guestSessionTableReachable: boolean;
 };
 
+type DemoCartProvisionResult = {
+  cartCode: string;
+  cartExists: boolean;
+  hasDeviceSecret: boolean;
+  status: 'AVAILABLE' | 'IN_USE';
+};
+
 async function ensureDemoStore(prisma: PrismaClient) {
   return prisma.store.upsert({
     where: { id: DEMO_STORE_ID },
@@ -42,105 +50,102 @@ async function ensureDemoStore(prisma: PrismaClient) {
   });
 }
 
-export async function provisionDemoCart(prisma: PrismaClient, options: DemoProvisionOptions = {}) {
+function resolveDemoDeviceSecret(cartCode: string, options: DemoProvisionOptions) {
+  if (cartCode === DEMO_CART_CODE) {
+    return options.deviceSecret || process.env.DEMO_DEVICE_SECRET?.trim() || DEMO_DEVICE_SECRET;
+  }
+
+  const preset = DEMO_CART_PRESETS.find((entry) => entry.cartCode === cartCode);
+  const envName = `DEMO_DEVICE_SECRET_${cartCode.toUpperCase().replace(/-/g, '_')}`;
+  return process.env[envName]?.trim() || preset?.deviceSecret || '';
+}
+
+export async function provisionDemoCart(
+  prisma: PrismaClient,
+  options: DemoProvisionOptions = {}
+): Promise<DemoCartProvisionResult> {
   const now = new Date();
-  const deviceSecret = options.deviceSecret || process.env.DEMO_DEVICE_SECRET?.trim() || DEMO_DEVICE_SECRET;
   const store = await ensureDemoStore(prisma);
 
-  const existingCart = await prisma.cart.findFirst({
-    where: {
-      OR: [
-        { cartCode: DEMO_CART_CODE },
-        { cartCode: LEGACY_DEMO_CART_CODE },
-      ],
-    },
-    select: {
-      id: true,
-      cartCode: true,
-    },
-  });
-
-  const hasActiveSession = existingCart
-    ? Boolean(await prisma.cartSession.findFirst({
-        where: {
-          cartId: existingCart.id,
-          status: { in: ['ACTIVE', 'DISCONNECTED'] },
-          endedAt: null,
-        },
-        select: { id: true },
-      }))
-    : false;
-  const targetStatus: CartStatus = hasActiveSession ? 'IN_USE' : 'AVAILABLE';
-
   await prisma.$transaction(async (tx) => {
-    const canonicalCart = await tx.cart.findUnique({
-      where: { cartCode: DEMO_CART_CODE },
-      select: { id: true },
-    });
-    const legacyCart = canonicalCart
-      ? null
-      : await tx.cart.findUnique({
-          where: { cartCode: LEGACY_DEMO_CART_CODE },
-          select: { id: true },
-        });
+    for (const preset of DEMO_CART_PRESETS) {
+      const existingCart = await tx.cart.findFirst({
+        where: {
+          OR: [
+            { cartCode: preset.cartCode },
+            ...((preset.legacyCartCodes ?? []).map((legacyCode) => ({ cartCode: legacyCode }))),
+          ],
+        },
+        select: {
+          id: true,
+        },
+      });
 
-    if (canonicalCart) {
-      await tx.cart.update({
-        where: { id: canonicalCart.id },
-        data: {
-          cartCode: DEMO_CART_CODE,
-          bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
-          pairingCode: null,
-          pairingExpiresAt: null,
-          qrSessionId: null,
-          deviceSecret,
-          status: targetStatus,
-          storeId: store.id,
-          lastSeen: now,
-        },
-      });
-    } else if (legacyCart) {
-      await tx.cart.update({
-        where: { id: legacyCart.id },
-        data: {
-          cartCode: DEMO_CART_CODE,
-          bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
-          pairingCode: null,
-          pairingExpiresAt: null,
-          qrSessionId: null,
-          deviceSecret,
-          status: targetStatus,
-          storeId: store.id,
-          lastSeen: now,
-        },
-      });
-    } else {
-      await tx.cart.create({
-        data: {
-          cartCode: DEMO_CART_CODE,
-          bluetoothName: getDemoCartBluetoothName(DEMO_CART_CODE),
-          pairingCode: null,
-          pairingExpiresAt: null,
-          qrSessionId: null,
-          deviceSecret,
-          status: targetStatus,
-          storeId: store.id,
-          lastSeen: now,
-        },
-      });
+      const hasActiveSession = existingCart
+        ? Boolean(await tx.cartSession.findFirst({
+            where: {
+              cartId: existingCart.id,
+              status: { in: ['ACTIVE', 'DISCONNECTED'] },
+              endedAt: null,
+            },
+            select: { id: true },
+          }))
+        : false;
+      const targetStatus: CartStatus = hasActiveSession ? 'IN_USE' : 'AVAILABLE';
+      const deviceSecret = resolveDemoDeviceSecret(preset.cartCode, options);
+
+      if (existingCart) {
+        await tx.cart.update({
+          where: { id: existingCart.id },
+          data: {
+            cartCode: preset.cartCode,
+            bluetoothName: getDemoCartBluetoothName(preset.cartCode),
+            pairingCode: null,
+            pairingExpiresAt: null,
+            qrSessionId: null,
+            deviceSecret,
+            status: targetStatus,
+            storeId: store.id,
+            lastSeen: now,
+          },
+        });
+      } else {
+        await tx.cart.create({
+          data: {
+            cartCode: preset.cartCode,
+            bluetoothName: getDemoCartBluetoothName(preset.cartCode),
+            pairingCode: null,
+            pairingExpiresAt: null,
+            qrSessionId: null,
+            deviceSecret,
+            status: targetStatus,
+            storeId: store.id,
+            lastSeen: now,
+          },
+        });
+      }
     }
   });
 
+  const defaultSimulatorCart = await prisma.cart.findFirst({
+    where: {
+      cartCode: DEFAULT_SIMULATOR_CART_CODE,
+    },
+    select: {
+      status: true,
+      deviceSecret: true,
+    },
+  });
+
   return {
-    cartCode: DEMO_CART_CODE,
+    cartCode: DEFAULT_SIMULATOR_CART_CODE,
     cartExists: true,
-    hasDeviceSecret: Boolean(deviceSecret),
-    status: targetStatus,
+    hasDeviceSecret: Boolean(defaultSimulatorCart?.deviceSecret),
+    status: defaultSimulatorCart?.status === 'IN_USE' ? 'IN_USE' : 'AVAILABLE',
   };
 }
 
 export async function provisionDemoState(prisma: PrismaClient, options: DemoProvisionOptions = {}): Promise<DemoProvisionResult> {
-  const deviceSecret = options.deviceSecret || process.env.DEMO_DEVICE_SECRET?.trim() || DEMO_DEVICE_SECRET;
   const adminPasswordHash = await bcrypt.hash(DEMO_ADMIN_PASSWORD, 12);
 
   await prisma.user.upsert({
@@ -157,7 +162,7 @@ export async function provisionDemoState(prisma: PrismaClient, options: DemoProv
     },
   });
 
-  const cart = await provisionDemoCart(prisma, { deviceSecret });
+  const cart = await provisionDemoCart(prisma, options);
 
   await prisma.guestSession.findFirst({
     select: { id: true },
