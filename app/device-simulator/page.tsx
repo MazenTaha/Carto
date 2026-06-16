@@ -20,6 +20,7 @@ const STORAGE_KEY = 'carto_device_simulator_config_v2';
 const LEGACY_STORAGE_KEY = 'carto_device_simulator_config';
 const DEFAULT_SIMULATOR_PRESET = getDefaultSimulatorCartPreset();
 const KNOWN_PRESET_SECRETS = new Set(DEMO_CART_PRESETS.map((preset) => preset.deviceSecret));
+const LEGACY_CART_02_DEVICE_SECRET = 'dev-device-secret-02';
 
 type DeviceResponse =
   | {
@@ -219,8 +220,11 @@ export default function DeviceSimulatorPage() {
         const shouldMigrateOldDefault =
           normalizedCartCode === DEMO_CART_CODE &&
           trimmedDeviceSecret === DEMO_DEVICE_SECRET;
+        const shouldRepairLegacyCart02Secret =
+          normalizedCartCode === DEFAULT_SIMULATOR_CART_CODE &&
+          trimmedDeviceSecret === LEGACY_CART_02_DEVICE_SECRET;
 
-        if (shouldMigrateOldDefault) {
+        if (shouldMigrateOldDefault || shouldRepairLegacyCart02Secret) {
           applyCartPreset(DEFAULT_SIMULATOR_PRESET.cartCode, DEFAULT_SIMULATOR_PRESET.deviceSecret);
         } else if (normalizedCartCode) {
           applyCartPreset(normalizedCartCode, trimmedDeviceSecret);
@@ -601,7 +605,10 @@ export default function DeviceSimulatorPage() {
                 </label>
                 <select
                   value={selectedPresetCartCode}
-                  onChange={(event) => applyCartPreset(event.target.value)}
+                  onChange={(event) => {
+                    const nextPreset = getDemoCartPreset(event.target.value);
+                    applyCartPreset(event.target.value, nextPreset?.deviceSecret);
+                  }}
                   disabled={isConnected}
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950"
                 >

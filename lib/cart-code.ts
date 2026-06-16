@@ -4,7 +4,7 @@ export const DEMO_CART_CODE = 'cart-01';
 export const DEFAULT_SIMULATOR_CART_CODE = 'cart-02';
 export const LEGACY_DEMO_CART_CODE = 'CART-001';
 export const DEMO_DEVICE_SECRET = 'dev-device-secret';
-export const DEFAULT_SIMULATOR_DEVICE_SECRET = 'dev-device-secret-02';
+export const DEFAULT_SIMULATOR_DEVICE_SECRET = 'dev-device-secret-2';
 
 export type DemoCartPreset = {
   cartCode: string;
