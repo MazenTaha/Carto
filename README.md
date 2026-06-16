@@ -86,7 +86,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 ### Paymob Unified Checkout Environment Variables
 
-Server-only Paymob variables:
+Hosted Paymob checkout requires these variables:
 
 ```env
 PAYMOB_API_KEY=""
@@ -97,12 +97,16 @@ PAYMOB_INTEGRATION_ID=""
 PAYMOB_API_BASE_URL="https://accept.paymob.com"
 PAYMOB_HOSTED_BASE_URL="https://accept.paymob.com"
 PAYMOB_IFRAME_ID=""
+NEXT_PUBLIC_APP_URL="https://cartovercel1.vercel.app"
 APP_URL="https://cartovercel1.vercel.app"
 NEXTAUTH_URL="https://cartovercel1.vercel.app"
+PAYMENT_PREVIEW_MODE="false"
 ```
 
 Keep Paymob secrets server-side only. Do not use `NEXT_PUBLIC_` for Paymob API keys, secret keys, or HMAC values.
 For the newer Paymob Intention API / Unified Checkout flow, prefer `PAYMOB_SECRET_KEY` when available and keep `PAYMOB_PUBLIC_KEY` server-configured so the backend can build the final checkout redirect URL safely.
+`PAYMOB_HMAC_SECRET` is required for verified webhook-driven payment completion. Without the required Paymob variables, checkout now returns a clear developer error instead of silently falling back to preview mode.
+Local preview mode is available only when `PAYMENT_PREVIEW_MODE="true"` and `NODE_ENV` is not `production`. Do not enable preview mode on Vercel unless you intentionally want a non-payment demo flow.
 
 ### iPhone Camera Testing
 

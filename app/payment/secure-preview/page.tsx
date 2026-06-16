@@ -15,6 +15,14 @@ function getAttemptMetadata(metadata: unknown) {
   return metadata as Record<string, unknown>;
 }
 
+function getMissingEnvList(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
+}
+
 function formatPreviewStatus(status: string, paymentStatus: string, receiptStatus: string, isPreviewMode: boolean) {
   if (receiptStatus === 'PAID' || paymentStatus === 'COMPLETED' || status === 'SUCCEEDED') {
     return 'PAID';
@@ -89,6 +97,7 @@ export default async function SecurePaymentPreviewPage({
 
   const attemptMetadata = getAttemptMetadata(attempt.metadata);
   const previewReason = typeof attemptMetadata.previewReason === 'string' ? attemptMetadata.previewReason : null;
+  const previewMissing = getMissingEnvList(attemptMetadata.previewMissing);
   const isPreviewMode = Boolean(attempt.checkoutUrl?.startsWith('/'));
   const previewStatus = formatPreviewStatus(
     attempt.status,
@@ -105,16 +114,22 @@ export default async function SecurePaymentPreviewPage({
       <main className="flex min-h-screen items-center justify-center p-4">
         <section className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-soft dark:border-slate-800 dark:bg-slate-900 md:p-8">
           <Badge className="bg-primary/10 text-primary ring-primary/10">
-            {isMissingPaymobConfig ? 'Paymob configuration required' : 'Secure payment preview'}
+            {isMissingPaymobConfig ? 'Local preview mode' : 'Secure payment preview'}
           </Badge>
           <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">
-            {isMissingPaymobConfig ? 'Paymob checkout is not configured yet' : 'Secure payment preview'}
+            {isMissingPaymobConfig ? 'This is local preview mode, not a real Paymob checkout' : 'Secure payment preview'}
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
             {isMissingPaymobConfig
-              ? 'Add the required Paymob server credentials before trying to charge this receipt. This page is only a safe preview and does not mark payment as paid.'
+              ? 'Paymob is not fully configured for hosted checkout in this environment. This page is only a local preview and does not mark payment as paid.'
               : 'This preview does not complete payment by itself. Only the verified Paymob webhook can finalize the receipt.'}
           </p>
+
+          {isMissingPaymobConfig && previewMissing.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+              Missing Paymob variables: {previewMissing.join(', ')}
+            </div>
+          )}
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950">

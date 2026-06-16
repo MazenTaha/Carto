@@ -14,8 +14,8 @@ import {
   buildPaymobCustomer,
   buildPaymobUnifiedCheckoutUrl,
   createPaymobIntention,
-  isPaymobConfigured,
 } from '@/lib/paymob';
+import { getHostedPaymobEnvStatus, isPaymobPreviewModeEnabled } from '@/lib/paymob/env';
 import { calculateTax } from '@/lib/utils';
 
 const REUSABLE_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
@@ -110,6 +110,31 @@ function hashAccessToken(token: string) {
 
 function isReceiptPaidStatus(status?: string | null, paymentStatus?: string | null) {
   return status === 'PAID' || paymentStatus === 'COMPLETED';
+}
+
+function readAttemptMetadata(metadata: Prisma.JsonValue | null | undefined) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return {};
+  }
+
+  return metadata as Prisma.JsonObject;
+}
+
+function isPreviewAttempt(input: {
+  checkoutUrl?: string | null;
+  metadata?: Prisma.JsonValue | null;
+}) {
+  const metadata = readAttemptMetadata(input.metadata);
+
+  return Boolean(
+    (input.checkoutUrl && input.checkoutUrl.startsWith('/')) ||
+    metadata.preview === true ||
+    metadata.checkoutMode === 'preview'
+  );
+}
+
+function buildPaymobConfigErrorMessage(missing: string[]) {
+  return `Paymob test mode is not configured. Missing: ${missing.join(', ')}. Add these server environment variables and redeploy before opening checkout.`;
 }
 
 function mapDevicePaymentStatus(input: {
@@ -347,7 +372,23 @@ export class DevicePaymentService {
       throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
     }
 
+    const paymobEnvStatus = getHostedPaymobEnvStatus();
+    const previewModeEnabled = isPaymobPreviewModeEnabled();
+    const usePreviewMode = !paymobEnvStatus.configured && previewModeEnabled;
+
+    if (!paymobEnvStatus.configured && !previewModeEnabled) {
+      throw new ApiErrorResponse(
+        buildPaymobConfigErrorMessage(paymobEnvStatus.missing),
+        503,
+        'PAYMOB_NOT_CONFIGURED',
+      );
+    }
+
     let attempt = await reuseRecentAttempt(receipt.id, checkoutAmount.amountMinorUnits);
+
+    if (attempt && isPreviewAttempt(attempt) !== usePreviewMode) {
+      attempt = null;
+    }
 
     if (!attempt) {
       const paymentAttempt = await prisma.paymentAttempt.create({
@@ -369,17 +410,33 @@ export class DevicePaymentService {
             actualReceiptTotal: receipt.total,
             payableAmountEGP: checkoutAmount.amount,
             demoAmountFallback: checkoutAmount.demoAmountFallback,
-            checkoutMode: isPaymobConfigured() ? 'hosted' : 'preview',
+            checkoutMode: usePreviewMode ? 'preview' : 'hosted',
             source: 'device_payment_qr',
           },
         },
       });
 
-      if (!isPaymobConfigured()) {
+      if (usePreviewMode) {
         attempt = await prisma.paymentAttempt.update({
           where: { id: paymentAttempt.id },
           data: {
             checkoutUrl: buildSecurePreviewCheckoutUrl(paymentAttempt.id),
+            metadata: {
+              cartCode: lockedSession.cart?.cartCode ?? cart.cartCode,
+              storeId: lockedSession.cart?.storeId ?? null,
+              storeName: lockedSession.cart?.store?.name ?? null,
+              listId: lockedSession.shoppingList?.id ?? null,
+              listName: lockedSession.shoppingList?.name ?? null,
+              actualReceiptTotal: receipt.total,
+              payableAmountEGP: checkoutAmount.amount,
+              demoAmountFallback: checkoutAmount.demoAmountFallback,
+              checkoutMode: 'preview',
+              source: 'device_payment_qr',
+              previewReason: 'PAYMOB_NOT_CONFIGURED',
+              previewMissing: paymobEnvStatus.missing,
+              previewExplicit: true,
+              preview: true,
+            },
           },
         });
 

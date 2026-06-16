@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { getAppBaseUrl } from '@/lib/app-url';
 import { PAYMOB_CURRENCY } from '@/lib/payment-money';
-import { getPaymobEnvStatus, getPaymobServerEnv } from '@/lib/paymob/env';
+import { getHostedPaymobEnvStatus, getPaymobServerEnv } from '@/lib/paymob/env';
 
 type PaymobBillingData = {
   apartment: string;
@@ -43,7 +43,7 @@ function getPaymobHostedBaseUrl() {
 }
 
 export function isPaymobConfigured() {
-  return getPaymobEnvStatus({ requirePublicKey: true }).configured;
+  return getHostedPaymobEnvStatus().configured;
 }
 
 export function getPaymobConfig() {

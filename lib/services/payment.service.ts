@@ -17,8 +17,8 @@ import {
   buildPaymobCustomer,
   buildPaymobUnifiedCheckoutUrl,
   createPaymobIntention,
-  isPaymobConfigured,
 } from '@/lib/paymob';
+import { getHostedPaymobEnvStatus, isPaymobPreviewModeEnabled } from '@/lib/paymob/env';
 
 const REUSABLE_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 
@@ -253,6 +253,23 @@ function readAttemptMetadata(metadata: Prisma.JsonValue | null | undefined) {
   return metadata as Prisma.JsonObject;
 }
 
+function isPreviewAttempt(input: {
+  checkoutUrl?: string | null;
+  metadata?: Prisma.JsonValue | null;
+}) {
+  const metadata = readAttemptMetadata(input.metadata);
+
+  return (
+    isPreviewCheckoutUrl(input.checkoutUrl) ||
+    metadata.preview === true ||
+    metadata.checkoutMode === 'preview'
+  );
+}
+
+function buildPaymobConfigErrorMessage(missing: string[]) {
+  return `Paymob test mode is not configured. Missing: ${missing.join(', ')}. Add these server environment variables and redeploy before opening checkout.`;
+}
+
 async function reuseRecentAttempt(receiptId: string, amountCents: number) {
   const attempt = await prisma.paymentAttempt.findFirst({
     where: {
@@ -442,21 +459,39 @@ export class PaymentService {
       throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
     }
 
+    const paymobEnvStatus = getHostedPaymobEnvStatus();
+    const previewModeEnabled = isPaymobPreviewModeEnabled();
+    const usePreviewMode = !paymobEnvStatus.configured && previewModeEnabled;
+
+    if (!paymobEnvStatus.configured && !previewModeEnabled) {
+      throw new ApiErrorResponse(
+        buildPaymobConfigErrorMessage(paymobEnvStatus.missing),
+        503,
+        'PAYMOB_NOT_CONFIGURED',
+      );
+    }
+
     const existingAttempt = await reuseRecentAttempt(receipt.id, checkoutAmount.amountMinorUnits);
     if (existingAttempt?.checkoutUrl) {
       const attemptMetadata = readAttemptMetadata(existingAttempt.metadata);
+      const existingAttemptIsPreview = isPreviewAttempt(existingAttempt);
 
-      return {
-        alreadyPaid: false,
-        sessionId: cartSession.id,
-        receiptId: receipt.id,
-        attemptId: existingAttempt.id,
-        preview: isPreviewCheckoutUrl(existingAttempt.checkoutUrl),
-        amount: centsToAmount(existingAttempt.amountCents),
-        currency: existingAttempt.currency,
-        checkoutUrl: existingAttempt.checkoutUrl,
-        demoAmountFallback: attemptMetadata.demoAmountFallback === true,
-      };
+      if (existingAttemptIsPreview !== usePreviewMode) {
+        // Ignore stale attempts from the wrong checkout mode so real Paymob can replace preview,
+        // and local preview mode can replace stale hosted attempts when credentials are missing.
+      } else {
+        return {
+          alreadyPaid: false,
+          sessionId: cartSession.id,
+          receiptId: receipt.id,
+          attemptId: existingAttempt.id,
+          preview: existingAttemptIsPreview,
+          amount: centsToAmount(existingAttempt.amountCents),
+          currency: existingAttempt.currency,
+          checkoutUrl: existingAttempt.checkoutUrl,
+          demoAmountFallback: attemptMetadata.demoAmountFallback === true,
+        };
+      }
     }
     const baseMetadata = {
       cartCode: cartSession.cart?.cartCode ?? null,
@@ -468,6 +503,7 @@ export class PaymentService {
       actualReceiptTotal: receipt.total,
       payableAmountEGP: checkoutAmount.amount,
       demoAmountFallback: checkoutAmount.demoAmountFallback,
+      checkoutMode: usePreviewMode ? 'preview' : 'hosted',
     };
 
     const merchantOrderId = buildMerchantOrderId();
@@ -485,7 +521,7 @@ export class PaymentService {
       },
     });
 
-    if (!isPaymobConfigured()) {
+    if (usePreviewMode) {
       const checkoutUrl = buildSecurePreviewCheckoutUrl(paymentAttempt.id);
 
       await prisma.$transaction([
@@ -497,6 +533,8 @@ export class PaymentService {
               ...baseMetadata,
               checkoutMode: 'preview',
               previewReason: 'PAYMOB_NOT_CONFIGURED',
+              previewMissing: paymobEnvStatus.missing,
+              previewExplicit: true,
               preview: true,
             },
           },

@@ -19,6 +19,17 @@ export type PaymobEnvStatus = {
   missing: string[];
 };
 
+export function isPaymobPreviewModeEnabled() {
+  return process.env.NODE_ENV !== 'production' && readEnv('PAYMENT_PREVIEW_MODE').toLowerCase() === 'true';
+}
+
+export function getHostedPaymobEnvStatus() {
+  return getPaymobEnvStatus({
+    requirePublicKey: true,
+    requireHmac: true,
+  });
+}
+
 export function getPaymobEnvStatus(options?: {
   requireIframe?: boolean;
   requirePublicKey?: boolean;
