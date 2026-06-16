@@ -291,6 +291,9 @@ export default function DeviceSimulatorPage() {
     : Number.isFinite(parsedPaymentAmountInput) && parsedPaymentAmountInput > 0
       ? parsedPaymentAmountInput
       : 1;
+  const paymentQrExpiresAtLabel = paymentQrData?.expiresAt
+    ? new Date(paymentQrData.expiresAt).toLocaleTimeString()
+    : null;
 
   const qrKey = useMemo(
     () =>
@@ -424,6 +427,7 @@ export default function DeviceSimulatorPage() {
 
     setIsGeneratingPaymentQr(true);
     setPaymentError('');
+    setPaymentQrData(null);
     paymentCompletionHandledRef.current = false;
     appendLog(`Requesting payment QR for cart ${trimmedCartCode} with ${formatDeviceMoney(effectivePaymentAmount)}`);
 
@@ -800,7 +804,7 @@ export default function DeviceSimulatorPage() {
               </div>
             </div>
 
-            <div className="z-10 flex flex-1 flex-col items-center justify-center text-center">
+            <div className="z-10 flex min-h-0 flex-1 flex-col items-center justify-center text-center">
               {!isConnected ? (
                 <div className="flex flex-col items-center text-slate-500">
                   <WifiOff className="mb-4 h-16 w-16 opacity-50" />
@@ -813,9 +817,9 @@ export default function DeviceSimulatorPage() {
                 </div>
               ) : !isActive && cartStatus === 'AVAILABLE' ? (
                 <div className="-translate-y-5 flex flex-col items-center">
-                  <div className="mb-6 flex min-h-[240px] min-w-[240px] items-center justify-center rounded-3xl bg-white p-6 shadow-2xl">
+                  <div className="mb-6 flex min-h-[260px] min-w-[260px] items-center justify-center rounded-3xl bg-white p-6 shadow-2xl">
                     {qrData?.qrValue ? (
-                      <QRCode value={qrData.qrValue} size={192} />
+                      <QRCode value={qrData.qrValue} size={220} />
                     ) : (
                       <RefreshCw className="h-8 w-8 animate-spin text-slate-300" />
                     )}
@@ -834,7 +838,7 @@ export default function DeviceSimulatorPage() {
                   <p>Waiting for cart to return to AVAILABLE mode...</p>
                 </div>
               ) : (
-                <div className="flex h-full w-full flex-col items-start text-left">
+                <div className="flex h-full w-full min-h-0 flex-col items-start overflow-y-auto pr-1 text-left">
                   <div className="mb-6 flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500">
                       <Receipt className="h-6 w-6 text-white" />
@@ -845,7 +849,7 @@ export default function DeviceSimulatorPage() {
                     </div>
                   </div>
 
-                  <div className="grid min-h-0 w-full flex-1 grid-cols-2 gap-6">
+                  <div className="grid min-h-0 w-full flex-1 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.92fr)]">
                     <div className="overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
                       <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">Shopping List</h3>
                       {deviceData.list.items.length === 0 ? (
@@ -865,7 +869,7 @@ export default function DeviceSimulatorPage() {
                       )}
                     </div>
 
-                    <div className="flex flex-col overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+                    <div className="flex min-h-0 flex-col rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
                       <div className="mb-4 flex items-center justify-between gap-3">
                         <div>
                           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Receipt</h3>
@@ -876,10 +880,10 @@ export default function DeviceSimulatorPage() {
                         <button
                           type="button"
                           onClick={() => void handleGeneratePaymentQr()}
-                          disabled={!deviceData.receipt?.id || isGeneratingPaymentQr || Boolean(paymentQrData)}
+                          disabled={!deviceData.receipt?.id || isGeneratingPaymentQr}
                           className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {paymentQrData ? 'Payment QR ready' : isGeneratingPaymentQr ? 'Preparing...' : 'Generate payment QR'}
+                          {isGeneratingPaymentQr ? 'Generating payment QR...' : paymentQrData ? 'Generate new payment QR' : 'Generate payment QR'}
                         </button>
                       </div>
                       <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
@@ -899,7 +903,7 @@ export default function DeviceSimulatorPage() {
                               step="0.01"
                               value={paymentAmountInput}
                               onChange={(event) => setPaymentAmountInput(event.target.value)}
-                              disabled={(deviceData.receipt?.total || 0) > 0 || Boolean(paymentQrData)}
+                              disabled={(deviceData.receipt?.total || 0) > 0 || isGeneratingPaymentQr}
                               className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-right text-sm font-semibold text-white disabled:opacity-50"
                               placeholder="1.00"
                             />
@@ -910,36 +914,16 @@ export default function DeviceSimulatorPage() {
                           <span className="font-mono font-bold text-white">{formatDeviceMoney(effectivePaymentAmount)}</span>
                         </div>
                       </div>
-                      {!deviceData.receipt || deviceData.receipt.items.length === 0 ? (
-                        <p className="flex-1 italic text-slate-500">Scan items to add them</p>
-                      ) : (
-                        <ul className="flex-1 space-y-3">
-                          {deviceData.receipt.items.map((item) => (
-                            <li key={item.id} className="flex items-center justify-between text-sm">
-                              <span className="text-slate-300">
-                                {item.name} <span className="text-slate-600">x{item.quantity}</span>
-                              </span>
-                              <span className="font-mono text-slate-300">
-                                {formatDeviceMoney(item.price * item.quantity)}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <div className="mt-4 border-t border-slate-800 pt-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400">Total</span>
-                          <span className="font-mono text-2xl font-bold text-white">
-                            {formatDeviceMoney(deviceData.receipt?.total || 0)}
-                          </span>
-                        </div>
-                      </div>
-
                       {paymentQrData ? (
-                        <div className="mt-4 rounded-3xl border border-emerald-500/30 bg-slate-950 p-4">
-                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Secure payment QR</p>
-                          <div className="mt-4 flex justify-center rounded-3xl bg-white p-4">
-                            <QRCode value={paymentQrData.qrValue} size={164} />
+                        <div className="mt-4 rounded-3xl border border-emerald-500/30 bg-slate-950 p-5 shadow-[0_0_0_1px_rgba(16,185,129,0.08)]">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Secure payment QR</p>
+                            <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-200">
+                              {paymentStatusData?.paymentStatus || paymentQrData.paymentStatus}
+                            </span>
+                          </div>
+                          <div className="mt-4 flex justify-center rounded-3xl bg-white p-5 shadow-inner">
+                            <QRCode value={paymentQrData.qrValue} size={220} />
                           </div>
                           <div className="mt-4 space-y-2 text-sm">
                             <div className="flex items-center justify-between">
@@ -947,16 +931,12 @@ export default function DeviceSimulatorPage() {
                               <span className="font-bold text-white">{paymentQrData.amountDisplay}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-400">Payment status</span>
-                              <span className="font-bold text-emerald-300">{paymentStatusData?.paymentStatus || paymentQrData.paymentStatus}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
                               <span className="text-slate-400">Receipt</span>
                               <span className="font-mono font-semibold text-slate-200">{paymentQrData.receiptId.slice(-6).toUpperCase()}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-slate-400">Expires</span>
-                              <span className="font-semibold text-slate-200">{new Date(paymentQrData.expiresAt).toLocaleTimeString()}</span>
+                              <span className="font-semibold text-slate-200">{paymentQrExpiresAtLabel}</span>
                             </div>
                           </div>
                           {paymentStatusData?.paymentStatus === 'PAID' ? (
@@ -964,9 +944,14 @@ export default function DeviceSimulatorPage() {
                               Payment successful. Returning cart to pairing mode...
                             </div>
                           ) : (
-                            <p className="mt-4 text-sm text-slate-400">
-                              Scan this QR to continue checkout on a phone. The QR carries only a short-lived secure token, and Carto loads the real amount from the receipt on the server.
-                            </p>
+                            <>
+                              <p className="mt-4 text-sm font-medium text-slate-300">
+                                Scan this QR with your phone to continue secure checkout.
+                              </p>
+                              <p className="mt-2 text-sm text-slate-400">
+                                The QR only contains a short-lived token. Carto loads the stored amount from the backend after scan.
+                              </p>
+                            </>
                           )}
                         </div>
                       ) : (
@@ -976,6 +961,40 @@ export default function DeviceSimulatorPage() {
                             : 'Generate a payment QR when the shopper is ready to pay on their phone.'}
                         </div>
                       )}
+
+                      <div className="mt-4 min-h-0 flex-1 overflow-y-auto rounded-2xl border border-slate-800/80 bg-slate-950/60 p-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Receipt items</p>
+                          <span className="text-xs font-semibold text-slate-500">
+                            {deviceData.receipt?.items.length || 0} item{deviceData.receipt?.items.length === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                        {!deviceData.receipt || deviceData.receipt.items.length === 0 ? (
+                          <p className="italic text-slate-500">Scan items to add them</p>
+                        ) : (
+                          <ul className="space-y-3">
+                            {deviceData.receipt.items.map((item) => (
+                              <li key={item.id} className="flex items-center justify-between text-sm">
+                                <span className="text-slate-300">
+                                  {item.name} <span className="text-slate-600">x{item.quantity}</span>
+                                </span>
+                                <span className="font-mono text-slate-300">
+                                  {formatDeviceMoney(item.price * item.quantity)}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+
+                      <div className="mt-4 border-t border-slate-800 pt-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Total</span>
+                          <span className="font-mono text-2xl font-bold text-white">
+                            {formatDeviceMoney(deviceData.receipt?.total || 0)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
