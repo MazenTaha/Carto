@@ -438,12 +438,12 @@ function ReadySessionContent() {
             <Badge variant={hasActiveSession ? 'connected' : 'warning'}>
               {hasActiveSession ? 'Cart connected' : isPaymentRetryState ? 'Payment ready' : 'Session ended'}
             </Badge>
-            <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Enjoy your shopping :)</h1>
+            <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Your cart session</h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-white/75 sm:text-base">
               {hasActiveSession
-                ? `Your smart cart session is live on ${cartCode}. Continue whenever you are ready to move into payment.`
+                ? `Your smart cart session is live on ${cartCode}. Continue whenever you are ready to move into secure checkout.`
                 : isPaymentRetryState
-                  ? 'This cart session is no longer connected, but your payment step is still available to retry safely.'
+                  ? 'This cart session is no longer connected, but your secure checkout link is still available to retry safely.'
                   : 'This cart session has ended or been disconnected. Return home to start a new activation when you are ready.'}
             </p>
 
@@ -468,7 +468,7 @@ function ReadySessionContent() {
               <span className="material-symbols-outlined">shopping_cart_checkout</span>
             </div>
             <div className="min-w-0">
-              <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Next step: payment</h2>
+              <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Next step: secure checkout</h2>
               <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                 {hasActiveSession
                   ? 'Scan the checkout QR code to continue to payment. Bypass scan is available for demos and testing only.'

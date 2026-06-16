@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/Badge';
+import { Logo } from '@/components/ui/Logo';
 import { requireUserOrGuest } from '@/lib/guest-session';
 import { DevicePaymentService } from '@/lib/services/device-payment.service';
 import { PaymentService } from '@/lib/services/payment.service';
@@ -104,24 +105,35 @@ export default async function DeviceCheckoutPage({
     : previewMode
     ? `/payment/pending?attemptId=${encodeURIComponent(checkout.id)}&sessionId=${encodeURIComponent(checkout.sessionId)}`
     : checkout.checkoutUrl || `/payment/pending?attemptId=${encodeURIComponent(checkout.id)}&sessionId=${encodeURIComponent(checkout.sessionId)}`;
+  const sessionHref = `/session/ready?sessionId=${encodeURIComponent(checkout.sessionId)}`;
 
   return (
     <PageContainer maxWidth="md">
       <main className="flex min-h-screen items-center justify-center p-4">
         <section className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-soft dark:border-slate-800 dark:bg-slate-900 md:p-8">
+          <div className="mb-8 flex justify-center">
+            <Logo width={128} height={46} />
+          </div>
           <Badge className="bg-primary/10 text-primary ring-primary/10">
-            {alreadyPaid ? 'Payment confirmed' : previewMode ? 'Checkout preview' : 'Secure checkout'}
+            {alreadyPaid ? 'Payment confirmed' : previewMode ? 'Checkout preview' : 'Secure Checkout'}
           </Badge>
           <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">
-            {alreadyPaid ? 'Payment already confirmed' : 'Review and continue to payment'}
+            {alreadyPaid ? 'Payment already confirmed' : 'Secure Checkout'}
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
             {alreadyPaid
               ? 'This receipt has already been paid and verified by the backend.'
               : previewMode
               ? 'Paymob credentials are not configured, so this secure preview page does not complete payment by itself.'
-              : 'This page validates your payment attempt first, then sends you to Paymob hosted checkout to pay in EGP.'}
+              : 'Carto validates this payment attempt first, then sends you to Paymob hosted checkout to pay securely in EGP.'}
           </p>
+
+          {!alreadyPaid && (
+            <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+              <p className="font-black">Test mode payment</p>
+              <p className="mt-2">Your cart session is still active while payment is pending. Only the verified Paymob webhook can mark the receipt as paid and complete checkout.</p>
+            </div>
+          )}
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950">
@@ -174,13 +186,13 @@ export default async function DeviceCheckoutPage({
                 ? 'View payment result'
                 : previewMode
                 ? 'Preview mode only'
-                : `Continue to Paymob ${amountLabel}`}
+                : 'Continue to Paymob Checkout'}
             </a>
             <Link
-              href="/"
+              href={sessionHref}
               className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 transition hover:border-primary/30 hover:text-primary dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
             >
-              Back to Carto
+              Back to my session
             </Link>
           </div>
         </section>

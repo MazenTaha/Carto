@@ -207,7 +207,7 @@ async function prepareOwnedReceiptForCheckout(owner: RequestOwner, input: Create
 
   if (needsLock) {
     const { CartSessionService } = await import('@/lib/services/cart-session.service');
-    await CartSessionService.finishSession(cartSession.id, owner);
+    await CartSessionService.lockOwnedReceiptForCheckout(owner, cartSession.id);
     cartSession = await loadOwnedSession(owner, input.sessionId);
   }
 

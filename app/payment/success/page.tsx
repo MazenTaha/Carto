@@ -18,7 +18,7 @@ export default function PaymentSuccessPage() {
 
           <h1 className="mt-8 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">Payment confirmed</h1>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Paymob confirmed your payment. Your receipt is now marked as paid and available in History.
+            Paymob confirmed your payment through the verified backend flow. Your receipt is now marked as paid, and the cart session can safely move to checked out.
           </p>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-2">

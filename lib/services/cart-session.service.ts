@@ -56,6 +56,45 @@ function getActiveSessionTimeoutMs() {
   return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_ACTIVE_SESSION_TIMEOUT_MS;
 }
 
+async function ensureReceiptContent(
+  tx: Prisma.TransactionClient,
+  cartSession: SessionWithReceipt
+) {
+  const fallbackReceiptItems = buildReceiptItemsFromListItems(cartSession.shoppingList?.items ?? []);
+
+  if (cartSession.receipt) {
+    let receiptItems: ReceiptLineInput[] = cartSession.receipt.items.map((item) => ({
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      category: item.category ?? null,
+    }));
+
+    if (receiptItems.length === 0 && fallbackReceiptItems.length > 0) {
+      await tx.receiptItem.createMany({
+        data: fallbackReceiptItems.map((item) => ({
+          receiptId: cartSession.receipt!.id,
+          ...item,
+        })),
+      });
+
+      receiptItems = fallbackReceiptItems;
+    }
+
+    return {
+      receiptId: cartSession.receipt.id,
+      receiptItems,
+      fallbackReceiptItems,
+    };
+  }
+
+  return {
+    receiptId: null,
+    receiptItems: fallbackReceiptItems,
+    fallbackReceiptItems,
+  };
+}
+
 export class CartSessionService {
   public static getActiveSessionTimeoutMs() {
     return getActiveSessionTimeoutMs();
@@ -71,6 +110,83 @@ export class CartSessionService {
     }
 
     return now - session.startedAt.getTime() > getActiveSessionTimeoutMs();
+  }
+
+  public static async lockOwnedReceiptForCheckout(owner: RequestOwner, sessionId: string) {
+    const cartSession = await this.getSession({
+      id: sessionId,
+      ...ownerWhere(owner),
+    });
+
+    if (!cartSession) {
+      throw new ApiErrorResponse('Session not found', 404, 'NOT_FOUND');
+    }
+
+    if (cartSession.status === 'CHECKED_OUT' || cartSession.receipt?.status === 'PAID') {
+      return cartSession;
+    }
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const now = new Date();
+      const ownerData = cartSession.userId
+        ? ownerCreateData({ type: 'user', userId: cartSession.userId })
+        : ownerCreateData({ type: 'guest', guestSessionId: cartSession.guestSessionId! });
+      const receiptContent = await ensureReceiptContent(tx, cartSession);
+      const receiptTotals = calculateReceiptTotals(receiptContent.receiptItems);
+
+      if (receiptContent.receiptId && cartSession.receipt) {
+        const receiptUpdate: Record<string, unknown> = {
+          subtotal: receiptTotals.subtotal,
+          tax: receiptTotals.tax,
+          total: receiptTotals.total,
+        };
+
+        if (cartSession.receipt.status === 'DRAFT') {
+          receiptUpdate.status = 'LOCKED';
+          receiptUpdate.lockedAt = cartSession.receipt.lockedAt ?? now;
+        } else if (cartSession.receipt.status === 'LOCKED' && !cartSession.receipt.lockedAt) {
+          receiptUpdate.lockedAt = now;
+        }
+
+        await tx.receipt.update({
+          where: { id: receiptContent.receiptId },
+          data: receiptUpdate,
+        });
+
+        return;
+      }
+
+      await tx.receipt.create({
+        data: {
+          sessionId: cartSession.id,
+          ...ownerData,
+          cartId: cartSession.cartId,
+          storeId: cartSession.cart?.storeId ?? null,
+          status: 'LOCKED',
+          lockedAt: now,
+          paymentId: null,
+          paymentMethod: 'CARD',
+          paymentStatus: 'PENDING',
+          subtotal: receiptTotals.subtotal,
+          tax: receiptTotals.tax,
+          total: receiptTotals.total,
+          items: {
+            create: receiptContent.fallbackReceiptItems,
+          },
+        },
+      });
+    });
+
+    const refreshedSession = await this.getSession({
+      id: sessionId,
+      ...ownerWhere(owner),
+    });
+
+    if (!refreshedSession) {
+      throw new ApiErrorResponse('Session not found', 404, 'NOT_FOUND');
+    }
+
+    return refreshedSession;
   }
 
   private static async finalizeSession(
@@ -113,28 +229,10 @@ export class CartSessionService {
     });
 
     let receiptId = cartSession.receipt?.id ?? null;
-    const fallbackReceiptItems = buildReceiptItemsFromListItems(cartSession.shoppingList?.items ?? []);
+    const receiptContent = await ensureReceiptContent(tx, cartSession);
 
     if (cartSession.receipt) {
-      let receiptItems: ReceiptLineInput[] = cartSession.receipt.items.map((item) => ({
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        category: item.category ?? null,
-      }));
-
-      if (receiptItems.length === 0 && fallbackReceiptItems.length > 0) {
-        await tx.receiptItem.createMany({
-          data: fallbackReceiptItems.map((item) => ({
-            receiptId: cartSession.receipt!.id,
-            ...item,
-          })),
-        });
-
-        receiptItems = fallbackReceiptItems;
-      }
-
-      const { subtotal, tax, total } = calculateReceiptTotals(receiptItems);
+      const { subtotal, tax, total } = calculateReceiptTotals(receiptContent.receiptItems);
 
       const receiptUpdate: Record<string, unknown> = {
         subtotal,
@@ -163,8 +261,7 @@ export class CartSessionService {
       const ownerData = cartSession.userId
         ? ownerCreateData({ type: 'user', userId: cartSession.userId })
         : ownerCreateData({ type: 'guest', guestSessionId: cartSession.guestSessionId! });
-
-      const receiptTotals = calculateReceiptTotals(fallbackReceiptItems);
+      const receiptTotals = calculateReceiptTotals(receiptContent.receiptItems);
 
       const receipt = await tx.receipt.create({
         data: {
@@ -181,7 +278,7 @@ export class CartSessionService {
           tax: receiptTotals.tax,
           total: receiptTotals.total,
           items: {
-            create: fallbackReceiptItems,
+            create: receiptContent.fallbackReceiptItems,
           },
         },
       });

@@ -45,9 +45,14 @@ FIREBASE_PROJECT_ID="your-firebase-project-id"
 FIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com"
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 
-# Optional: Stripe (for payment integration)
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
-STRIPE_SECRET_KEY="sk_test_..."
+# Paymob hosted checkout
+PAYMOB_API_KEY=""
+PAYMOB_PUBLIC_KEY=""
+PAYMOB_SECRET_KEY=""
+PAYMOB_HMAC_SECRET=""
+PAYMOB_INTEGRATION_ID=""
+PAYMOB_API_BASE_URL="https://accept.paymob.com"
+PAYMOB_HOSTED_BASE_URL="https://accept.paymob.com"
 ```
 
 ### Generating NextAuth Secret

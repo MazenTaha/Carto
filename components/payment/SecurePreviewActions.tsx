@@ -59,16 +59,16 @@ export function SecurePreviewActions({ returnHref, sessionId }: SecurePreviewAct
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Link
+          href={returnHref}
+          className="inline-flex h-12 items-center justify-center rounded-2xl bg-primary px-5 text-sm font-black text-white shadow-glow transition active:scale-[0.98]"
+        >
+          Back to my session
+        </Link>
+        <Link
           href="/dashboard"
           className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 transition hover:border-primary/30 hover:text-primary dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
         >
           Back to home
-        </Link>
-        <Link
-          href={returnHref}
-          className="inline-flex h-12 items-center justify-center rounded-2xl bg-primary px-5 text-sm font-black text-white shadow-glow transition active:scale-[0.98]"
-        >
-          Back to payment step
         </Link>
         <Button
           type="button"

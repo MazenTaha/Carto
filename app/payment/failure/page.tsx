@@ -7,7 +7,7 @@ export default function PaymentFailurePage({
 }: {
   searchParams?: { sessionId?: string; attemptId?: string };
 }) {
-  const retryHref = searchParams?.sessionId
+  const sessionHref = searchParams?.sessionId
     ? `/session/ready?sessionId=${encodeURIComponent(searchParams.sessionId)}`
     : '/dashboard';
 
@@ -25,12 +25,16 @@ export default function PaymentFailurePage({
 
           <h1 className="mt-8 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-100">Payment not completed</h1>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Paymob did not confirm this payment. Your receipt stays unpaid, and you can safely return to the payment step to try again.
+            Paymob did not confirm this payment. Your receipt stays unpaid, and your cart session can stay recoverable so you can safely return and try again.
           </p>
 
+          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+            Test mode payment. Your cart session is still active until a verified Paymob success webhook completes checkout.
+          </div>
+
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            <Link href={retryHref} className="inline-flex h-14 items-center justify-center rounded-2xl bg-primary px-5 text-base font-black text-white shadow-glow transition active:scale-[0.98]">
-              Return to payment
+            <Link href={sessionHref} className="inline-flex h-14 items-center justify-center rounded-2xl bg-primary px-5 text-base font-black text-white shadow-glow transition active:scale-[0.98]">
+              Back to my session
             </Link>
             <Link href="/dashboard" className="inline-flex h-14 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-base font-black text-slate-700 transition hover:border-primary/30 hover:text-primary dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
               Dashboard

@@ -312,7 +312,7 @@ function SessionContent() {
               <Badge className="bg-white/10 text-white ring-white/15">Cart session</Badge>
               <h1 className="mt-4 text-3xl font-black tracking-tight">{session.shoppingList?.name || 'Shopping in progress'}</h1>
               <p className="mt-2 text-sm leading-6 text-white/70">
-                Your cart is connected and ready. Finish shopping whenever you want to move into the payment step.
+                Your cart is connected and ready. Finish shopping whenever you want to move into secure checkout.
               </p>
             </div>
             <div className="rounded-2xl bg-white/10 px-4 py-3 text-right">
