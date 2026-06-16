@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth-config';
 import { LOCAL_PRODUCTS } from '@/lib/product-dataset';
 import { ProductFinderTab, ProductSearchResult } from '@/types';
 import { isProductFinderTab } from '@/lib/product-finder';
+import { normalizeBasePriceEGP } from '@/lib/pricing';
 
 const productSearchSelect = {
   id: true,
@@ -60,7 +61,7 @@ function mapLocalProduct(product: (typeof LOCAL_PRODUCTS)[number], index: number
     name: product.name,
     category: product.category,
     emoji: product.emoji ?? null,
-    price: product.price ?? 0,
+    price: normalizeBasePriceEGP(product.price),
     popularity: product.popularity ?? 0,
   };
 }
@@ -139,7 +140,10 @@ async function getFavoriteProducts({
   });
 
   return favorites
-    .map((favorite) => favorite.product)
+    .map((favorite) => favorite.product ? ({
+      ...favorite.product,
+      price: normalizeBasePriceEGP(favorite.product.price),
+    }) : null)
     .filter((product): product is ProductSearchResult => Boolean(product));
 }
 
@@ -188,7 +192,13 @@ export async function GET(request: NextRequest) {
       select: productSearchSelect,
     });
 
-    return NextResponse.json({ success: true, data: products });
+    return NextResponse.json({
+      success: true,
+      data: products.map((product) => ({
+        ...product,
+        price: normalizeBasePriceEGP(product.price),
+      })),
+    });
   } catch (error: any) {
     console.error('Product search error:', error);
     return NextResponse.json(

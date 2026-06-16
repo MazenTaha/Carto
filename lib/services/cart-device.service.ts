@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { normalizeCartCode } from '@/lib/cart-code';
 import { PAYMOB_CURRENCY } from '@/lib/payment-money';
+import { normalizeBasePriceEGP } from '@/lib/pricing';
 import { ApiErrorResponse } from '../api-response';
 import { calculateTax } from '../utils';
 import { CartSessionService } from './cart-session.service';
@@ -162,7 +163,7 @@ async function recalculateReceiptTotals(
     },
   });
 
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = items.reduce((sum, item) => sum + normalizeBasePriceEGP(item.price) * item.quantity, 0);
   const tax = calculateTax(subtotal);
   const total = subtotal + tax;
 
@@ -193,7 +194,7 @@ async function resolveReceiptItemIdentity(
     return {
       name: trimmedName,
       category: input.category?.trim() || null,
-      price: input.price ?? 0,
+      price: normalizeBasePriceEGP(input.price),
     };
   }
 
@@ -217,7 +218,7 @@ async function resolveReceiptItemIdentity(
   return {
     name: product.name,
     category: input.category?.trim() || product.category || null,
-    price: input.price ?? product.price ?? 0,
+    price: normalizeBasePriceEGP(input.price ?? product.price),
   };
 }
 

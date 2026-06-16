@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { normalizeListItemName } from '@/lib/list-items';
 import { EMPTY_LIST_MESSAGE } from '@/lib/list-constants';
+import { DEFAULT_BASE_PRICE_EGP, normalizeBasePriceEGP } from '@/lib/pricing';
 import { cn, formatCurrency } from '@/lib/utils';
 
 interface ListItemsManagerProps {
@@ -228,7 +229,7 @@ export function ListItemsManager({
       id: optimisticId,
       name: trimmedName,
       quantity: 1,
-      price: 0,
+      price: DEFAULT_BASE_PRICE_EGP,
       category: category || null,
       isCollected: false,
       collectedAt: null,
@@ -249,7 +250,7 @@ export function ListItemsManager({
         body: JSON.stringify({
           name: trimmedName,
           quantity: 1,
-          price: 0,
+          price: DEFAULT_BASE_PRICE_EGP,
           category: category || undefined,
         }),
       });
@@ -448,7 +449,7 @@ export function ListItemsManager({
       id: `restoring-${item.id}`,
       name: item.name,
       quantity: item.quantity,
-      price: item.price || 0,
+      price: normalizeBasePriceEGP(item.price),
       category: item.category || null,
       isCollected: false,
       collectedAt: null,
@@ -504,7 +505,7 @@ export function ListItemsManager({
           body: JSON.stringify({
             name: item.name,
             quantity: item.quantity,
-            price: item.price || 0,
+            price: normalizeBasePriceEGP(item.price),
             category: item.category || undefined,
           }),
         });

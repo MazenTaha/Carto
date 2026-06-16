@@ -15,6 +15,7 @@ const prisma = new PrismaClient()
 const ADMIN_EMAIL = 'admin@gmail.com'
 const ADMIN_PASSWORD = 'Admin_1'
 const DEMO_STORE_ID = 'dev-carto-store'
+const DEFAULT_BASE_PRICE_EGP = 1
 // Curated product dataset - 300+ generic grocery items
 const products = [
     // Fresh Fruits (40 items)
@@ -1577,9 +1578,16 @@ async function main() {
     })
 
     for (const product of products) {
+        const normalizedPrice = Number.isFinite(product.price) && product.price > 0
+            ? product.price
+            : DEFAULT_BASE_PRICE_EGP
         // Use findFirst with mode: 'insensitive' to correctly skip duplicates
         const existing = await prisma.product.findFirst({
-            where: { name: { equals: product.name, mode: 'insensitive' } }
+            where: { name: { equals: product.name, mode: 'insensitive' } },
+            select: {
+                id: true,
+                price: true,
+            },
         })
 
         if (!existing) {
@@ -1588,12 +1596,20 @@ async function main() {
                     name: product.name,
                     category: product.category,
                     emoji: product.emoji || null,
-                    price: product.price,
+                    price: normalizedPrice,
                     popularity: product.popularity
                 }
             })
             count++
         } else {
+            if (!(existing.price > 0)) {
+                await prisma.product.update({
+                    where: { id: existing.id },
+                    data: {
+                        price: normalizedPrice,
+                    },
+                })
+            }
             skipped++
         }
     }

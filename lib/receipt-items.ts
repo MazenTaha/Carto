@@ -1,4 +1,5 @@
 import { calculateTax } from '@/lib/utils';
+import { normalizeBasePriceEGP } from '@/lib/pricing';
 
 export type ReceiptLineInput = {
   name: string;
@@ -8,7 +9,7 @@ export type ReceiptLineInput = {
 };
 
 function normalizeReceiptPrice(price: number | null | undefined) {
-  return Number.isFinite(price) ? Number(price) : 0;
+  return normalizeBasePriceEGP(price);
 }
 
 export function buildReceiptItemsFromListItems(

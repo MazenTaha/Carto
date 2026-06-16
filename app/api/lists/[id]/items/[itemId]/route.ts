@@ -6,6 +6,7 @@ import { updateListItemSchema } from '@/lib/validations';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { ACTIVE_LIST_LOCK_MESSAGE, isListActiveOnCart } from '@/lib/list-session-lock';
 import { errorResponse, successResponse } from '@/lib/api-response';
+import { normalizeBasePriceEGP } from '@/lib/pricing';
 
 export const runtime = "nodejs";
 
@@ -53,6 +54,7 @@ export async function PUT(
       where: { id: existingItem.id },
       data: {
         ...validatedData,
+        price: validatedData.price === undefined ? undefined : normalizeBasePriceEGP(validatedData.price),
         collectedAt: validatedData.isCollected === true
           ? new Date()
           : validatedData.isCollected === false

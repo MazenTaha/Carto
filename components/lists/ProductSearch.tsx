@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { CategoryFilter } from '@/components/lists/CategoryFilter';
 import { ProductCategorySummary, ProductFinderTab, ProductSearchResult } from '@/types';
 import { PRODUCT_CATEGORY_FALLBACKS } from '@/lib/product-finder';
+import { DEFAULT_BASE_PRICE_EGP } from '@/lib/pricing';
 
 const ALL_CATEGORY_NAME = 'All';
 
@@ -262,7 +263,7 @@ export function ProductSearch({ onSelect, onCancel }: ProductSearchProps) {
                     name: query,
                     category: selectedCategory === ALL_CATEGORY_NAME ? 'Other' : selectedCategory,
                     emoji: null,
-                    price: 0,
+                    price: DEFAULT_BASE_PRICE_EGP,
                     popularity: 0,
                   })}
                   disabled={selectingProductId !== null}

@@ -8,6 +8,7 @@ import {
   PAYMOB_CURRENCY,
   toPaymobAmountCents,
 } from '@/lib/payment-money';
+import { normalizeBasePriceEGP } from '@/lib/pricing';
 import {
   buildPaymentQrUrl,
   createPaymentQrExpiry,
@@ -538,7 +539,7 @@ export class DevicePaymentService {
       throw new ApiErrorResponse('Receipt not found for this cart.', 404, 'RECEIPT_NOT_FOUND');
     }
 
-    const subtotal = receipt.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const subtotal = receipt.items.reduce((sum, item) => sum + normalizeBasePriceEGP(item.price) * item.quantity, 0);
     const tax = receipt.tax || calculateTax(subtotal);
     const latestAttempt = receipt.paymentAttempts[0] ?? null;
     const amount = latestAttempt ? centsToAmount(latestAttempt.amountCents) : receipt.total > 0 ? receipt.total : subtotal + tax;

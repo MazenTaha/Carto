@@ -12,6 +12,7 @@ import {
   PAYMOB_CURRENCY,
   toPaymobAmountCents,
 } from '@/lib/payment-money';
+import { normalizeBasePriceEGP } from '@/lib/pricing';
 import { hashToken, isPaymentQrExpired } from '@/lib/payment-checkout-qr';
 import {
   buildPaymobBillingData,
@@ -231,7 +232,7 @@ function buildPaymobItems(
       return [
         {
           name: 'Carto demo checkout',
-          amount: toPaymobAmountCents(options.payableAmountEGP ?? 0),
+          amount: toPaymobAmountCents(normalizeBasePriceEGP(options.payableAmountEGP)),
           description: 'Demo fallback amount while receipt prices are still zero.',
           quantity: 1,
         },
@@ -240,7 +241,7 @@ function buildPaymobItems(
 
   return receipt.items.map((item) => ({
     name: item.name,
-    amount: toPaymobAmountCents(item.price),
+    amount: toPaymobAmountCents(normalizeBasePriceEGP(item.price)),
     description: item.category || item.name,
     quantity: item.quantity,
   }));
@@ -342,11 +343,11 @@ function buildPaymobItemsFromDeviceReportedMetadata(metadata: Prisma.JsonValue |
         ? unitPrice
         : Number.isFinite(total) && total >= 0
           ? total / quantity
-          : 0;
+          : normalizeBasePriceEGP(undefined);
 
       return {
         name,
-        amount: toPaymobAmountCents(resolvedUnitPrice),
+        amount: toPaymobAmountCents(normalizeBasePriceEGP(resolvedUnitPrice)),
         description: name,
         quantity,
       };

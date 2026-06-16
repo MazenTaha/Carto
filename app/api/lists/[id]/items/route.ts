@@ -7,6 +7,7 @@ import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { ACTIVE_LIST_LOCK_MESSAGE, isListActiveOnCart } from '@/lib/list-session-lock';
 import { errorResponse, successResponse } from '@/lib/api-response';
 import { formatListItemName, normalizeListItemName } from '@/lib/list-items';
+import { normalizeBasePriceEGP } from '@/lib/pricing';
 
 export const runtime = "nodejs";
 
@@ -131,6 +132,7 @@ export async function POST(
     const item = await prisma.listItem.create({
       data: {
         ...validatedData,
+        price: normalizeBasePriceEGP(validatedData.price),
         name: formattedName,
         listId: params.id,
       },

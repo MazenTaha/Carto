@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = "nodejs";
 import { guardAdminApi } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
+import { normalizeBasePriceEGP } from '@/lib/pricing';
 import { z } from 'zod';
 
 const createSchema = z.object({
@@ -61,7 +62,16 @@ export async function GET(req: NextRequest) {
       prisma.product.count({ where }),
     ]);
 
-    return NextResponse.json({ success: true, data, total, page, pageSize });
+    return NextResponse.json({
+      success: true,
+      data: data.map((product) => ({
+        ...product,
+        price: normalizeBasePriceEGP(product.price),
+      })),
+      total,
+      page,
+      pageSize,
+    });
   } catch (error: any) {
     console.error('[admin/products GET]', error);
     return NextResponse.json(
@@ -86,7 +96,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const product = await prisma.product.create({ data: parsed.data });
+    const product = await prisma.product.create({
+      data: {
+        ...parsed.data,
+        price: normalizeBasePriceEGP(parsed.data.price),
+      },
+    });
     return NextResponse.json({ success: true, data: product }, { status: 201 });
   } catch (error: any) {
     if (error.code === 'P2002') {
@@ -119,7 +134,13 @@ export async function PATCH(req: NextRequest) {
     }
 
     const { id, ...data } = parsed.data;
-    const product = await prisma.product.update({ where: { id }, data });
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        ...data,
+        price: data.price === undefined ? undefined : normalizeBasePriceEGP(data.price),
+      },
+    });
     return NextResponse.json({ success: true, data: product });
   } catch (error: any) {
     console.error('[admin/products PATCH]', error);

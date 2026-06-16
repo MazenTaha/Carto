@@ -8,6 +8,7 @@ import { ownerCreateData, ownerWhere, requireUserOrGuest } from '@/lib/guest-ses
 import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
 import { ACTIVE_SESSION_CREATE_LIST_MESSAGE } from '@/lib/list-constants';
 import { formatListItemName, normalizeListItemName } from '@/lib/list-items';
+import { normalizeBasePriceEGP } from '@/lib/pricing';
 
 export const runtime = "nodejs";
 
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
       deduplicatedItems.set(normalizedName, {
         name: formatListItemName(item.name),
         quantity: item.quantity,
-        price: item.price ?? 0,
+        price: normalizeBasePriceEGP(item.price),
         category: item.category,
       });
     }

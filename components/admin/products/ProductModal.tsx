@@ -19,7 +19,7 @@ interface ProductModalProps {
 
 export function ProductModal({ open, onClose, onSave, initial }: ProductModalProps) {
   const [form, setForm] = useState({
-    name: '', category: 'Other', emoji: '', price: '', popularity: '0',
+    name: '', category: 'Other', emoji: '', price: '1.00', popularity: '0',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -34,7 +34,7 @@ export function ProductModal({ open, onClose, onSave, initial }: ProductModalPro
         popularity: String(initial.popularity),
       });
     } else {
-      setForm({ name: '', category: 'Other', emoji: '', price: '', popularity: '0' });
+      setForm({ name: '', category: 'Other', emoji: '', price: '1.00', popularity: '0' });
     }
     setError('');
   }, [initial, open]);
@@ -116,10 +116,10 @@ export function ProductModal({ open, onClose, onSave, initial }: ProductModalPro
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-500">Price (USD) *</label>
+              <label className="text-xs font-semibold text-slate-500">Price (EGP) *</label>
               <input
                 type="number" min="0" step="0.01" value={form.price} onChange={set('price')} required
-                placeholder="0.00"
+                placeholder="1.00"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
               />
             </div>
