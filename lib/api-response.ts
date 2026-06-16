@@ -10,7 +10,7 @@ export type ApiError = {
   error: {
     code: string;
     message: string;
-  };
+  } & Record<string, unknown>;
 };
 
 export type ApiResponse<T = any> = ApiSuccess<T> | ApiError;
@@ -18,12 +18,14 @@ export type ApiResponse<T = any> = ApiSuccess<T> | ApiError;
 export class ApiErrorResponse extends Error {
   public statusCode: number;
   public code: string;
+  public details?: Record<string, unknown>;
 
-  constructor(message: string, statusCode = 400, code = 'BAD_REQUEST') {
+  constructor(message: string, statusCode = 400, code = 'BAD_REQUEST', details?: Record<string, unknown>) {
     super(message);
     this.name = 'ApiErrorResponse';
     this.statusCode = statusCode;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -43,13 +45,19 @@ export function successResponse<T>(data: T, status = 200) {
 /**
  * Helper to return a standardized error JSON response.
  */
-export function errorResponse(message: string, statusCode = 400, code = 'ERROR') {
+export function errorResponse(
+  message: string,
+  statusCode = 400,
+  code = 'ERROR',
+  details?: Record<string, unknown>,
+) {
   return NextResponse.json(
     {
       success: false,
       error: {
         code,
         message,
+        ...(details || {}),
       },
     } satisfies ApiError,
     { status: statusCode }

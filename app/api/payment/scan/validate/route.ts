@@ -1,9 +1,10 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { errorResponse, successResponse } from '@/lib/api-response';
+import { errorResponse, successResponse, ApiErrorResponse } from '@/lib/api-response';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { validatePaymentQrToken } from '@/lib/payment-qr';
 import { DevicePaymentService } from '@/lib/services/device-payment.service';
+import { PaymentService } from '@/lib/services/payment.service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,9 @@ type ParsedPaymentQr =
       sessionId: string;
       receiptId: string | null;
       paymentToken: string | null;
+    }
+  | {
+      checkoutToken: string;
     }
   | {
       attemptId: string;
@@ -99,10 +103,22 @@ function parsePaymentQrValue(qrValue: string, request: NextRequest): ParsedPayme
     }
 
     if (
-      !['/checkout', '/payment/scan', '/session/ready', '/payment/pending'].includes(parsedUrl.pathname) &&
+      !['/checkout', '/checkout/scan', '/payment/scan', '/session/ready', '/payment/pending'].includes(parsedUrl.pathname) &&
       !parsedUrl.pathname.startsWith('/checkout/')
     ) {
       return { error: 'This QR code is not a valid Carto payment route.' };
+    }
+
+    if (parsedUrl.pathname === '/checkout/scan') {
+      const checkoutToken = parsedUrl.searchParams.get('token')?.trim() || '';
+
+      if (!checkoutToken) {
+        return { error: 'This payment QR code is missing its secure token.' };
+      }
+
+      return {
+        checkoutToken,
+      };
     }
 
     if (parsedUrl.pathname.startsWith('/checkout/')) {
@@ -159,6 +175,16 @@ export async function POST(request: NextRequest) {
       return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
+    if ('checkoutToken' in parsedQr) {
+      const attempt = await PaymentService.getOwnedAttemptByPaymentQrToken(owner, parsedQr.checkoutToken);
+
+      return successResponse({
+        sessionId: attempt.sessionId,
+        receiptId: attempt.receiptId,
+        checkoutUrl: `/checkout/${encodeURIComponent(attempt.id)}`,
+      });
+    }
+
     const cartSession = await prisma.cartSession.findFirst({
       where: {
         id: parsedQr.sessionId,
@@ -204,6 +230,10 @@ export async function POST(request: NextRequest) {
         : `/session/ready?sessionId=${encodeURIComponent(cartSession.id)}`,
     });
   } catch (error) {
+    if (error instanceof ApiErrorResponse) {
+      return errorResponse(error.message, error.statusCode, error.code, error.details);
+    }
+
     console.error('Error validating payment QR:', error);
     return errorResponse('Failed to validate payment QR code.', 500, 'INTERNAL_SERVER_ERROR');
   }

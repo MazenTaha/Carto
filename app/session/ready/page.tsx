@@ -69,9 +69,29 @@ type CurrentSessionResponse =
 const LAST_PAYMENT_ATTEMPT_KEY = 'carto_last_payment_attempt';
 
 function getApiErrorMessage(data: any, fallback: string) {
+  if (typeof data?.message === 'string') return data.message;
   if (data?.error?.message) return data.error.message;
   if (typeof data?.error === 'string') return data.error;
   return fallback;
+}
+
+function getApiErrorDebug(data: any) {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  const error = data.error && typeof data.error === 'object' ? data.error : null;
+
+  return {
+    code: error && typeof error.code === 'string' ? error.code : null,
+    message: getApiErrorMessage(data, 'Unknown error'),
+    missing: error && Array.isArray(error.missing)
+      ? error.missing.filter((entry: unknown): entry is string => typeof entry === 'string')
+      : [],
+    provider: error && typeof error.provider === 'string' ? error.provider : null,
+    providerMessage: error && typeof error.providerMessage === 'string' ? error.providerMessage : null,
+    statusCode: typeof data.statusCode === 'number' ? data.statusCode : null,
+  };
 }
 
 function isInternalCheckoutUrl(checkoutUrl: string) {
@@ -243,6 +263,7 @@ function ReadySessionContent() {
     try {
       const response = await fetch('/api/payments/paymob/create-checkout', {
         method: 'POST',
+        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -257,6 +278,13 @@ function ReadySessionContent() {
       const data = await response.json().catch(() => null);
 
       if (!response.ok || data?.success === false) {
+        console.error('Hosted checkout initialization failed.', {
+          status: response.status,
+          sessionId,
+          receiptId: resolvedReceiptId || null,
+          mode,
+          error: getApiErrorDebug(data),
+        });
         throw new Error(getApiErrorMessage(data, 'Could not prepare secure payment.'));
       }
 
@@ -290,6 +318,12 @@ function ReadySessionContent() {
 
       window.location.href = checkoutUrl;
     } catch (err: any) {
+      console.error('Hosted checkout initialization threw an unexpected error.', {
+        sessionId,
+        receiptId: resolvedReceiptId || null,
+        mode,
+        message: err?.message || 'Unknown error',
+      });
       setError(err.message || 'Could not prepare secure payment.');
       setIsContinuing(false);
     }

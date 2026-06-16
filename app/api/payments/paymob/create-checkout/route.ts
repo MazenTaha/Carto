@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (error instanceof ApiErrorResponse) {
-      return errorResponse(error.message, error.statusCode, error.code);
+      return errorResponse(error.message, error.statusCode, error.code, error.details);
     }
 
     console.error('Error creating Paymob checkout:', error);

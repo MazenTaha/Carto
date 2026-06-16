@@ -12,6 +12,7 @@ import {
   PAYMOB_CURRENCY,
   toPaymobAmountCents,
 } from '@/lib/payment-money';
+import { hashToken, isPaymentQrExpired } from '@/lib/payment-checkout-qr';
 import {
   buildPaymobBillingData,
   buildPaymobCustomer,
@@ -270,6 +271,31 @@ function buildPaymobConfigErrorMessage(missing: string[]) {
   return `Paymob test mode is not configured. Missing: ${missing.join(', ')}. If you just added these variables in Vercel, redeploy the project.`;
 }
 
+function buildPaymobProviderErrorDetails(input: {
+  error: unknown;
+  amountMinorUnits: number;
+  receiptId: string;
+  sessionId: string;
+  paymentAttemptId: string;
+}) {
+  const message = input.error instanceof Error
+    ? input.error.message
+    : typeof input.error === 'string'
+      ? input.error
+      : 'Could not initialize Paymob checkout.';
+  const normalizedMessage = message.replace(/\s+/g, ' ').trim();
+
+  return {
+    provider: 'PAYMOB',
+    providerMessage: normalizedMessage,
+    amountMinorUnits: input.amountMinorUnits,
+    currency: PAYMOB_CURRENCY,
+    receiptId: input.receiptId,
+    sessionId: input.sessionId,
+    paymentAttemptId: input.paymentAttemptId,
+  };
+}
+
 async function reuseRecentAttempt(receiptId: string, amountCents: number) {
   const attempt = await prisma.paymentAttempt.findFirst({
     where: {
@@ -464,11 +490,20 @@ export class PaymentService {
     const usePreviewMode = !paymobEnvStatus.configured && previewModeEnabled;
 
     if (!paymobEnvStatus.configured && !previewModeEnabled) {
-      console.warn('Paymob hosted checkout is not configured for Carto checkout.', getHostedPaymobEnvDebugInfo());
+      const debugInfo = getHostedPaymobEnvDebugInfo();
+      console.warn('Paymob hosted checkout is not configured for Carto checkout.', debugInfo);
       throw new ApiErrorResponse(
         buildPaymobConfigErrorMessage(paymobEnvStatus.missing),
         503,
         'PAYMOB_NOT_CONFIGURED',
+        {
+          missing: paymobEnvStatus.missing,
+          hasApiKey: debugInfo.hasApiKey,
+          hasSecretKey: debugInfo.hasSecretKey,
+          hasPublicKey: debugInfo.hasPublicKey,
+          hasHmacSecret: debugInfo.hasHmacSecret,
+          integrationIdParsed: debugInfo.integrationIdParsed,
+        },
       );
     }
 
@@ -505,6 +540,7 @@ export class PaymentService {
       payableAmountEGP: checkoutAmount.amount,
       demoAmountFallback: checkoutAmount.demoAmountFallback,
       checkoutMode: usePreviewMode ? 'preview' : 'hosted',
+      checkoutEntryMode: input.mode ?? 'standard',
     };
 
     const merchantOrderId = buildMerchantOrderId();
@@ -614,16 +650,29 @@ export class PaymentService {
         demoAmountFallback: checkoutAmount.demoAmountFallback,
       };
     } catch (error: any) {
+      const providerErrorDetails = buildPaymobProviderErrorDetails({
+        error,
+        amountMinorUnits: checkoutAmount.amountMinorUnits,
+        receiptId: receipt.id,
+        sessionId: cartSession.id,
+        paymentAttemptId: paymentAttempt.id,
+      });
+
       await prisma.paymentAttempt.update({
         where: { id: paymentAttempt.id },
         data: {
           status: 'FAILED',
           failedAt: new Date(),
-          lastError: error?.message || 'Could not initialize Paymob checkout.',
+          lastError: providerErrorDetails.providerMessage,
         },
       });
 
-      throw new ApiErrorResponse('Could not initialize secure payment checkout.', 502, 'PAYMENT_PROVIDER_ERROR');
+      throw new ApiErrorResponse(
+        `Could not initialize secure payment checkout. ${providerErrorDetails.providerMessage}`,
+        502,
+        'PAYMENT_PROVIDER_ERROR',
+        providerErrorDetails,
+      );
     }
   }
 
@@ -670,6 +719,60 @@ export class PaymentService {
     });
 
     return attachCartSessionState(attempt);
+  }
+
+  public static async getOwnedAttemptByPaymentQrToken(owner: RequestOwner, token: string) {
+    const trimmedToken = token.trim();
+
+    if (!trimmedToken) {
+      throw new ApiErrorResponse('Invalid payment QR.', 400, 'INVALID_PAYMENT_QR');
+    }
+
+    const attempt = await prisma.paymentAttempt.findFirst({
+      where: {
+        paymentTokenHash: hashToken(trimmedToken),
+        ...ownerWhere(owner),
+      },
+      include: {
+        receipt: {
+          select: {
+            id: true,
+            total: true,
+            status: true,
+            paymentStatus: true,
+            paidAt: true,
+          },
+        },
+      },
+    });
+
+    const ownedAttempt = await attachCartSessionState(attempt);
+
+    if (!ownedAttempt || !ownedAttempt.receipt) {
+      throw new ApiErrorResponse('Invalid payment QR.', 404, 'INVALID_PAYMENT_QR');
+    }
+
+    if (isPaymentQrExpired(ownedAttempt.expiresAt)) {
+      throw new ApiErrorResponse('Payment QR expired.', 410, 'PAYMENT_QR_EXPIRED');
+    }
+
+    if (
+      ownedAttempt.receipt.status === 'PAID' ||
+      ownedAttempt.receipt.paymentStatus === 'COMPLETED' ||
+      ownedAttempt.status === 'SUCCEEDED'
+    ) {
+      throw new ApiErrorResponse('This payment has already been completed.', 409, 'PAYMENT_ALREADY_COMPLETED');
+    }
+
+    if (!ownedAttempt.cartSession || ownedAttempt.cartSession.status !== 'ACTIVE' || ownedAttempt.cartSession.endedAt) {
+      throw new ApiErrorResponse('This session is no longer active.', 409, 'SESSION_NOT_ACTIVE');
+    }
+
+    if (ownedAttempt.amountCents <= 0 || ownedAttempt.currency.toUpperCase() !== PAYMOB_CURRENCY) {
+      throw new ApiErrorResponse('This payment QR has an invalid amount.', 400, 'INVALID_PAYMENT_QR_AMOUNT');
+    }
+
+    return ownedAttempt;
   }
 
   public static async markPaymobPaymentSucceeded(input: PaymobWebhookInput) {

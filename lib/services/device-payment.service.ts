@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { Prisma } from '@prisma/client';
+import { PaymentStatus, Prisma, ReceiptStatus, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { ApiErrorResponse } from '@/lib/api-response';
 import { getAppBaseUrl } from '@/lib/app-url';
@@ -10,6 +10,14 @@ import {
   toPaymobAmountCents,
 } from '@/lib/payment-money';
 import {
+  buildPaymentQrUrl,
+  createPaymentQrExpiry,
+  formatMoney,
+  generateSecureToken,
+  hashToken,
+  isPaymentQrExpired,
+} from '@/lib/payment-checkout-qr';
+import {
   buildPaymobBillingData,
   buildPaymobCustomer,
   buildPaymobUnifiedCheckoutUrl,
@@ -19,7 +27,6 @@ import { getHostedPaymobEnvDebugInfo, getHostedPaymobEnvStatus, isPaymobPreviewM
 import { calculateTax } from '@/lib/utils';
 
 const REUSABLE_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
-const PAYMENT_ACCESS_TOKEN_TTL_MS = 30 * 60 * 1000;
 
 type DeviceCart = {
   id: string;
@@ -86,26 +93,63 @@ type PublicCheckoutSession = {
   } | null;
 };
 
+type ActiveCheckoutSession = {
+  id: string;
+  status: SessionStatus;
+  startedAt: Date;
+  endedAt: Date | null;
+  userId: string | null;
+  guestSessionId: string | null;
+  cartId: string;
+  cart: {
+    id: string;
+    cartCode: string;
+    status: string;
+    storeId: string;
+    store: {
+      id: string;
+      name: string;
+      currency: string;
+    } | null;
+  } | null;
+  shoppingList: {
+    id: string;
+    name: string;
+  } | null;
+  receipt: {
+    id: string;
+    status: ReceiptStatus;
+    paymentStatus: PaymentStatus;
+    total: number;
+    subtotal: number;
+    tax: number;
+    lockedAt: Date | null;
+    items: Array<{
+      id: string;
+      name: string;
+      quantity: number;
+      price: number;
+      category: string | null;
+    }>;
+    paymentAttempts: Array<{
+      id: string;
+      status: string;
+      checkoutUrl: string | null;
+      amountCents: number;
+      currency: string;
+      paymentTokenHash: string | null;
+      expiresAt: Date | null;
+      metadata: Prisma.JsonValue | null;
+    }>;
+  } | null;
+};
+
 function buildMerchantOrderId() {
   return `carto_${crypto.randomUUID().replace(/-/g, '')}`;
 }
 
 function buildSecurePreviewCheckoutUrl(attemptId: string) {
   return `/payment/secure-preview?attemptId=${encodeURIComponent(attemptId)}`;
-}
-
-function buildPublicCheckoutUrl(attemptId: string, token: string, requestUrl?: string) {
-  const url = new URL(`/checkout/${encodeURIComponent(attemptId)}`, getAppBaseUrl(requestUrl));
-  url.searchParams.set('token', token);
-  return url.toString();
-}
-
-function createAccessToken() {
-  return crypto.randomBytes(24).toString('base64url');
-}
-
-function hashAccessToken(token: string) {
-  return crypto.createHash('sha256').update(token).digest('hex');
 }
 
 function isReceiptPaidStatus(status?: string | null, paymentStatus?: string | null) {
@@ -135,6 +179,31 @@ function isPreviewAttempt(input: {
 
 function buildPaymobConfigErrorMessage(missing: string[]) {
   return `Paymob test mode is not configured. Missing: ${missing.join(', ')}. If you just added these variables in Vercel, redeploy the project.`;
+}
+
+function buildPaymobProviderErrorDetails(input: {
+  error: unknown;
+  amountMinorUnits: number;
+  receiptId: string;
+  sessionId: string;
+  paymentAttemptId: string;
+}) {
+  const message = input.error instanceof Error
+    ? input.error.message
+    : typeof input.error === 'string'
+      ? input.error
+      : 'Could not initialize Paymob checkout.';
+  const normalizedMessage = message.replace(/\s+/g, ' ').trim();
+
+  return {
+    provider: 'PAYMOB',
+    providerMessage: normalizedMessage,
+    amountMinorUnits: input.amountMinorUnits,
+    currency: PAYMOB_CURRENCY,
+    receiptId: input.receiptId,
+    sessionId: input.sessionId,
+    paymentAttemptId: input.paymentAttemptId,
+  };
 }
 
 function mapDevicePaymentStatus(input: {
@@ -219,20 +288,30 @@ async function reuseRecentAttempt(receiptId: string, amountCents: number) {
   });
 }
 
-async function lockReceiptForDeviceCheckout(
+async function loadActiveCheckoutSession(
   tx: Prisma.TransactionClient,
-  cartId: string,
-  cartSessionId: string,
-  receiptId: string
-) {
-  const cartSession = await tx.cartSession.findFirst({
+  cartId: string
+): Promise<ActiveCheckoutSession | null> {
+  return tx.cartSession.findFirst({
     where: {
-      id: cartSessionId,
       cartId,
+      status: 'ACTIVE',
+      endedAt: null,
     },
-    include: {
+    select: {
+      id: true,
+      status: true,
+      startedAt: true,
+      endedAt: true,
+      userId: true,
+      guestSessionId: true,
+      cartId: true,
       cart: {
-        include: {
+        select: {
+          id: true,
+          cartCode: true,
+          status: true,
+          storeId: true,
           store: {
             select: {
               id: true,
@@ -249,42 +328,86 @@ async function lockReceiptForDeviceCheckout(
         },
       },
       receipt: {
-        include: {
+        select: {
+          id: true,
+          status: true,
+          paymentStatus: true,
+          total: true,
+          subtotal: true,
+          tax: true,
+          lockedAt: true,
           items: {
+            select: {
+              id: true,
+              name: true,
+              quantity: true,
+              price: true,
+              category: true,
+            },
             orderBy: { scannedAt: 'desc' },
           },
           paymentAttempts: {
+            select: {
+              id: true,
+              status: true,
+              checkoutUrl: true,
+              amountCents: true,
+              currency: true,
+              paymentTokenHash: true,
+              expiresAt: true,
+              metadata: true,
+            },
             orderBy: { createdAt: 'desc' },
             take: 1,
           },
         },
       },
     },
+    orderBy: { startedAt: 'desc' },
   });
+}
+
+async function lockActiveReceiptForDeviceCheckout(
+  tx: Prisma.TransactionClient,
+  cart: DeviceCart
+) {
+  const cartSession = await loadActiveCheckoutSession(tx, cart.id);
 
   if (!cartSession) {
-    throw new ApiErrorResponse('Cart session not found for this cart.', 404, 'SESSION_NOT_FOUND');
+    throw new ApiErrorResponse('No active cart session is available for this cart.', 404, 'NO_ACTIVE_SESSION');
   }
 
-  if (!['ACTIVE', 'COMPLETED'].includes(cartSession.status)) {
-    throw new ApiErrorResponse('Cart session is not active or ready for checkout.', 409, 'SESSION_NOT_READY');
+  if (!cartSession.receipt) {
+    throw new ApiErrorResponse('No receipt exists for the active cart session.', 404, 'RECEIPT_NOT_FOUND');
   }
 
-  if (!cartSession.receipt || cartSession.receipt.id !== receiptId) {
-    throw new ApiErrorResponse('Receipt does not belong to this cart session.', 403, 'RECEIPT_SESSION_MISMATCH');
+  if (cartSession.receipt.status === 'PAID') {
+    throw new ApiErrorResponse('This receipt has already been paid.', 409, 'RECEIPT_ALREADY_PAID');
   }
 
-  if (cartSession.receipt.status === 'PAID' || cartSession.receipt.paymentStatus === 'COMPLETED') {
-    throw new ApiErrorResponse('Receipt is already paid.', 409, 'RECEIPT_ALREADY_PAID');
+  if (cartSession.receipt.paymentStatus === 'COMPLETED') {
+    throw new ApiErrorResponse('Payment for this receipt has already been completed.', 409, 'PAYMENT_ALREADY_COMPLETED');
   }
 
   const subtotal = cartSession.receipt.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const tax = calculateTax(subtotal);
   const total = subtotal + tax;
-  const checkoutAmount = getPaymobAmountMinorUnits({ total });
 
-  if (checkoutAmount.demoAmountFallback && !checkoutAmount.fallbackAllowed) {
-    throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
+  if (!Number.isFinite(total) || total <= 0) {
+    throw new ApiErrorResponse(
+      'Cannot generate a payment QR because the receipt total is invalid.',
+      400,
+      'INVALID_RECEIPT_TOTAL',
+    );
+  }
+
+  const storeCurrency = cartSession.cart?.store?.currency?.trim().toUpperCase() || PAYMOB_CURRENCY;
+  if (storeCurrency !== PAYMOB_CURRENCY) {
+    throw new ApiErrorResponse(
+      `Cannot generate a payment QR because the receipt currency must be ${PAYMOB_CURRENCY}.`,
+      400,
+      'INVALID_RECEIPT_CURRENCY',
+    );
   }
 
   await tx.receipt.update({
@@ -302,49 +425,20 @@ async function lockReceiptForDeviceCheckout(
   });
 
   await tx.cart.update({
-    where: { id: cartId },
+    where: { id: cart.id },
     data: {
       status: 'IN_USE',
       lastSeen: new Date(),
     },
   });
 
-  return tx.cartSession.findFirstOrThrow({
-    where: {
-      id: cartSessionId,
-      cartId,
-    },
-    include: {
-      cart: {
-        include: {
-          store: {
-            select: {
-              id: true,
-              name: true,
-              currency: true,
-            },
-          },
-        },
-      },
-      shoppingList: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      receipt: {
-        include: {
-          items: {
-            orderBy: { scannedAt: 'desc' },
-          },
-          paymentAttempts: {
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
-        },
-      },
-    },
-  });
+  const lockedSession = await loadActiveCheckoutSession(tx, cart.id);
+
+  if (!lockedSession?.receipt) {
+    throw new ApiErrorResponse('Receipt is not ready for payment.', 409, 'RECEIPT_NOT_READY');
+  }
+
+  return lockedSession;
 }
 
 export class DevicePaymentService {
@@ -354,11 +448,10 @@ export class DevicePaymentService {
 
   public static async createPaymentQr(
     cart: DeviceCart,
-    input: { cartSessionId: string; receiptId: string },
     requestUrl?: string
   ) {
     const lockedSession = await prisma.$transaction((tx) => (
-      lockReceiptForDeviceCheckout(tx, cart.id, input.cartSessionId, input.receiptId)
+      lockActiveReceiptForDeviceCheckout(tx, cart)
     ));
     const receipt = lockedSession.receipt;
 
@@ -368,8 +461,12 @@ export class DevicePaymentService {
 
     const checkoutAmount = getPaymobAmountMinorUnits(receipt);
 
-    if (checkoutAmount.demoAmountFallback && !checkoutAmount.fallbackAllowed) {
-      throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
+    if (checkoutAmount.demoAmountFallback || checkoutAmount.amountMinorUnits <= 0) {
+      throw new ApiErrorResponse(
+        'Cannot generate a payment QR because the receipt total is invalid.',
+        400,
+        'INVALID_RECEIPT_TOTAL',
+      );
     }
 
     const paymobEnvStatus = getHostedPaymobEnvStatus();
@@ -377,11 +474,20 @@ export class DevicePaymentService {
     const usePreviewMode = !paymobEnvStatus.configured && previewModeEnabled;
 
     if (!paymobEnvStatus.configured && !previewModeEnabled) {
-      console.warn('Paymob hosted checkout is not configured for device checkout.', getHostedPaymobEnvDebugInfo());
+      const debugInfo = getHostedPaymobEnvDebugInfo();
+      console.warn('Paymob hosted checkout is not configured for device checkout.', debugInfo);
       throw new ApiErrorResponse(
         buildPaymobConfigErrorMessage(paymobEnvStatus.missing),
         503,
         'PAYMOB_NOT_CONFIGURED',
+        {
+          missing: paymobEnvStatus.missing,
+          hasApiKey: debugInfo.hasApiKey,
+          hasSecretKey: debugInfo.hasSecretKey,
+          hasPublicKey: debugInfo.hasPublicKey,
+          hasHmacSecret: debugInfo.hasHmacSecret,
+          integrationIdParsed: debugInfo.integrationIdParsed,
+        },
       );
     }
 
@@ -486,16 +592,29 @@ export class DevicePaymentService {
             },
           });
         } catch (error: any) {
+          const providerErrorDetails = buildPaymobProviderErrorDetails({
+            error,
+            amountMinorUnits: paymentAttempt.amountCents,
+            receiptId: receipt.id,
+            sessionId: lockedSession.id,
+            paymentAttemptId: paymentAttempt.id,
+          });
+
           await prisma.paymentAttempt.update({
             where: { id: paymentAttempt.id },
             data: {
               status: 'FAILED',
               failedAt: new Date(),
-              lastError: error?.message || 'Could not initialize Paymob checkout.',
+              lastError: providerErrorDetails.providerMessage,
             },
           });
 
-          throw new ApiErrorResponse('Could not initialize secure payment checkout.', 502, 'PAYMENT_PROVIDER_ERROR');
+          throw new ApiErrorResponse(
+            `Could not initialize secure payment checkout. ${providerErrorDetails.providerMessage}`,
+            502,
+            'PAYMENT_PROVIDER_ERROR',
+            providerErrorDetails,
+          );
         }
       }
     }
@@ -504,26 +623,29 @@ export class DevicePaymentService {
       throw new ApiErrorResponse('Secure payment checkout URL is missing.', 500, 'PAYMENT_URL_MISSING');
     }
 
-    const accessToken = createAccessToken();
-    const tokenExpiresAt = new Date(Date.now() + PAYMENT_ACCESS_TOKEN_TTL_MS);
+    const accessToken = generateSecureToken();
+    const tokenExpiresAt = createPaymentQrExpiry();
+    const qrValue = buildPaymentQrUrl(accessToken, requestUrl);
 
     await prisma.paymentAttempt.update({
       where: { id: attempt.id },
       data: {
-        paymentTokenHash: hashAccessToken(accessToken),
+        paymentTokenHash: hashToken(accessToken),
         expiresAt: tokenExpiresAt,
       },
     });
 
-    const paymentUrl = buildPublicCheckoutUrl(attempt.id, accessToken, requestUrl);
-
     return {
+      type: 'payment_checkout' as const,
       paymentAttemptId: attempt.id,
-      paymentUrl,
-      qrValue: paymentUrl,
+      paymentUrl: qrValue,
+      qrValue,
       receiptId: receipt.id,
+      sessionId: lockedSession.id,
       cartSessionId: lockedSession.id,
+      amountCents: checkoutAmount.amountMinorUnits,
       amount: checkoutAmount.amount,
+      amountDisplay: formatMoney(checkoutAmount.amountMinorUnits, PAYMOB_CURRENCY),
       currency: PAYMOB_CURRENCY,
       paymentStatus: mapDevicePaymentStatus({
         receiptStatus: receipt.status,
@@ -602,11 +724,11 @@ export class DevicePaymentService {
       return null;
     }
 
-    if (attempt.expiresAt && attempt.expiresAt.getTime() < Date.now()) {
+    if (isPaymentQrExpired(attempt.expiresAt)) {
       return null;
     }
 
-    if (hashAccessToken(token) !== attempt.paymentTokenHash) {
+    if (hashToken(token) !== attempt.paymentTokenHash) {
       return null;
     }
 

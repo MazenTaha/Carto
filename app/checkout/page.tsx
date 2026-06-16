@@ -16,9 +16,28 @@ import { formatCurrency } from '@/lib/utils';
 const LAST_PAYMENT_ATTEMPT_KEY = 'carto_last_payment_attempt';
 
 function getApiErrorMessage(data: any, fallback: string) {
+  if (typeof data?.message === 'string') return data.message;
   if (data?.error?.message) return data.error.message;
   if (typeof data?.error === 'string') return data.error;
   return fallback;
+}
+
+function getApiErrorDebug(data: any) {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  const error = data.error && typeof data.error === 'object' ? data.error : null;
+
+  return {
+    code: error && typeof error.code === 'string' ? error.code : null,
+    message: getApiErrorMessage(data, 'Unknown error'),
+    missing: error && Array.isArray(error.missing)
+      ? error.missing.filter((entry: unknown): entry is string => typeof entry === 'string')
+      : [],
+    provider: error && typeof error.provider === 'string' ? error.provider : null,
+    providerMessage: error && typeof error.providerMessage === 'string' ? error.providerMessage : null,
+  };
 }
 
 function CheckoutContent() {
@@ -84,6 +103,12 @@ function CheckoutContent() {
       });
       const data = await response.json();
       if (!response.ok || data?.success === false) {
+        console.error('Checkout page failed to initialize hosted checkout.', {
+          status: response.status,
+          sessionId,
+          receiptId: receipt.id,
+          error: getApiErrorDebug(data),
+        });
         throw new Error(getApiErrorMessage(data, 'Could not open Paymob checkout.'));
       }
 
@@ -109,6 +134,11 @@ function CheckoutContent() {
 
       window.location.assign(data.data.paymentUrl);
     } catch (err: any) {
+      console.error('Checkout page encountered an unexpected payment initialization error.', {
+        sessionId,
+        receiptId: receipt?.id || null,
+        message: err?.message || 'Unknown error',
+      });
       setError(err.message || 'Could not open Paymob checkout.');
     } finally {
       setIsProcessing(false);

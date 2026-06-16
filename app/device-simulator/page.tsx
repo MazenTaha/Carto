@@ -115,12 +115,16 @@ type DisconnectResponse = {
 };
 
 type PaymentQrResponse = {
+  type: 'payment_checkout';
   paymentAttemptId: string;
   paymentUrl: string;
   qrValue: string;
   receiptId: string;
+  sessionId: string;
   cartSessionId: string;
+  amountCents: number;
   amount: number;
+  amountDisplay: string;
   currency: string;
   paymentStatus: string;
   expiresAt: string;
@@ -405,27 +409,22 @@ export default function DeviceSimulatorPage() {
   }, [appendLog, currentReceiptId, fetchPaymentStatus, isActive, paymentQrData, refreshDevice, refreshQr]);
 
   const handleGeneratePaymentQr = useCallback(async () => {
-    if (!isActive || !trimmedCartCode || !trimmedDeviceSecret || !activeCartSessionId || !currentReceiptId || isGeneratingPaymentQr) {
+    if (!isActive || !trimmedCartCode || !trimmedDeviceSecret || isGeneratingPaymentQr) {
       return;
     }
 
     setIsGeneratingPaymentQr(true);
     setPaymentError('');
     paymentCompletionHandledRef.current = false;
-    appendLog(`Requesting payment QR for session ${activeCartSessionId.slice(-6).toUpperCase()}`);
+    appendLog(`Requesting payment QR for cart ${trimmedCartCode}`);
 
     try {
       const response = await fetch(`/api/carts/${encodeURIComponent(trimmedCartCode)}/payment-qr`, {
-        method: 'POST',
+        method: 'GET',
         cache: 'no-store',
         headers: {
           Authorization: `Bearer ${trimmedDeviceSecret}`,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          cartSessionId: activeCartSessionId,
-          receiptId: currentReceiptId,
-        }),
       });
       const data = await response.json().catch(() => ({}));
 
@@ -455,11 +454,9 @@ export default function DeviceSimulatorPage() {
     }
   }, [
     appendLog,
-    activeCartSessionId,
     activeReceiptStatus,
     activeSessionStatus,
     cartStatus,
-    currentReceiptId,
     isActive,
     isGeneratingPaymentQr,
     trimmedCartCode,
@@ -883,18 +880,22 @@ export default function DeviceSimulatorPage() {
 
                       {paymentQrData ? (
                         <div className="mt-4 rounded-3xl border border-emerald-500/30 bg-slate-950 p-4">
-                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Scan to pay</p>
+                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Secure payment QR</p>
                           <div className="mt-4 flex justify-center rounded-3xl bg-white p-4">
                             <QRCode value={paymentQrData.qrValue} size={164} />
                           </div>
                           <div className="mt-4 space-y-2 text-sm">
                             <div className="flex items-center justify-between">
                               <span className="text-slate-400">Amount</span>
-                              <span className="font-bold text-white">{formatDeviceMoney(paymentQrData.amount, paymentQrData.currency)}</span>
+                              <span className="font-bold text-white">{paymentQrData.amountDisplay}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-slate-400">Payment status</span>
                               <span className="font-bold text-emerald-300">{paymentStatusData?.paymentStatus || paymentQrData.paymentStatus}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400">Receipt</span>
+                              <span className="font-mono font-semibold text-slate-200">{paymentQrData.receiptId.slice(-6).toUpperCase()}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-slate-400">Expires</span>
@@ -907,7 +908,7 @@ export default function DeviceSimulatorPage() {
                             </div>
                           ) : (
                             <p className="mt-4 text-sm text-slate-400">
-                              Customer scans this QR on their phone to open the secure Carto checkout page, then completes payment in Paymob.
+                              Scan this QR to continue checkout on a phone. The QR carries only a short-lived secure token, and Carto loads the real amount from the receipt on the server.
                             </p>
                           )}
                         </div>

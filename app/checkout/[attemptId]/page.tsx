@@ -6,7 +6,7 @@ import { Logo } from '@/components/ui/Logo';
 import { requireUserOrGuest } from '@/lib/guest-session';
 import { DevicePaymentService } from '@/lib/services/device-payment.service';
 import { PaymentService } from '@/lib/services/payment.service';
-import { formatPaymentCurrency } from '@/lib/payment-money';
+import { centsToAmount, formatPaymentCurrency } from '@/lib/payment-money';
 
 function isInternalUrl(url: string | null | undefined) {
   return Boolean(url && url.startsWith('/'));
@@ -81,7 +81,7 @@ export default async function DeviceCheckoutPage({
       id: ownedAttempt.id,
       sessionId: ownedAttempt.sessionId,
       receiptId: ownedAttempt.receiptId,
-      amount: ownedAttempt.receipt.total,
+      amount: centsToAmount(ownedAttempt.amountCents),
       currency: ownedAttempt.currency,
       status: ownedAttempt.status,
       paymentStatus: ownedAttempt.receipt.paymentStatus === 'COMPLETED' ? 'PAID' : ownedAttempt.receipt.paymentStatus,
