@@ -7,6 +7,10 @@ export function amountToCents(amount: number) {
   return Math.round((amount + Number.EPSILON) * 100);
 }
 
+export function toPaymobAmountCents(amountEGP: number) {
+  return amountToCents(amountEGP);
+}
+
 export function centsToAmount(amountCents: number) {
   return amountCents / 100;
 }
@@ -53,6 +57,15 @@ export function getCheckoutAmountEGP(receipt: { total: number | null | undefined
     // TODO: Real production should charge fully calculated receipt totals from Product/ListItem/ReceiptItem pricing.
     demoAmountFallback: true,
     fallbackAllowed: isZeroTotalFallbackAllowed(),
+  };
+}
+
+export function getPaymobAmountMinorUnits(receipt: { total: number | null | undefined }) {
+  const checkoutAmount = getCheckoutAmountEGP(receipt);
+
+  return {
+    ...checkoutAmount,
+    amountMinorUnits: toPaymobAmountCents(checkoutAmount.amount),
   };
 }
 

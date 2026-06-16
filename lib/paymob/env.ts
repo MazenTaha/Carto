@@ -24,8 +24,8 @@ export function getPaymobEnvStatus(options?: {
   requirePublicKey?: boolean;
   requireHmac?: boolean;
 }): PaymobEnvStatus {
-  const requireIframe = options?.requireIframe ?? true;
-  const requirePublicKey = options?.requirePublicKey ?? false;
+  const requireIframe = options?.requireIframe ?? false;
+  const requirePublicKey = options?.requirePublicKey ?? true;
   const requireHmac = options?.requireHmac ?? false;
 
   const apiKey = readEnv('PAYMOB_API_KEY');

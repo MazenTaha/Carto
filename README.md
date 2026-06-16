@@ -84,7 +84,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
 
-### Paymob Environment Variables
+### Paymob Unified Checkout Environment Variables
 
 Server-only Paymob variables:
 
@@ -102,6 +102,7 @@ NEXTAUTH_URL="https://cartovercel1.vercel.app"
 ```
 
 Keep Paymob secrets server-side only. Do not use `NEXT_PUBLIC_` for Paymob API keys, secret keys, or HMAC values.
+For the newer Paymob Intention API / Unified Checkout flow, prefer `PAYMOB_SECRET_KEY` when available and keep `PAYMOB_PUBLIC_KEY` server-configured so the backend can build the final checkout redirect URL safely.
 
 ### iPhone Camera Testing
 

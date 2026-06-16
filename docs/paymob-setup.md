@@ -1,6 +1,6 @@
 # Paymob Setup
 
-Carto uses a real Paymob hosted checkout flow in EGP. The frontend never marks a receipt as paid by itself. Only the verified Paymob webhook can finalize payment.
+Carto uses Paymob Intention API + Unified Checkout redirection in EGP. The backend creates the payment intention server-side, and the frontend never marks a receipt as paid by itself. Only the verified Paymob webhook can finalize payment.
 
 ## 1. Create and verify your Paymob merchant account
 
@@ -33,7 +33,7 @@ PAYMOB_API_KEY=your_paymob_api_key
 PAYMOB_PUBLIC_KEY=your_paymob_public_key
 PAYMOB_SECRET_KEY=your_paymob_secret_key
 PAYMOB_HMAC_SECRET=your_hmac_secret
-PAYMOB_INTEGRATION_ID=your_card_integration_id
+PAYMOB_INTEGRATION_ID=5733235
 PAYMOB_API_BASE_URL=https://accept.paymob.com
 PAYMOB_HOSTED_BASE_URL=https://accept.paymob.com
 PAYMENT_ALLOW_ZERO_TOTAL_FALLBACK=true
@@ -46,7 +46,27 @@ PAYMOB_IFRAME_ID=your_iframe_id
 Do not commit real Paymob secrets.
 Do not paste Paymob secrets into GitHub, chat, or client-side code.
 
-## 4. Configure Paymob callback URLs
+## 4. Unified Checkout request flow
+
+Carto now prepares payment like this:
+
+1. Backend creates a Paymob intention with `POST https://accept.paymob.com/v1/intention/`
+2. Server authentication uses:
+   - `PAYMOB_SECRET_KEY` if configured
+   - otherwise `PAYMOB_API_KEY`
+3. The request includes:
+   - amount in smallest unit
+   - `currency: EGP`
+   - `payment_methods: [PAYMOB_INTEGRATION_ID]`
+   - items
+   - billing data
+   - customer
+   - extras with internal receipt/session/attempt references
+4. Backend builds the final redirect URL:
+   - `https://accept.paymob.com/unifiedcheckout/?publicKey=...&clientSecret=...`
+5. Only that final checkout URL may contain the public key and client secret.
+
+## 5. Configure Paymob callback URLs
 
 Set these URLs in the Paymob dashboard:
 
@@ -58,11 +78,11 @@ Set these URLs in the Paymob dashboard:
 The redirect page is only a waiting/status page. It must not mark the receipt as paid.
 Keep Paymob test mode enabled while validating the integration.
 
-## 5. Add the same values to Vercel and redeploy
+## 6. Add the same values to Vercel and redeploy
 
 After saving the same Paymob variables in Vercel Project Settings -> Environment Variables, redeploy the project so the server routes pick them up.
 
-## 6. Deploy database changes if needed
+## 7. Deploy database changes if needed
 
 Run:
 
@@ -71,7 +91,7 @@ npx prisma generate
 npx prisma migrate deploy
 ```
 
-## 7. Test the checkout flow
+## 8. Test the checkout flow
 
 1. Create a list and link it to a cart.
 2. Finish shopping and open `/session/ready`.
@@ -84,7 +104,7 @@ npx prisma migrate deploy
    - `CartSession` as checked out
    - `Cart` as available
 
-## 8. Demo zero-total fallback
+## 9. Demo zero-total fallback
 
 If a receipt total is still `EGP 0.00`, Carto can use a demo fallback checkout amount of `EGP 1.00` when:
 
@@ -93,7 +113,7 @@ If a receipt total is still `EGP 0.00`, Carto can use a demo fallback checkout a
 
 This is only for testing while list/product prices are still incomplete.
 
-## 9. Production reminder
+## 10. Production reminder
 
 Before real production charging:
 

@@ -21,21 +21,21 @@ type PaymobBillingData = {
 
 type PaymobOrderItem = {
   name: string;
-  amount_cents: number;
+  amount: number;
   description: string;
   quantity: number;
 };
 
 type PaymobRequestOptions = {
   method?: 'GET' | 'POST';
+  headers?: Record<string, string>;
   body?: Record<string, unknown>;
 };
 
 type PaymobTransactionLike = Record<string, any>;
 
 function getPaymobApiBaseUrl() {
-  const { apiBaseUrl } = getPaymobServerEnv();
-  return apiBaseUrl.endsWith('/api') ? apiBaseUrl : `${apiBaseUrl}/api`;
+  return getPaymobServerEnv().apiBaseUrl;
 }
 
 function getPaymobHostedBaseUrl() {
@@ -43,7 +43,7 @@ function getPaymobHostedBaseUrl() {
 }
 
 export function isPaymobConfigured() {
-  return getPaymobEnvStatus({ requireIframe: true }).configured;
+  return getPaymobEnvStatus({ requirePublicKey: true }).configured;
 }
 
 export function getPaymobConfig() {
@@ -65,8 +65,8 @@ export function getPaymobConfig() {
     throw new Error('PAYMOB_INTEGRATION_ID must be a positive integer.');
   }
 
-  if (!iframeId) {
-    throw new Error('PAYMOB_IFRAME_ID must be a positive integer.');
+  if (!publicKey) {
+    throw new Error('PAYMOB_PUBLIC_KEY is missing.');
   }
 
   return {
@@ -89,6 +89,7 @@ async function paymobRequest<T>(path: string, options: PaymobRequestOptions) {
     method: options.method || 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...options.headers,
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
     cache: 'no-store',
@@ -114,79 +115,70 @@ async function paymobRequest<T>(path: string, options: PaymobRequestOptions) {
   return data as T;
 }
 
-export async function createPaymobAuthToken() {
-  const { apiKey } = getPaymobConfig();
-  const data = await paymobRequest<{ token: string }>('/auth/tokens', {
-    body: { api_key: apiKey },
-  });
+export function buildPaymobCustomer(input: {
+  name?: string | null;
+  email?: string | null;
+  phoneNumber?: string | null;
+}) {
+  const billingData = buildPaymobBillingData(input);
 
-  if (!data?.token) {
-    throw new Error('Paymob auth token response did not include a token.');
-  }
-
-  return data.token;
+  return {
+    first_name: billingData.first_name,
+    last_name: billingData.last_name,
+    email: billingData.email,
+    phone_number: billingData.phone_number,
+  };
 }
 
-export async function createPaymobOrder(input: {
-  authToken: string;
-  merchantOrderId: string;
-  amountCents: number;
+export async function createPaymobIntention(input: {
+  amount: number;
   items: PaymobOrderItem[];
-}) {
-  const data = await paymobRequest<{
-    id: number;
-    merchant_order_id?: string;
-    amount_cents?: number;
-    currency?: string;
-  }>('/ecommerce/orders', {
-    body: {
-      auth_token: input.authToken,
-      delivery_needed: false,
-      amount_cents: input.amountCents,
-      currency: PAYMOB_CURRENCY,
-      merchant_order_id: input.merchantOrderId,
-      items: input.items,
-    },
-  });
-
-  if (!data?.id) {
-    throw new Error('Paymob order response did not include an order id.');
-  }
-
-  return data;
-}
-
-export async function createPaymobPaymentKey(input: {
-  authToken: string;
-  orderId: number;
-  amountCents: number;
   billingData: PaymobBillingData;
+  customer: ReturnType<typeof buildPaymobCustomer>;
+  extras: Record<string, unknown>;
 }) {
-  const { integrationId } = getPaymobConfig();
-  const data = await paymobRequest<{ token: string }>('/acceptance/payment_keys', {
+  const { apiKey, integrationId } = getPaymobConfig();
+  const data = await paymobRequest<{
+    id?: number | string;
+    client_secret?: string;
+    payment_keys?: Array<{ key?: string | null }>;
+  }>('/v1/intention/', {
+    headers: {
+      Authorization: `Token ${apiKey}`,
+    },
     body: {
-      auth_token: input.authToken,
-      amount_cents: input.amountCents,
-      expiration: 60 * 60,
-      order_id: input.orderId,
-      billing_data: input.billingData,
+      amount: input.amount,
       currency: PAYMOB_CURRENCY,
-      integration_id: integrationId,
-      lock_order_when_paid: true,
+      payment_methods: [integrationId],
+      items: input.items,
+      billing_data: input.billingData,
+      customer: input.customer,
+      extras: input.extras,
     },
   });
 
-  if (!data?.token) {
-    throw new Error('Paymob payment key response did not include a token.');
+  const clientSecret = typeof data?.client_secret === 'string'
+    ? data.client_secret
+    : typeof data?.payment_keys?.[0]?.key === 'string'
+      ? data.payment_keys[0].key
+      : null;
+
+  if (!clientSecret) {
+    throw new Error('Paymob intention response did not include a client_secret.');
   }
 
-  return data.token;
+  return {
+    id: data?.id ? String(data.id) : null,
+    clientSecret,
+    raw: data,
+  };
 }
 
-export function buildPaymobHostedCheckoutUrl(paymentToken: string) {
-  const { iframeId, hostedBaseUrl } = getPaymobConfig();
-  const url = new URL(`/api/acceptance/iframes/${iframeId}`, hostedBaseUrl);
-  url.searchParams.set('payment_token', paymentToken);
+export function buildPaymobUnifiedCheckoutUrl(clientSecret: string) {
+  const { publicKey, hostedBaseUrl } = getPaymobConfig();
+  const url = new URL('/unifiedcheckout/', hostedBaseUrl);
+  url.searchParams.set('publicKey', publicKey || '');
+  url.searchParams.set('clientSecret', clientSecret);
   return url.toString();
 }
 
@@ -228,29 +220,47 @@ export function buildPaymobBillingData(input: {
   } satisfies PaymobBillingData;
 }
 
+const PAYMOB_HMAC_FIELD_PATHS = [
+  ['amount_cents', ['amount_cents']],
+  ['created_at', ['created_at']],
+  ['currency', ['currency']],
+  ['error_occured', ['error_occured']],
+  ['has_parent_transaction', ['has_parent_transaction']],
+  ['id', ['id']],
+  ['integration_id', ['integration_id']],
+  ['is_3d_secure', ['is_3d_secure']],
+  ['is_auth', ['is_auth']],
+  ['is_capture', ['is_capture']],
+  ['is_refunded', ['is_refunded']],
+  ['is_standalone_payment', ['is_standalone_payment']],
+  ['is_voided', ['is_voided']],
+  ['order', ['order', 'id']],
+  ['owner', ['owner']],
+  ['pending', ['pending']],
+  ['source_data.pan', ['source_data', 'pan']],
+  ['source_data.sub_type', ['source_data', 'sub_type']],
+  ['source_data.type', ['source_data', 'type']],
+  ['success', ['success']],
+] as const;
+
+function getNestedValue(source: PaymobTransactionLike, path: readonly string[]) {
+  let current: unknown = source;
+
+  for (const segment of path) {
+    if (!current || typeof current !== 'object') {
+      return null;
+    }
+
+    current = (current as Record<string, unknown>)[segment];
+  }
+
+  return current;
+}
+
 function paymobHmacFields(transaction: PaymobTransactionLike) {
-  return [
-    transaction.amount_cents,
-    transaction.created_at,
-    transaction.currency,
-    transaction.error_occured,
-    transaction.has_parent_transaction,
-    transaction.id,
-    transaction.integration_id,
-    transaction.is_3d_secure,
-    transaction.is_auth,
-    transaction.is_capture,
-    transaction.is_refunded,
-    transaction.is_standalone_payment,
-    transaction.is_voided,
-    transaction.order?.id,
-    transaction.owner,
-    transaction.pending,
-    transaction.source_data?.pan,
-    transaction.source_data?.sub_type,
-    transaction.source_data?.type,
-    transaction.success,
-  ];
+  return [...PAYMOB_HMAC_FIELD_PATHS]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, path]) => getNestedValue(transaction, path));
 }
 
 export function verifyPaymobHmac(transaction: PaymobTransactionLike, hmac: string | null | undefined) {

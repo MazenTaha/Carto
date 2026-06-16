@@ -6,18 +6,17 @@ import type { RequestOwner } from '@/lib/guest-session';
 import { ownerWhere } from '@/lib/guest-session';
 import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
 import {
-  amountToCents,
   centsToAmount,
   formatPaymentCurrency,
-  getCheckoutAmountEGP,
+  getPaymobAmountMinorUnits,
   PAYMOB_CURRENCY,
+  toPaymobAmountCents,
 } from '@/lib/payment-money';
 import {
   buildPaymobBillingData,
-  buildPaymobHostedCheckoutUrl,
-  createPaymobAuthToken,
-  createPaymobOrder,
-  createPaymobPaymentKey,
+  buildPaymobCustomer,
+  buildPaymobUnifiedCheckoutUrl,
+  createPaymobIntention,
   isPaymobConfigured,
 } from '@/lib/paymob';
 
@@ -73,6 +72,56 @@ type OwnedAttemptView = {
     endedAt: Date | null;
   } | null;
 };
+
+function readTransactionString(value: unknown) {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return null;
+}
+
+function getTransactionExtras(transaction: Record<string, any>) {
+  const candidates = [
+    transaction?.order?.extras,
+    transaction?.extras,
+    transaction?.data?.extras,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+      return candidate as Record<string, unknown>;
+    }
+  }
+
+  return null;
+}
+
+function buildWebhookLookup(transaction: Record<string, any>) {
+  const providerOrderId = readTransactionString(transaction?.order?.id);
+  const merchantOrderId = readTransactionString(transaction?.order?.merchant_order_id);
+  const providerTransactionId = readTransactionString(transaction?.id);
+  const extras = getTransactionExtras(transaction);
+  const paymentAttemptId = readTransactionString(extras?.paymentAttemptId);
+
+  return {
+    providerOrderId,
+    merchantOrderId,
+    providerTransactionId,
+    paymentAttemptId,
+    clauses: [
+      ...(paymentAttemptId ? [{ id: paymentAttemptId }] : []),
+      ...(providerOrderId ? [{ providerOrderId }] : []),
+      ...(merchantOrderId ? [{ merchantOrderId }] : []),
+      ...(providerTransactionId ? [{ providerTransactionId }] : []),
+    ],
+  };
+}
 
 function buildMerchantOrderId() {
   return `carto_${crypto.randomUUID().replace(/-/g, '')}`;
@@ -178,19 +227,19 @@ function buildPaymobItems(
   options?: { demoAmountFallback?: boolean; payableAmountEGP?: number }
 ) {
   if (options?.demoAmountFallback) {
-    return [
-      {
-        name: 'Carto demo checkout',
-        amount_cents: amountToCents(options.payableAmountEGP ?? 0),
-        description: 'Demo fallback amount while receipt prices are still zero.',
-        quantity: 1,
-      },
+      return [
+        {
+          name: 'Carto demo checkout',
+          amount: toPaymobAmountCents(options.payableAmountEGP ?? 0),
+          description: 'Demo fallback amount while receipt prices are still zero.',
+          quantity: 1,
+        },
     ];
   }
 
   return receipt.items.map((item) => ({
     name: item.name,
-    amount_cents: amountToCents(item.price),
+    amount: toPaymobAmountCents(item.price),
     description: item.category || item.name,
     quantity: item.quantity,
   }));
@@ -387,13 +436,13 @@ export class PaymentService {
       };
     }
 
-    const checkoutAmount = getCheckoutAmountEGP(receipt);
+    const checkoutAmount = getPaymobAmountMinorUnits(receipt);
 
     if (checkoutAmount.demoAmountFallback && !checkoutAmount.fallbackAllowed) {
       throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
     }
 
-    const existingAttempt = await reuseRecentAttempt(receipt.id, checkoutAmount.amountCents);
+    const existingAttempt = await reuseRecentAttempt(receipt.id, checkoutAmount.amountMinorUnits);
     if (existingAttempt?.checkoutUrl) {
       const attemptMetadata = readAttemptMetadata(existingAttempt.metadata);
 
@@ -429,7 +478,7 @@ export class PaymentService {
         userId: owner.type === 'user' ? owner.userId : null,
         guestSessionId: owner.type === 'guest' ? owner.guestSessionId : null,
         merchantOrderId,
-        amountCents: checkoutAmount.amountCents,
+        amountCents: checkoutAmount.amountMinorUnits,
         currency: PAYMOB_CURRENCY,
         status: 'PENDING',
         metadata: baseMetadata,
@@ -476,30 +525,32 @@ export class PaymentService {
 
     try {
       const profile = await getReceiptOwnerProfile(owner);
-      const authToken = await createPaymobAuthToken();
-      const order = await createPaymobOrder({
-        authToken,
-        merchantOrderId,
-        amountCents: checkoutAmount.amountCents,
+      const billingData = buildPaymobBillingData(profile ?? {});
+      const customer = buildPaymobCustomer(profile ?? {});
+      const intention = await createPaymobIntention({
+        amount: checkoutAmount.amountMinorUnits,
         items: buildPaymobItems(receipt, checkoutAmount),
+        billingData,
+        customer,
+        extras: {
+          receiptId: receipt.id,
+          cartSessionId: cartSession.id,
+          paymentAttemptId: paymentAttempt.id,
+          internalReference: merchantOrderId,
+          merchantOrderId,
+        },
       });
-      const paymentKey = await createPaymobPaymentKey({
-        authToken,
-        orderId: order.id,
-        amountCents: checkoutAmount.amountCents,
-        billingData: buildPaymobBillingData(profile ?? {}),
-      });
-      const checkoutUrl = buildPaymobHostedCheckoutUrl(paymentKey);
+      const checkoutUrl = buildPaymobUnifiedCheckoutUrl(intention.clientSecret);
 
       await prisma.$transaction([
         prisma.paymentAttempt.update({
           where: { id: paymentAttempt.id },
           data: {
-            providerOrderId: String(order.id),
+            providerOrderId: intention.id,
             checkoutUrl,
             status: 'PROCESSING',
             rawResponse: {
-              order,
+              intention: intention.raw,
             },
           },
         }),
@@ -583,24 +634,15 @@ export class PaymentService {
   }
 
   public static async markPaymobPaymentSucceeded(input: PaymobWebhookInput) {
-    const providerOrderId = input.transaction?.order?.id ? String(input.transaction.order.id) : null;
-    const merchantOrderId = input.transaction?.order?.merchant_order_id
-      ? String(input.transaction.order.merchant_order_id)
-      : null;
-    const providerTransactionId = input.transaction?.id ? String(input.transaction.id) : null;
-    const lookup = [
-      ...(providerOrderId ? [{ providerOrderId }] : []),
-      ...(merchantOrderId ? [{ merchantOrderId }] : []),
-      ...(providerTransactionId ? [{ providerTransactionId }] : []),
-    ];
+    const lookup = buildWebhookLookup(input.transaction);
 
-    if (lookup.length === 0) {
+    if (lookup.clauses.length === 0) {
       throw new ApiErrorResponse('Paymob webhook is missing order identifiers.', 400, 'INVALID_PAYMOB_WEBHOOK');
     }
 
     const paymentAttempt = await prisma.paymentAttempt.findFirst({
       where: {
-        OR: lookup,
+        OR: lookup.clauses,
       },
     });
 
@@ -655,7 +697,7 @@ export class PaymentService {
         where: { id: paymentAttempt.sessionId },
         data: {
           status: 'CHECKED_OUT',
-          endedAt: receipt.lockedAt ?? now,
+          endedAt: now,
         },
       });
 
@@ -705,24 +747,15 @@ export class PaymentService {
   }
 
   public static async markPaymobPaymentFailed(input: PaymobWebhookInput, reason?: string | null) {
-    const providerOrderId = input.transaction?.order?.id ? String(input.transaction.order.id) : null;
-    const merchantOrderId = input.transaction?.order?.merchant_order_id
-      ? String(input.transaction.order.merchant_order_id)
-      : null;
-    const providerTransactionId = input.transaction?.id ? String(input.transaction.id) : null;
-    const lookup = [
-      ...(providerOrderId ? [{ providerOrderId }] : []),
-      ...(merchantOrderId ? [{ merchantOrderId }] : []),
-      ...(providerTransactionId ? [{ providerTransactionId }] : []),
-    ];
+    const lookup = buildWebhookLookup(input.transaction);
 
-    if (lookup.length === 0) {
+    if (lookup.clauses.length === 0) {
       throw new ApiErrorResponse('Paymob webhook is missing order identifiers.', 400, 'INVALID_PAYMOB_WEBHOOK');
     }
 
     const paymentAttempt = await prisma.paymentAttempt.findFirst({
       where: {
-        OR: lookup,
+        OR: lookup.clauses,
       },
     });
 

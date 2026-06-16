@@ -4,17 +4,16 @@ import { prisma } from '@/lib/prisma';
 import { ApiErrorResponse } from '@/lib/api-response';
 import { getAppBaseUrl } from '@/lib/app-url';
 import {
-  amountToCents,
   centsToAmount,
-  getCheckoutAmountEGP,
+  getPaymobAmountMinorUnits,
   PAYMOB_CURRENCY,
+  toPaymobAmountCents,
 } from '@/lib/payment-money';
 import {
   buildPaymobBillingData,
-  buildPaymobHostedCheckoutUrl,
-  createPaymobAuthToken,
-  createPaymobOrder,
-  createPaymobPaymentKey,
+  buildPaymobCustomer,
+  buildPaymobUnifiedCheckoutUrl,
+  createPaymobIntention,
   isPaymobConfigured,
 } from '@/lib/paymob';
 import { calculateTax } from '@/lib/utils';
@@ -137,19 +136,19 @@ function buildPaymobItems(
   options?: { demoAmountFallback?: boolean; payableAmountEGP?: number }
 ) {
   if (options?.demoAmountFallback) {
-    return [
-      {
-        name: 'Carto demo checkout',
-        amount_cents: amountToCents(options.payableAmountEGP ?? 0),
-        description: 'Demo fallback amount while receipt prices are still zero.',
-        quantity: 1,
-      },
+      return [
+        {
+          name: 'Carto demo checkout',
+          amount: toPaymobAmountCents(options.payableAmountEGP ?? 0),
+          description: 'Demo fallback amount while receipt prices are still zero.',
+          quantity: 1,
+        },
     ];
   }
 
   return receipt.items.map((item) => ({
     name: item.name,
-    amount_cents: amountToCents(item.price),
+    amount: toPaymobAmountCents(item.price),
     description: item.category || item.name,
     quantity: item.quantity,
   }));
@@ -257,7 +256,7 @@ async function lockReceiptForDeviceCheckout(
   const subtotal = cartSession.receipt.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const tax = calculateTax(subtotal);
   const total = subtotal + tax;
-  const checkoutAmount = getCheckoutAmountEGP({ total });
+  const checkoutAmount = getPaymobAmountMinorUnits({ total });
 
   if (checkoutAmount.demoAmountFallback && !checkoutAmount.fallbackAllowed) {
     throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
@@ -342,13 +341,13 @@ export class DevicePaymentService {
       throw new ApiErrorResponse('Receipt is not ready for payment.', 409, 'RECEIPT_NOT_READY');
     }
 
-    const checkoutAmount = getCheckoutAmountEGP(receipt);
+    const checkoutAmount = getPaymobAmountMinorUnits(receipt);
 
     if (checkoutAmount.demoAmountFallback && !checkoutAmount.fallbackAllowed) {
       throw new ApiErrorResponse('Receipt total must be greater than zero before payment.', 400, 'INVALID_PAYMENT_AMOUNT');
     }
 
-    let attempt = await reuseRecentAttempt(receipt.id, checkoutAmount.amountCents);
+    let attempt = await reuseRecentAttempt(receipt.id, checkoutAmount.amountMinorUnits);
 
     if (!attempt) {
       const paymentAttempt = await prisma.paymentAttempt.create({
@@ -358,7 +357,7 @@ export class DevicePaymentService {
           userId: lockedSession.userId,
           guestSessionId: lockedSession.guestSessionId,
           merchantOrderId: buildMerchantOrderId(),
-          amountCents: checkoutAmount.amountCents,
+          amountCents: checkoutAmount.amountMinorUnits,
           currency: PAYMOB_CURRENCY,
           status: 'PENDING',
           metadata: {
@@ -393,29 +392,31 @@ export class DevicePaymentService {
       } else {
         try {
           const profile = await getDeviceCheckoutProfile(lockedSession);
-          const authToken = await createPaymobAuthToken();
-          const order = await createPaymobOrder({
-            authToken,
-            merchantOrderId: paymentAttempt.merchantOrderId,
-            amountCents: paymentAttempt.amountCents,
+          const billingData = buildPaymobBillingData(profile ?? {});
+          const customer = buildPaymobCustomer(profile ?? {});
+          const intention = await createPaymobIntention({
+            amount: paymentAttempt.amountCents,
             items: buildPaymobItems(receipt, checkoutAmount),
+            billingData,
+            customer,
+            extras: {
+              receiptId: receipt.id,
+              cartSessionId: lockedSession.id,
+              paymentAttemptId: paymentAttempt.id,
+              internalReference: paymentAttempt.merchantOrderId,
+              merchantOrderId: paymentAttempt.merchantOrderId,
+            },
           });
-          const paymentKey = await createPaymobPaymentKey({
-            authToken,
-            orderId: order.id,
-            amountCents: paymentAttempt.amountCents,
-            billingData: buildPaymobBillingData(profile ?? {}),
-          });
-          const checkoutUrl = buildPaymobHostedCheckoutUrl(paymentKey);
+          const checkoutUrl = buildPaymobUnifiedCheckoutUrl(intention.clientSecret);
 
           attempt = await prisma.paymentAttempt.update({
             where: { id: paymentAttempt.id },
             data: {
-              providerOrderId: String(order.id),
+              providerOrderId: intention.id,
               checkoutUrl,
               status: 'PROCESSING',
               rawResponse: {
-                order,
+                intention: intention.raw,
               },
             },
           });
