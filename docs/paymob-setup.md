@@ -95,7 +95,7 @@ npx prisma migrate deploy
 
 1. Create a list and link it to a cart.
 2. Finish shopping and open `/session/ready`.
-3. Test `Bypass scan`.
+3. Scan the checkout QR code from `/session/ready`.
 4. Test device `payment-qr`.
 5. Confirm Carto opens the hosted Paymob checkout.
 6. Confirm the webhook verifies HMAC and only then marks:

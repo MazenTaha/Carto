@@ -447,13 +447,14 @@ function ReadySessionContent() {
     ? currentSession.cartCode
     : sessionData.session.cart?.cartCode || 'Carto cart';
   const isBusy = isContinuing || isDisconnecting || isValidatingQr;
+  const isPreparingQr = isContinuing || isValidatingQr;
   const scanDisabled = isBusy || sessionEndedOrDisconnected;
 
   return (
     <PageContainer maxWidth="md">
       <Header showBack onBack={() => router.push('/dashboard')} />
 
-      <main className="flex min-h-[calc(100dvh-4.5rem)] flex-col justify-center px-4 pb-32 pt-6 sm:px-6">
+      <main className="flex min-h-[calc(100dvh-4.5rem)] flex-col justify-center px-4 pb-60 pt-6 sm:px-6 sm:pb-44">
         <section className="overflow-hidden rounded-[2rem] bg-slate-950 text-white shadow-soft">
           <div className="bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_transparent_42%)] p-6 sm:p-8">
             <Badge variant={hasActiveSession ? 'connected' : 'warning'}>
@@ -508,38 +509,44 @@ function ReadySessionContent() {
         </section>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 sm:px-4">
-        <div className="mx-auto max-w-xl rounded-[1.75rem] border border-slate-200 bg-white/96 p-3 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-950/96">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/80 bg-white/98 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 shadow-[0_-16px_32px_rgba(15,23,42,0.08)] dark:border-slate-800 dark:bg-slate-950">
+        <div className="mx-auto max-w-xl rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="mb-3">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Session actions</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Continue through the payment QR flow, return home, or disconnect this cart when you are done.
+            </p>
+          </div>
+
           <Button
             type="button"
             size="md"
-            className="h-11 w-full rounded-2xl"
+            className="h-12 w-full rounded-2xl text-sm font-semibold shadow-sm shadow-primary/20 disabled:shadow-none"
             onClick={() => setIsScannerOpen(true)}
             disabled={scanDisabled}
           >
             <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
-            {isValidatingQr ? 'Validating QR...' : 'Scan payment QR'}
+            {isPreparingQr ? 'Preparing QR...' : 'Scan payment QR'}
           </Button>
-          <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="mt-3 space-y-3">
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="h-10 rounded-2xl"
+              className="h-12 w-full rounded-2xl border-primary/20 bg-white text-primary shadow-none hover:border-primary/35 hover:bg-primary/5 dark:border-primary/25 dark:bg-slate-950 dark:text-primary dark:hover:bg-primary/10"
               onClick={() => {
                 router.replace('/dashboard');
                 router.refresh();
               }}
+              disabled={isBusy}
             >
               Back to home
             </Button>
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="col-span-2 h-10 rounded-2xl border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
+              className="h-12 w-full rounded-2xl border-red-200 bg-white text-red-600 shadow-none hover:border-red-300 hover:bg-red-50 hover:text-red-700 dark:border-red-500/30 dark:bg-slate-950 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
               onClick={() => void handleDisconnect()}
-              disabled={!hasActiveSession || isDisconnecting}
+              disabled={!hasActiveSession || isBusy}
             >
               {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
             </Button>
