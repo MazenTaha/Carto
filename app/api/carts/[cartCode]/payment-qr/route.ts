@@ -21,7 +21,7 @@ async function createPaymentQrResponse(
   try {
     const cart = await DeviceAuthService.authenticateDevice(request, params.cartCode);
     const body = await request.json().catch(() => null);
-    const parsed = createDevicePaymentQrSchema.parse(body);
+    const parsed = createDevicePaymentQrSchema.parse(body ?? {});
     const result = await DevicePaymentService.createPaymentQr(cart, parsed, request.url);
 
     return applyDeviceApiHeaders(
@@ -71,7 +71,7 @@ export async function GET(
 ) {
   return applyDeviceApiHeaders(
     request,
-    errorResponse('Use POST /api/carts/[cartCode]/payment-qr with { amount, currency, items? }.', 405, 'METHOD_NOT_ALLOWED'),
+    errorResponse('Use POST /api/carts/[cartCode]/payment-qr to create a secure demo payment QR.', 405, 'METHOD_NOT_ALLOWED'),
     ['POST', 'OPTIONS']
   );
 }

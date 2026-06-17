@@ -28,8 +28,6 @@ export async function POST(request: NextRequest) {
       sessionId: parsed.sessionId,
       receiptId: parsed.receiptId,
       paymentMethod: parsed.paymentMethod,
-      mode: parsed.mode,
-      allowZeroTotalPreview: parsed.allowZeroTotalPreview,
     });
 
     return successResponse({

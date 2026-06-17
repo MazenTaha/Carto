@@ -6,6 +6,10 @@ import { RefreshCw, Receipt, ShoppingCart, Wifi, WifiOff } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { PageContainer } from '@/components/layout/PageContainer';
 import {
+  DEMO_PAYMENT_AMOUNT_EGP,
+  DEMO_PAYMENT_CURRENCY,
+} from '@/lib/constants/demo-payment';
+import {
   DEFAULT_SIMULATOR_CART_CODE,
   DEMO_CART_CODE,
   DEMO_CART_PRESETS,
@@ -299,7 +303,7 @@ export default function DeviceSimulatorPage() {
   const activeCartSessionId = activeDeviceData?.cartSessionId || null;
   const activeReceiptStatus = activeDeviceData?.receipt?.status || null;
   const activeSessionStatus = activeDeviceData?.session.status || null;
-  const effectivePaymentAmount = activeDeviceData?.receipt?.total ?? 0;
+  const effectivePaymentAmount = DEMO_PAYMENT_AMOUNT_EGP;
   const paymentQrExpiresAtLabel = paymentQrData?.expiresAt
     ? new Date(paymentQrData.expiresAt).toLocaleTimeString()
     : null;
@@ -490,7 +494,7 @@ export default function DeviceSimulatorPage() {
     setPaymentError('');
     setPaymentQrData(null);
     paymentCompletionHandledRef.current = false;
-    appendLog(`Requesting payment QR for cart ${trimmedCartCode} with ${formatDeviceMoney(effectivePaymentAmount)}`);
+    appendLog(`Requesting payment QR for cart ${trimmedCartCode} with ${formatDeviceMoney(effectivePaymentAmount, DEMO_PAYMENT_CURRENCY)}`);
 
     try {
       const response = await fetch(`/api/carts/${encodeURIComponent(trimmedCartCode)}/payment-qr`, {
@@ -502,7 +506,7 @@ export default function DeviceSimulatorPage() {
         },
         body: JSON.stringify({
           amount: effectivePaymentAmount,
-          currency: activeDeviceData?.receipt?.currency || activeDeviceData?.payment?.currency || 'EGP',
+          currency: DEMO_PAYMENT_CURRENCY,
           items: activeDeviceData?.receipt?.items?.map((item) => ({
             name: item.name,
             quantity: item.quantity,
@@ -539,8 +543,6 @@ export default function DeviceSimulatorPage() {
     }
   }, [
     appendLog,
-    activeDeviceData?.payment?.currency,
-    activeDeviceData?.receipt?.currency,
     activeDeviceData?.receipt?.items,
     activeReceiptStatus,
     activeSessionStatus,
@@ -1154,18 +1156,16 @@ export default function DeviceSimulatorPage() {
                           <div>
                             <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Checkout amount</p>
                             <p className="mt-1 text-sm text-slate-400">
-                              {deviceData.receipt?.total && deviceData.receipt.total > 0
-                                ? 'Using the live receipt total from the cart device.'
-                                : 'Receipt total is EGP 0.00. Payment QR generation will fail until scanned items are added to the receipt.'}
+                              Demo mode always charges a fixed {formatDeviceMoney(DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY)} regardless of the current receipt total.
                             </p>
                           </div>
                           <span className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-semibold text-white">
-                            {formatDeviceMoney(effectivePaymentAmount)}
+                            {formatDeviceMoney(effectivePaymentAmount, DEMO_PAYMENT_CURRENCY)}
                           </span>
                         </div>
                         <div className="mt-3 flex items-center justify-between text-sm">
                           <span className="text-slate-500">Amount sent in POST body</span>
-                          <span className="font-mono font-bold text-white">{formatDeviceMoney(effectivePaymentAmount)}</span>
+                          <span className="font-mono font-bold text-white">{formatDeviceMoney(effectivePaymentAmount, DEMO_PAYMENT_CURRENCY)}</span>
                         </div>
                       </div>
                       {paymentQrData ? (

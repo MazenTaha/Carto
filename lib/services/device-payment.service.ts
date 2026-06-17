@@ -4,11 +4,14 @@ import { prisma } from '@/lib/prisma';
 import { ApiErrorResponse } from '@/lib/api-response';
 import { getAppBaseUrl } from '@/lib/app-url';
 import {
+  DEMO_PAYMENT_AMOUNT_CENTS,
+  DEMO_PAYMENT_AMOUNT_EGP,
+  DEMO_PAYMENT_CURRENCY,
+} from '@/lib/constants/demo-payment';
+import {
   centsToAmount,
   PAYMOB_CURRENCY,
-  toPaymobAmountCents,
 } from '@/lib/payment-money';
-import { normalizeBasePriceEGP } from '@/lib/pricing';
 import {
   buildPaymentQrUrl,
   createPaymentQrExpiry,
@@ -17,7 +20,6 @@ import {
   hashToken,
   isPaymentQrExpired,
 } from '@/lib/payment-checkout-qr';
-import { calculateTax } from '@/lib/utils';
 
 const REUSABLE_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 
@@ -87,7 +89,7 @@ type PublicCheckoutSession = {
 };
 
 type CreateDevicePaymentQrInput = {
-  amount: number;
+  amount?: number;
   currency?: string;
   items?: Array<{
     name: string;
@@ -314,47 +316,11 @@ async function lockActiveReceiptForDeviceCheckout(
     throw new ApiErrorResponse('Payment for this receipt has already been completed.', 409, 'PAYMENT_ALREADY_COMPLETED');
   }
 
-  if (cartSession.receipt.items.length === 0) {
-    throw new ApiErrorResponse(
-      'Cannot generate payment QR because no scanned items have been added to the receipt.',
-      400,
-      'INVALID_RECEIPT_TOTAL',
-    );
-  }
-
-  const normalizedCurrency = (input.currency || PAYMOB_CURRENCY).trim().toUpperCase() || PAYMOB_CURRENCY;
-
-  if (normalizedCurrency !== PAYMOB_CURRENCY) {
-    throw new ApiErrorResponse(
-      `Cannot generate a payment QR because the receipt currency must be ${PAYMOB_CURRENCY}.`,
-      400,
-      'INVALID_RECEIPT_CURRENCY',
-    );
-  }
-
-  const normalizedAmount = Number(input.amount);
-
-  if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
-    throw new ApiErrorResponse(
-      'Payment amount must be greater than 0.',
-      400,
-      'INVALID_PAYMENT_AMOUNT',
-    );
-  }
-
-  const normalizedReceiptTotal = Math.round((normalizedAmount + Number.EPSILON) * 100) / 100;
-  const subtotal = normalizedReceiptTotal;
-  const tax = 0;
-  const total = normalizedReceiptTotal;
-
   await tx.receipt.update({
     where: { id: cartSession.receipt.id },
     data: {
       status: cartSession.receipt.status === 'DRAFT' ? 'LOCKED' : cartSession.receipt.status,
       lockedAt: cartSession.receipt.lockedAt ?? new Date(),
-      subtotal,
-      tax,
-      total,
       paymentStatus: cartSession.receipt.paymentStatus === 'FAILED' ? 'PENDING' : cartSession.receipt.paymentStatus,
       cartId: cartSession.cartId,
       storeId: cartSession.cart?.storeId ?? null,
@@ -385,7 +351,7 @@ export class DevicePaymentService {
 
   public static async createPaymentQr(
     cart: DeviceCart,
-    input: CreateDevicePaymentQrInput,
+    input: CreateDevicePaymentQrInput = {},
     requestUrl?: string
   ) {
     const lockedSession = await prisma.$transaction((tx) => (
@@ -396,36 +362,7 @@ export class DevicePaymentService {
     if (!receipt) {
       throw new ApiErrorResponse('Receipt is not ready for payment.', 409, 'RECEIPT_NOT_READY');
     }
-
-    if (receipt.items.length === 0) {
-      throw new ApiErrorResponse(
-        'Cannot generate payment QR because no scanned items have been added to the receipt.',
-        400,
-        'INVALID_RECEIPT_TOTAL',
-      );
-    }
-
-    const normalizedCurrency = (input.currency || PAYMOB_CURRENCY).trim().toUpperCase() || PAYMOB_CURRENCY;
-
-    if (normalizedCurrency !== PAYMOB_CURRENCY) {
-      throw new ApiErrorResponse(
-        `Cannot generate a payment QR because the receipt currency must be ${PAYMOB_CURRENCY}.`,
-        400,
-        'INVALID_RECEIPT_CURRENCY',
-      );
-    }
-
-    const normalizedAmount = Number(input.amount);
-
-    if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
-      throw new ApiErrorResponse(
-        'Payment amount must be greater than 0.',
-        400,
-        'INVALID_PAYMENT_AMOUNT',
-      );
-    }
-
-    const amountCents = toPaymobAmountCents(normalizedAmount);
+    const amountCents = DEMO_PAYMENT_AMOUNT_CENTS;
     let attempt = await reuseRecentAttempt(receipt.id, amountCents);
 
     if (!attempt) {
@@ -437,7 +374,7 @@ export class DevicePaymentService {
           guestSessionId: lockedSession.guestSessionId,
           merchantOrderId: buildMerchantOrderId(),
           amountCents,
-          currency: normalizedCurrency,
+          currency: DEMO_PAYMENT_CURRENCY,
           status: 'PENDING',
           metadata: {
             cartCode: lockedSession.cart?.cartCode ?? cart.cartCode,
@@ -445,13 +382,13 @@ export class DevicePaymentService {
             storeName: lockedSession.cart?.store?.name ?? null,
             listId: lockedSession.shoppingList?.id ?? null,
             listName: lockedSession.shoppingList?.name ?? null,
-            actualReceiptTotal: normalizedAmount,
-            payableAmountEGP: normalizedAmount,
-            demoAmountFallback: false,
+            actualReceiptTotal: receipt.total,
+            payableAmountEGP: DEMO_PAYMENT_AMOUNT_EGP,
+            demoAmountFallback: true,
             checkoutMode: 'pending_qr',
             source: 'device_payment_qr',
-            deviceReportedAmount: normalizedAmount,
-            deviceReportedCurrency: normalizedCurrency,
+            deviceReportedAmount: DEMO_PAYMENT_AMOUNT_EGP,
+            deviceReportedCurrency: DEMO_PAYMENT_CURRENCY,
             deviceReportedItems: input.items ?? null,
           },
         },
@@ -461,7 +398,7 @@ export class DevicePaymentService {
         where: { id: attempt.id },
         data: {
           amountCents,
-          currency: normalizedCurrency,
+          currency: DEMO_PAYMENT_CURRENCY,
           status: 'PENDING',
           checkoutUrl: null,
           providerOrderId: null,
@@ -477,13 +414,13 @@ export class DevicePaymentService {
             storeName: lockedSession.cart?.store?.name ?? null,
             listId: lockedSession.shoppingList?.id ?? null,
             listName: lockedSession.shoppingList?.name ?? null,
-            actualReceiptTotal: normalizedAmount,
-            payableAmountEGP: normalizedAmount,
-            demoAmountFallback: false,
+            actualReceiptTotal: receipt.total,
+            payableAmountEGP: DEMO_PAYMENT_AMOUNT_EGP,
+            demoAmountFallback: true,
             checkoutMode: 'pending_qr',
             source: 'device_payment_qr',
-            deviceReportedAmount: normalizedAmount,
-            deviceReportedCurrency: normalizedCurrency,
+            deviceReportedAmount: DEMO_PAYMENT_AMOUNT_EGP,
+            deviceReportedCurrency: DEMO_PAYMENT_CURRENCY,
             deviceReportedItems: input.items ?? null,
           },
         },
@@ -511,9 +448,9 @@ export class DevicePaymentService {
       sessionId: lockedSession.id,
       cartSessionId: lockedSession.id,
       amountCents,
-      amount: normalizedAmount,
-      amountDisplay: formatMoney(amountCents, normalizedCurrency),
-      currency: normalizedCurrency,
+      amount: DEMO_PAYMENT_AMOUNT_EGP,
+      amountDisplay: formatMoney(amountCents, DEMO_PAYMENT_CURRENCY),
+      currency: DEMO_PAYMENT_CURRENCY,
       paymentStatus: mapDevicePaymentStatus({
         receiptStatus: receipt.status,
         receiptPaymentStatus: receipt.paymentStatus,
@@ -554,11 +491,7 @@ export class DevicePaymentService {
     if (!receipt) {
       throw new ApiErrorResponse('Receipt not found for this cart.', 404, 'RECEIPT_NOT_FOUND');
     }
-
-    const subtotal = receipt.items.reduce((sum, item) => sum + normalizeBasePriceEGP(item.price) * item.quantity, 0);
-    const tax = receipt.tax || calculateTax(subtotal);
     const latestAttempt = receipt.paymentAttempts[0] ?? null;
-    const amount = latestAttempt ? centsToAmount(latestAttempt.amountCents) : receipt.total > 0 ? receipt.total : subtotal + tax;
     const paymentStatus = mapDevicePaymentStatus({
       receiptStatus: receipt.status,
       receiptPaymentStatus: receipt.paymentStatus,
@@ -574,8 +507,8 @@ export class DevicePaymentService {
       cartStatus: paymentStatus === 'PAID'
         ? 'AVAILABLE'
         : receipt.cartSession?.cart?.status ?? cart.status,
-      amount,
-      currency: PAYMOB_CURRENCY,
+      amount: latestAttempt ? centsToAmount(latestAttempt.amountCents) : DEMO_PAYMENT_AMOUNT_EGP,
+      currency: latestAttempt?.currency || DEMO_PAYMENT_CURRENCY,
       paidAt: receipt.paidAt?.toISOString() ?? latestAttempt?.completedAt?.toISOString() ?? null,
     };
   }
@@ -690,9 +623,9 @@ export class DevicePaymentService {
         receiptPaymentStatus: receipt.paymentStatus,
         attemptStatus: latestAttempt?.status ?? null,
       }),
-      currency: latestAttempt?.currency || PAYMOB_CURRENCY,
-      amount: latestAttempt ? centsToAmount(latestAttempt.amountCents ?? 0) : receipt.total,
-      amountCents: latestAttempt?.amountCents ?? toPaymobAmountCents(receipt.total),
+      currency: latestAttempt?.currency || DEMO_PAYMENT_CURRENCY,
+      amount: latestAttempt ? centsToAmount(latestAttempt.amountCents ?? 0) : DEMO_PAYMENT_AMOUNT_EGP,
+      amountCents: latestAttempt?.amountCents ?? DEMO_PAYMENT_AMOUNT_CENTS,
       paymentUrl: latestAttempt
         ? this.buildDeviceCheckoutUrl(latestAttempt.id, input.requestUrl)
         : null,

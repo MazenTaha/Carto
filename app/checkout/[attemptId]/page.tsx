@@ -104,7 +104,7 @@ export default async function DeviceCheckoutPage({
     ? `/payment/success?sessionId=${encodeURIComponent(checkout.sessionId)}&receiptId=${encodeURIComponent(checkout.receiptId)}&attemptId=${encodeURIComponent(checkout.id)}`
     : previewMode
     ? `/payment/pending?attemptId=${encodeURIComponent(checkout.id)}&sessionId=${encodeURIComponent(checkout.sessionId)}`
-    : checkout.checkoutUrl || `/payment/pending?attemptId=${encodeURIComponent(checkout.id)}&sessionId=${encodeURIComponent(checkout.sessionId)}`;
+    : checkout.checkoutUrl || `/checkout?sessionId=${encodeURIComponent(checkout.sessionId)}`;
   const sessionHref = `/session/ready?sessionId=${encodeURIComponent(checkout.sessionId)}`;
 
   return (

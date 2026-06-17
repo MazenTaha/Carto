@@ -5,12 +5,14 @@ import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { formatCurrency } from '@/lib/utils';
+import { DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY } from '@/lib/constants/demo-payment';
 import { requireUserOrGuest } from '@/lib/guest-session';
 import { getCompletedReceiptHistory } from '@/lib/receipt-history';
+import { formatPaymentCurrency } from '@/lib/payment-money';
 
 export default async function HistoryPage() {
   const owner = process.env.DATABASE_URL ? await requireUserOrGuest() : null;
+  const demoAmountLabel = formatPaymentCurrency(DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY);
 
   if (!owner) {
     redirect('/auth/signin');
@@ -58,7 +60,7 @@ export default async function HistoryPage() {
                       Receipt #{receipt.receiptNumber}
                     </p>
                     <p className="mt-2 text-2xl font-black leading-tight text-primary">
-                      {formatCurrency(receipt.total)}
+                      {demoAmountLabel}
                     </p>
                     <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
                       {new Date(receipt.createdAt).toLocaleString()}

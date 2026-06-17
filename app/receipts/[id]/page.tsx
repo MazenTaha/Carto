@@ -4,6 +4,8 @@ import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY } from '@/lib/constants/demo-payment';
+import { formatPaymentCurrency } from '@/lib/payment-money';
 import { formatCurrency } from '@/lib/utils';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { prisma } from '@/lib/prisma';
@@ -14,6 +16,7 @@ export default async function ReceiptDetailPage({
   params: { id: string };
 }) {
   const owner = process.env.DATABASE_URL ? await requireUserOrGuest() : null;
+  const demoAmountLabel = formatPaymentCurrency(DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY);
 
   if (!owner) {
     redirect('/auth/signin');
@@ -117,7 +120,7 @@ export default async function ReceiptDetailPage({
       <main className="flex-1 pb-32 pt-6 md:pb-10">
         <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-soft">
           <Badge className="bg-white/10 text-white ring-white/15">Receipt #{receipt.id.slice(-6).toUpperCase()}</Badge>
-          <h1 className="mt-4 text-3xl font-black tracking-tight">{formatCurrency(receipt.total)}</h1>
+          <h1 className="mt-4 text-3xl font-black tracking-tight">{demoAmountLabel}</h1>
           <p className="mt-2 text-sm leading-6 text-white/70">
             {new Date(receipt.createdAt).toLocaleString()} · {receipt.cartSession?.shoppingList?.name || 'Completed shopping session'}
           </p>
@@ -174,16 +177,16 @@ export default async function ReceiptDetailPage({
 
           <div className="mt-6 space-y-3 border-t border-slate-100 pt-4 dark:border-slate-800">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">Subtotal</span>
-              <span className="font-bold text-slate-950 dark:text-slate-100">{formatCurrency(receipt.subtotal)}</span>
+              <span className="text-slate-500">Demo payment amount</span>
+              <span className="font-bold text-slate-950 dark:text-slate-100">{demoAmountLabel}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-500">Tax</span>
-              <span className="font-bold text-slate-950 dark:text-slate-100">{formatCurrency(receipt.tax)}</span>
+              <span className="font-bold text-slate-950 dark:text-slate-100">{formatPaymentCurrency(0, DEMO_PAYMENT_CURRENCY)}</span>
             </div>
             <div className="flex items-center justify-between text-base">
               <span className="font-black text-slate-950 dark:text-slate-100">Total</span>
-              <span className="text-2xl font-black text-primary">{formatCurrency(receipt.total)}</span>
+              <span className="text-2xl font-black text-primary">{demoAmountLabel}</span>
             </div>
           </div>
         </section>

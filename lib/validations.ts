@@ -134,15 +134,12 @@ export const markNotificationsReadSchema = z.object({
 export const createPaymentSchema = z.object({
   receiptId: z.string().min(1, 'Receipt ID is required').optional(),
   sessionId: z.string().min(1, 'Session ID is required'),
-  amount: z.number().positive('Amount must be positive').optional(),
   paymentMethod: z.enum(['CARD', 'CASH', 'MOBILE', 'WALLET']).default('CARD'),
-  mode: z.enum(['standard', 'bypass']).default('standard'),
-  allowZeroTotalPreview: z.boolean().optional(),
 });
 
 export const createDevicePaymentQrSchema = z.object({
-  amount: z.number().finite('Payment amount must be a valid number.').positive('Payment amount must be greater than 0.'),
-  currency: z.string().trim().min(1).default('EGP'),
+  amount: z.number().finite('Payment amount must be a valid number.').positive('Payment amount must be greater than 0.').optional(),
+  currency: z.string().trim().min(1).default('EGP').optional(),
   items: z.array(
     z.object({
       name: z.string().trim().min(1, 'Item name is required'),

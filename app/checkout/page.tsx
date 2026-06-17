@@ -11,7 +11,8 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { Logo } from '@/components/ui/Logo';
 import { ReceiptPanel } from '@/components/ui/ReceiptPanel';
 import { Receipt } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import { DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY } from '@/lib/constants/demo-payment';
+import { formatPaymentCurrency } from '@/lib/payment-money';
 
 const LAST_PAYMENT_ATTEMPT_KEY = 'carto_last_payment_attempt';
 
@@ -50,6 +51,7 @@ function CheckoutContent() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [error, setError] = useState('');
+  const demoAmountLabel = formatPaymentCurrency(DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY);
 
   const fetchReceipt = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -234,7 +236,8 @@ function CheckoutContent() {
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Order summary</p>
                 <div className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
                   <p>Receipt ID: {receipt.id.slice(-6).toUpperCase()}</p>
-                  <p>Currency: EGP</p>
+                  <p>Currency: {DEMO_PAYMENT_CURRENCY}</p>
+                  <p>Demo payment amount: {demoAmountLabel}</p>
                   <p>Payment status: {receipt.paymentStatus || 'PENDING'}</p>
                 </div>
               </div>
@@ -266,23 +269,23 @@ function CheckoutContent() {
 
             <div className="space-y-4 border-y border-dashed border-slate-200 p-5 dark:border-slate-800 md:p-6">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Shopping session items</span>
-                <span className="font-bold">{formatCurrency(receipt.subtotal)}</span>
+                <span className="text-slate-500">Demo checkout amount</span>
+                <span className="font-bold">{demoAmountLabel}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Platform fee</span>
-                <span className="font-bold">{formatCurrency(0)}</span>
+                <span className="font-bold">{formatPaymentCurrency(0, DEMO_PAYMENT_CURRENCY)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Estimated tax</span>
-                <span className="font-bold">{formatCurrency(receipt.tax)}</span>
+                <span className="font-bold">{formatPaymentCurrency(0, DEMO_PAYMENT_CURRENCY)}</span>
               </div>
             </div>
 
             <div className="bg-slate-50 p-5 dark:bg-slate-950/50 md:p-6">
               <div className="flex items-end justify-between">
                 <span className="text-base font-black text-slate-950 dark:text-slate-100">Total Amount</span>
-                <span className="text-3xl font-black text-primary">{formatCurrency(receipt.total)}</span>
+                <span className="text-3xl font-black text-primary">{demoAmountLabel}</span>
               </div>
               <div className="mt-5 flex items-center justify-center gap-2 text-xs font-bold text-slate-400">
                 <span className="material-symbols-outlined text-sm">encrypted</span>
@@ -320,7 +323,7 @@ function CheckoutContent() {
         <div className="mx-auto flex max-w-lg items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Total</p>
-            <p className="text-2xl font-black text-slate-950 dark:text-slate-100">{formatCurrency(receipt.total)}</p>
+            <p className="text-2xl font-black text-slate-950 dark:text-slate-100">{demoAmountLabel}</p>
           </div>
           <Button onClick={handlePayment} disabled={isProcessing || isDisconnecting}>
             {isProcessing ? 'Opening' : 'Continue to Paymob'}

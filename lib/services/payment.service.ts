@@ -6,13 +6,15 @@ import type { RequestOwner } from '@/lib/guest-session';
 import { ownerWhere } from '@/lib/guest-session';
 import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
 import {
+  DEMO_PAYMENT_AMOUNT_CENTS,
+  DEMO_PAYMENT_AMOUNT_EGP,
+} from '@/lib/constants/demo-payment';
+import {
   centsToAmount,
   formatPaymentCurrency,
   getPaymobAmountMinorUnits,
   PAYMOB_CURRENCY,
-  toPaymobAmountCents,
 } from '@/lib/payment-money';
-import { normalizeBasePriceEGP } from '@/lib/pricing';
 import { hashToken, isPaymentQrExpired } from '@/lib/payment-checkout-qr';
 import {
   buildPaymobBillingData,
@@ -28,8 +30,6 @@ type CreateHostedCheckoutInput = {
   sessionId: string;
   receiptId?: string | null;
   paymentMethod?: PaymentMethod;
-  mode?: 'standard' | 'bypass';
-  allowZeroTotalPreview?: boolean;
 };
 
 type PaymobWebhookInput = {
@@ -224,27 +224,15 @@ async function prepareOwnedReceiptForCheckout(owner: RequestOwner, input: Create
   return cartSession;
 }
 
-function buildPaymobItems(
-  receipt: { items: Array<{ name: string; price: number; quantity: number; category: string | null }> },
-  options?: { demoAmountFallback?: boolean; payableAmountEGP?: number }
-) {
-  if (options?.demoAmountFallback) {
-      return [
-        {
-          name: 'Carto demo checkout',
-          amount: toPaymobAmountCents(normalizeBasePriceEGP(options.payableAmountEGP)),
-          description: 'Demo fallback amount while receipt prices are still zero.',
-          quantity: 1,
-        },
-    ];
-  }
-
-  return receipt.items.map((item) => ({
-    name: item.name,
-    amount: toPaymobAmountCents(normalizeBasePriceEGP(item.price)),
-    description: item.category || item.name,
-    quantity: item.quantity,
-  }));
+function buildDemoPaymobItems() {
+  return [
+    {
+      name: 'Carto demo checkout',
+      amount: DEMO_PAYMENT_AMOUNT_CENTS,
+      description: 'Fixed demo payment amount for Carto testing.',
+      quantity: 1,
+    },
+  ];
 }
 
 function readAttemptMetadata(metadata: Prisma.JsonValue | null | undefined) {
@@ -313,53 +301,6 @@ async function reuseRecentAttempt(receiptId: string, amountCents: number) {
   });
 
   return attempt;
-}
-
-function buildPaymobItemsFromDeviceReportedMetadata(metadata: Prisma.JsonValue | null | undefined) {
-  const normalizedMetadata = readAttemptMetadata(metadata);
-  const rawItems = normalizedMetadata.deviceReportedItems;
-
-  if (!Array.isArray(rawItems) || rawItems.length === 0) {
-    return null;
-  }
-
-  const items = rawItems
-    .map((item) => {
-      if (!item || typeof item !== 'object' || Array.isArray(item)) {
-        return null;
-      }
-
-      const source = item as Record<string, unknown>;
-      const name = typeof source.name === 'string' ? source.name.trim() : '';
-      const quantity = Number(source.quantity);
-      const unitPrice = Number(source.unitPrice);
-      const total = Number(source.total);
-
-      if (!name || !Number.isFinite(quantity) || quantity <= 0) {
-        return null;
-      }
-
-      const resolvedUnitPrice = Number.isFinite(unitPrice) && unitPrice >= 0
-        ? unitPrice
-        : Number.isFinite(total) && total >= 0
-          ? total / quantity
-          : normalizeBasePriceEGP(undefined);
-
-      return {
-        name,
-        amount: toPaymobAmountCents(normalizeBasePriceEGP(resolvedUnitPrice)),
-        description: name,
-        quantity,
-      };
-    })
-    .filter((item): item is {
-      name: string;
-      amount: number;
-      description: string;
-      quantity: number;
-    } => Boolean(item));
-
-  return items.length > 0 ? items : null;
 }
 
 function isPreviewCheckoutUrl(checkoutUrl?: string | null) {
@@ -518,7 +459,7 @@ export class PaymentService {
         attemptId: null,
         preview: false,
         demoAmountFallback: false,
-        amount: receipt.total,
+        amount: DEMO_PAYMENT_AMOUNT_EGP,
         currency: PAYMOB_CURRENCY,
         checkoutUrl: null,
       };
@@ -603,7 +544,7 @@ export class PaymentService {
       payableAmountEGP: checkoutAmount.amount,
       demoAmountFallback: checkoutAmount.demoAmountFallback,
       checkoutMode: usePreviewMode ? 'preview' : 'hosted',
-      checkoutEntryMode: input.mode ?? 'standard',
+      checkoutEntryMode: 'standard',
     };
 
     const merchantOrderId = reusablePendingAttempt?.merchantOrderId || buildMerchantOrderId();
@@ -686,8 +627,7 @@ export class PaymentService {
       const profile = await getReceiptOwnerProfile(owner);
       const billingData = buildPaymobBillingData(profile ?? {});
       const customer = buildPaymobCustomer(profile ?? {});
-      const paymobItems = buildPaymobItemsFromDeviceReportedMetadata(paymentAttempt.metadata)
-        || buildPaymobItems(receipt, checkoutAmount);
+      const paymobItems = buildDemoPaymobItems();
       const intention = await createPaymobIntention({
         amount: checkoutAmount.amountMinorUnits,
         items: paymobItems,

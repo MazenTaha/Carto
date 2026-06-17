@@ -59,8 +59,6 @@ type PaymentScanValidationResponse = {
   checkoutUrl?: string | null;
 };
 
-type HostedCheckoutMode = 'standard' | 'bypass';
-
 type CurrentSessionResponse =
   | { success: true; data: { active: false } }
   | { success: true; data: { active: true; session: ActiveSessionSummary } }
@@ -231,12 +229,10 @@ function ReadySessionContent() {
 
   const startHostedCheckout = useCallback(async (options?: {
     validatedReceiptId?: string | null;
-    mode?: HostedCheckoutMode;
   }) => {
     if (!sessionId || !sessionData || isContinuing || isDisconnecting) return;
 
     const validatedReceiptId = options?.validatedReceiptId;
-    const mode = options?.mode || 'standard';
     const initialReceiptId = validatedReceiptId || sessionData.receipt?.id || null;
     const latestSessionData =
       validatedReceiptId
@@ -271,8 +267,6 @@ function ReadySessionContent() {
           sessionId,
           receiptId: resolvedReceiptId,
           paymentMethod: 'CARD',
-          mode,
-          allowZeroTotalPreview: mode === 'bypass',
         }),
       });
       const data = await response.json().catch(() => null);
@@ -282,7 +276,6 @@ function ReadySessionContent() {
           status: response.status,
           sessionId,
           receiptId: resolvedReceiptId || null,
-          mode,
           error: getApiErrorDebug(data),
         });
         throw new Error(getApiErrorMessage(data, 'Could not prepare secure payment.'));
@@ -321,17 +314,12 @@ function ReadySessionContent() {
       console.error('Hosted checkout initialization threw an unexpected error.', {
         sessionId,
         receiptId: resolvedReceiptId || null,
-        mode,
         message: err?.message || 'Unknown error',
       });
       setError(err.message || 'Could not prepare secure payment.');
       setIsContinuing(false);
     }
   }, [isContinuing, isDisconnecting, loadSessionSnapshot, router, sessionData, sessionId]);
-
-  const handleBypassScan = useCallback(async () => {
-    await startHostedCheckout({ mode: 'bypass' });
-  }, [startHostedCheckout]);
 
   const handleScanDetected = useCallback(async (qrValue: string) => {
     if (!sessionId || isValidatingQr || isContinuing || isDisconnecting) {
@@ -460,7 +448,6 @@ function ReadySessionContent() {
     : sessionData.session.cart?.cartCode || 'Carto cart';
   const isBusy = isContinuing || isDisconnecting || isValidatingQr;
   const scanDisabled = isBusy || sessionEndedOrDisconnected;
-  const bypassDisabled = isBusy || sessionEndedOrDisconnected;
 
   return (
     <PageContainer maxWidth="md">
@@ -505,9 +492,9 @@ function ReadySessionContent() {
               <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Next step: secure checkout</h2>
               <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                 {hasActiveSession
-                  ? 'Scan the checkout QR code to continue to payment. Bypass scan is available for demos and testing only.'
+                  ? 'Scan the checkout QR code to continue to payment.'
                   : isPaymentRetryState
-                    ? 'This session is already finalized, so scanning or bypassing will open checkout directly.'
+                    ? 'This session is already finalized, so scanning will open checkout directly.'
                     : 'Session ended or disconnected. Payment actions are unavailable on this page now.'}
               </p>
             </div>
@@ -533,18 +520,7 @@ function ReadySessionContent() {
             <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
             {isValidatingQr ? 'Validating QR...' : 'Scan payment QR'}
           </Button>
-          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="h-10 rounded-2xl"
-              onClick={() => void handleBypassScan()}
-              disabled={bypassDisabled}
-            >
-              <span className="material-symbols-outlined text-[16px]">bolt</span>
-              {isContinuing ? 'Preparing checkout...' : 'Bypass scan'}
-            </Button>
+          <div className="mt-2 grid grid-cols-2 gap-2">
             <Button
               type="button"
               variant="outline"
@@ -561,7 +537,7 @@ function ReadySessionContent() {
               type="button"
               variant="outline"
               size="sm"
-              className="col-span-2 h-10 rounded-2xl border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200 sm:col-span-1"
+              className="col-span-2 h-10 rounded-2xl border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
               onClick={() => void handleDisconnect()}
               disabled={!hasActiveSession || isDisconnecting}
             >
