@@ -41,6 +41,31 @@ function getApiErrorDebug(data: any) {
   };
 }
 
+function getCheckoutStatusCopy(paymentStatus: string | null | undefined) {
+  switch ((paymentStatus || '').toUpperCase()) {
+    case 'COMPLETED':
+      return {
+        label: 'Confirmed',
+        description: 'Payment confirmed',
+      };
+    case 'PROCESSING':
+      return {
+        label: 'Processing',
+        description: 'Waiting for final confirmation',
+      };
+    case 'FAILED':
+      return {
+        label: 'Payment failed',
+        description: 'Try starting checkout again',
+      };
+    default:
+      return {
+        label: 'Pending confirmation',
+        description: 'Confirmed only after webhook verification',
+      };
+  }
+}
+
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -52,6 +77,8 @@ function CheckoutContent() {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [error, setError] = useState('');
   const demoAmountLabel = formatPaymentCurrency(DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY);
+  const receiptReference = receipt?.id.slice(-6).toUpperCase() || '------';
+  const paymentStatusCopy = getCheckoutStatusCopy(receipt?.paymentStatus);
 
   const fetchReceipt = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -204,7 +231,7 @@ function CheckoutContent() {
     <PageContainer maxWidth="lg">
       <Header title="Checkout" showBack />
 
-      <main className="grid flex-1 gap-6 pb-32 pt-6 lg:grid-cols-[1fr_380px] md:pb-10">
+      <main className="grid flex-1 gap-6 pb-44 pt-6 lg:grid-cols-[minmax(0,1fr)_390px] md:pb-12">
         <section className="space-y-6">
           <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-soft md:p-6">
             <Logo width={132} height={48} />
@@ -222,31 +249,74 @@ function CheckoutContent() {
             </div>
           </div>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900 md:p-6">
-            <div className="mb-5 flex items-center justify-between gap-3">
+          <section className="rounded-[2rem] border border-primary/10 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900 md:p-6">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Hosted Paymob checkout</h2>
-                <p className="mt-1 text-sm text-slate-500">You will be redirected to Paymob to complete this payment securely in EGP.</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Payment summary</p>
+                <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Pay securely with Paymob</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                  You will be redirected to Paymob&apos;s hosted checkout to complete this payment securely. Carto only receives payment confirmation after verification.
+                </p>
               </div>
-              <span className="material-symbols-outlined text-primary">lock</span>
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <span className="material-symbols-outlined">lock</span>
+              </div>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Order summary</p>
-                <div className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                  <p>Receipt ID: {receipt.id.slice(-6).toUpperCase()}</p>
-                  <p>Currency: {DEMO_PAYMENT_CURRENCY}</p>
-                  <p>Demo payment amount: {demoAmountLabel}</p>
-                  <p>Payment status: {receipt.paymentStatus || 'PENDING'}</p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-[1.75rem] border border-primary/10 bg-[#fffaf8] p-5 shadow-sm">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Amount to pay</p>
+                <p className="mt-3 text-4xl font-black tracking-tight text-slate-950">{demoAmountLabel}</p>
+                <p className="mt-2 text-sm text-slate-500">One secure demo payment through Paymob hosted checkout.</p>
+              </div>
+              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Payment status</p>
+                <p className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">{paymentStatusCopy.label}</p>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{paymentStatusCopy.description}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-[1.75rem] border border-primary/10 bg-white p-5 shadow-sm">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Receipt number</p>
+                  <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">#{receiptReference}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Payment method</p>
+                  <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">Paymob hosted checkout</p>
                 </div>
               </div>
-              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">What happens next</p>
-                <div className="mt-3 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-                <p>Paymob will handle the card or wallet screen outside the app.</p>
-                <p>Your receipt history updates only after the backend receives the final payment confirmation.</p>
-                <p>If Paymob returns you before the webhook finishes, Carto will keep checking the payment status automatically.</p>
+
+              <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600 dark:bg-slate-950 dark:text-slate-300">
+                Your card and wallet details are handled by Paymob. Carto keeps your receipt pending until the payment webhook is verified.
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900 md:p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">What happens next</p>
+            <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">A clean handoff to secure payment</h3>
+            <div className="mt-5 space-y-3">
+              <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-white">1</span>
+                <div>
+                  <p className="font-black text-slate-950 dark:text-slate-100">Continue to Paymob</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Tap the checkout button and Carto will open Paymob&apos;s hosted payment page.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-white">2</span>
+                <div>
+                  <p className="font-black text-slate-950 dark:text-slate-100">Paymob handles the secure step</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Your card or wallet details stay inside Paymob&apos;s checkout experience, not inside Carto.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-white">3</span>
+                <div>
+                  <p className="font-black text-slate-950 dark:text-slate-100">Carto confirms payment after verification</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Your receipt is marked paid only after the backend verifies Paymob&apos;s final webhook callback.</p>
                 </div>
               </div>
             </div>
@@ -262,43 +332,62 @@ function CheckoutContent() {
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <ReceiptPanel>
             <div className="p-5 md:p-6">
-              <Badge variant="success">Receipt summary</Badge>
+              <Badge className="bg-primary/10 text-primary ring-primary/10">Receipt summary</Badge>
               <h2 className="mt-4 text-2xl font-black text-slate-950 dark:text-slate-100">Carto checkout</h2>
-              <p className="mt-1 text-sm text-slate-500">Receipt #{receipt.id.slice(-6).toUpperCase()}</p>
+              <p className="mt-1 text-sm text-slate-500">Receipt #{receiptReference}</p>
             </div>
 
             <div className="space-y-4 border-y border-dashed border-slate-200 p-5 dark:border-slate-800 md:p-6">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Demo checkout amount</span>
-                <span className="font-bold">{demoAmountLabel}</span>
+              <div className="rounded-[1.5rem] border border-primary/10 bg-[#fffaf8] p-4 shadow-sm">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Secure Paymob payment</p>
+                <p className="mt-3 text-3xl font-black tracking-tight text-slate-950">{demoAmountLabel}</p>
+                <p className="mt-2 text-sm text-slate-500">Redirects to Paymob hosted checkout for secure card or wallet payment.</p>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Platform fee</span>
-                <span className="font-bold">{formatPaymentCurrency(0, DEMO_PAYMENT_CURRENCY)}</span>
+
+              <div className="rounded-[1.5rem] bg-slate-50 p-4 dark:bg-slate-950/70">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Items</span>
+                  <span className="font-bold text-slate-950 dark:text-slate-100">Demo checkout amount</span>
+                </div>
+                <div className="mt-4 flex justify-between text-sm">
+                  <span className="text-slate-500">Subtotal</span>
+                  <span className="font-bold text-slate-950 dark:text-slate-100">{demoAmountLabel}</span>
+                </div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Estimated tax</span>
-                <span className="font-bold">{formatPaymentCurrency(0, DEMO_PAYMENT_CURRENCY)}</span>
+
+              <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-black text-slate-950 dark:text-slate-100">Total</span>
+                  <span className="text-3xl font-black text-primary">{demoAmountLabel}</span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                  No delivery fee or service fee is added to this demo checkout.
+                </p>
               </div>
             </div>
 
-            <div className="bg-slate-50 p-5 dark:bg-slate-950/50 md:p-6">
-              <div className="flex items-end justify-between">
-                <span className="text-base font-black text-slate-950 dark:text-slate-100">Total Amount</span>
-                <span className="text-3xl font-black text-primary">{demoAmountLabel}</span>
+            <div className="bg-[#fffaf8] p-5 dark:bg-slate-950/50 md:p-6">
+              <div className="rounded-[1.5rem] border border-primary/10 bg-white p-4 shadow-sm dark:bg-slate-950">
+                <p className="text-sm font-black text-slate-950 dark:text-slate-100">Ready to continue?</p>
+                <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                  Paymob handles the secure payment screen. Carto only updates your receipt after verification.
+                </p>
               </div>
-              <div className="mt-5 flex items-center justify-center gap-2 text-xs font-bold text-slate-400">
-                <span className="material-symbols-outlined text-sm">encrypted</span>
-                Test mode payment through Paymob
-              </div>
-              <Button size="lg" className="mt-4 w-full" onClick={handlePayment} disabled={isProcessing}>
+
+              <Button
+                size="lg"
+                className="mt-4 h-12 w-full rounded-2xl shadow-sm shadow-primary/20"
+                onClick={handlePayment}
+                disabled={isProcessing}
+              >
                 {isProcessing ? 'Opening Paymob...' : 'Continue to Paymob Checkout'}
               </Button>
+
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12 rounded-2xl"
+                  className="h-12 rounded-2xl border-primary/20 bg-white text-primary hover:border-primary/35 hover:bg-primary/5 dark:border-primary/25 dark:bg-slate-950"
                   onClick={() => router.push(sessionHref)}
                   disabled={isProcessing || isDisconnecting}
                 >
@@ -307,7 +396,7 @@ function CheckoutContent() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12 rounded-2xl border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
+                  className="h-12 rounded-2xl border-red-200 bg-white text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:bg-slate-950 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
                   onClick={() => void handleDisconnect()}
                   disabled={isProcessing || isDisconnecting}
                 >
@@ -319,14 +408,18 @@ function CheckoutContent() {
         </aside>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white p-4 shadow-[0_-14px_30px_rgba(114,47,55,0.12)] dark:border-slate-800 dark:bg-slate-950 lg:hidden">
-        <div className="mx-auto flex max-w-lg items-center gap-3">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200/80 bg-white/95 px-4 pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur pb-[calc(env(safe-area-inset-bottom)+12px)] dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
+        <div className="mx-auto flex max-w-md items-center gap-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Total</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Total</p>
             <p className="text-2xl font-black text-slate-950 dark:text-slate-100">{demoAmountLabel}</p>
           </div>
-          <Button onClick={handlePayment} disabled={isProcessing || isDisconnecting}>
-            {isProcessing ? 'Opening' : 'Continue to Paymob'}
+          <Button
+            onClick={handlePayment}
+            disabled={isProcessing || isDisconnecting}
+            className="h-12 shrink-0 rounded-2xl px-5 text-sm font-bold shadow-sm shadow-primary/20"
+          >
+            {isProcessing ? 'Opening Paymob...' : 'Continue to Paymob'}
           </Button>
         </div>
       </div>
