@@ -4,7 +4,7 @@ import { RequestOwner, ownerCreateData, ownerWhere } from '@/lib/guest-session';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { buildCartCodeLookupWhere, normalizeCartCode } from '@/lib/cart-code';
 import { buildCurrentCustomerCartSessionWhere } from '@/lib/current-cart-session';
-import { buildReceiptItemsFromListItems, calculateReceiptTotals, type ReceiptLineInput } from '@/lib/receipt-items';
+import { calculateReceiptTotals, type ReceiptLineInput } from '@/lib/receipt-items';
 import { ApiErrorResponse } from '../api-response';
 
 const DEFAULT_ACTIVE_SESSION_TIMEOUT_MS = 2 * 60 * 60 * 1000;
@@ -57,41 +57,25 @@ function getActiveSessionTimeoutMs() {
 }
 
 async function ensureReceiptContent(
-  tx: Prisma.TransactionClient,
   cartSession: SessionWithReceipt
 ) {
-  const fallbackReceiptItems = buildReceiptItemsFromListItems(cartSession.shoppingList?.items ?? []);
-
   if (cartSession.receipt) {
-    let receiptItems: ReceiptLineInput[] = cartSession.receipt.items.map((item) => ({
+    const receiptItems: ReceiptLineInput[] = cartSession.receipt.items.map((item) => ({
       name: item.name,
       quantity: item.quantity,
       price: item.price,
       category: item.category ?? null,
     }));
 
-    if (receiptItems.length === 0 && fallbackReceiptItems.length > 0) {
-      await tx.receiptItem.createMany({
-        data: fallbackReceiptItems.map((item) => ({
-          receiptId: cartSession.receipt!.id,
-          ...item,
-        })),
-      });
-
-      receiptItems = fallbackReceiptItems;
-    }
-
     return {
       receiptId: cartSession.receipt.id,
       receiptItems,
-      fallbackReceiptItems,
     };
   }
 
   return {
     receiptId: null,
-    receiptItems: fallbackReceiptItems,
-    fallbackReceiptItems,
+    receiptItems: [],
   };
 }
 
@@ -131,7 +115,7 @@ export class CartSessionService {
       const ownerData = cartSession.userId
         ? ownerCreateData({ type: 'user', userId: cartSession.userId })
         : ownerCreateData({ type: 'guest', guestSessionId: cartSession.guestSessionId! });
-      const receiptContent = await ensureReceiptContent(tx, cartSession);
+      const receiptContent = await ensureReceiptContent(cartSession);
       const receiptTotals = calculateReceiptTotals(receiptContent.receiptItems);
 
       if (receiptContent.receiptId && cartSession.receipt) {
@@ -170,9 +154,6 @@ export class CartSessionService {
           subtotal: receiptTotals.subtotal,
           tax: receiptTotals.tax,
           total: receiptTotals.total,
-          items: {
-            create: receiptContent.fallbackReceiptItems,
-          },
         },
       });
     });
@@ -229,7 +210,7 @@ export class CartSessionService {
     });
 
     let receiptId = cartSession.receipt?.id ?? null;
-    const receiptContent = await ensureReceiptContent(tx, cartSession);
+    const receiptContent = await ensureReceiptContent(cartSession);
 
     if (cartSession.receipt) {
       const { subtotal, tax, total } = calculateReceiptTotals(receiptContent.receiptItems);
@@ -277,9 +258,6 @@ export class CartSessionService {
           subtotal: receiptTotals.subtotal,
           tax: receiptTotals.tax,
           total: receiptTotals.total,
-          items: {
-            create: receiptContent.fallbackReceiptItems,
-          },
         },
       });
 

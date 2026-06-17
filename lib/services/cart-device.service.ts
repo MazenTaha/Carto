@@ -96,6 +96,8 @@ type DeviceSessionSnapshot = {
   receipt: {
     id: string;
     status: string;
+    subtotal: number;
+    tax: number;
     total: number;
     currency?: string;
     paymentStatus?: string | null;
@@ -255,12 +257,19 @@ export class CartDeviceService {
     session: DeviceSessionSnapshot
   ) {
     const canonicalCartCode = normalizeCartCode(cart.cartCode);
+    const actualItems = session.receipt?.items ?? [];
     const payment = DevicePaymentService.buildActiveSessionPaymentSummary({
       receipt: session.receipt,
     });
     const receipt = session.receipt
       ? {
-          ...session.receipt,
+          id: session.receipt.id,
+          status: session.receipt.status,
+          paymentStatus: session.receipt.paymentStatus ?? 'PENDING',
+          subtotal: session.receipt.subtotal ?? 0,
+          tax: session.receipt.tax ?? 0,
+          total: session.receipt.total ?? 0,
+          items: actualItems,
           currency: PAYMOB_CURRENCY,
         }
       : null;
@@ -285,7 +294,7 @@ export class CartDeviceService {
           checked: item.isCollected,
         })),
       },
-      cartItems: session.receipt?.items ?? [],
+      cartItems: actualItems,
       total: receipt?.total ?? 0,
       paymentStatus: payment?.status ?? receipt?.paymentStatus ?? null,
       payment,

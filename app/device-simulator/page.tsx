@@ -182,7 +182,6 @@ export default function DeviceSimulatorPage() {
   const [paymentQrData, setPaymentQrData] = useState<PaymentQrResponse | null>(null);
   const [paymentStatusData, setPaymentStatusData] = useState<PaymentStatusResponse | null>(null);
   const [paymentError, setPaymentError] = useState<string>('');
-  const [paymentAmountInput, setPaymentAmountInput] = useState<string>('1');
   const [isGeneratingPaymentQr, setIsGeneratingPaymentQr] = useState(false);
   const [isCheckingPaymentStatus, setIsCheckingPaymentStatus] = useState(false);
   const paymentCompletionHandledRef = useRef(false);
@@ -285,12 +284,7 @@ export default function DeviceSimulatorPage() {
   const activeCartSessionId = activeDeviceData?.cartSessionId || null;
   const activeReceiptStatus = activeDeviceData?.receipt?.status || null;
   const activeSessionStatus = activeDeviceData?.session.status || null;
-  const parsedPaymentAmountInput = Number(paymentAmountInput);
-  const effectivePaymentAmount = activeDeviceData?.receipt?.total && activeDeviceData.receipt.total > 0
-    ? activeDeviceData.receipt.total
-    : Number.isFinite(parsedPaymentAmountInput) && parsedPaymentAmountInput > 0
-      ? parsedPaymentAmountInput
-      : 1;
+  const effectivePaymentAmount = activeDeviceData?.receipt?.total ?? 0;
   const paymentQrExpiresAtLabel = paymentQrData?.expiresAt
     ? new Date(paymentQrData.expiresAt).toLocaleTimeString()
     : null;
@@ -893,21 +887,12 @@ export default function DeviceSimulatorPage() {
                             <p className="mt-1 text-sm text-slate-400">
                               {deviceData.receipt?.total && deviceData.receipt.total > 0
                                 ? 'Using the live receipt total from the cart device.'
-                                : 'Receipt total is zero, so the simulator will send a small demo amount unless you override it.'}
+                                : 'Receipt total is EGP 0.00. Payment QR generation will fail until scanned items are added to the receipt.'}
                             </p>
                           </div>
-                          <div className="min-w-[148px]">
-                            <input
-                              type="number"
-                              min="1"
-                              step="0.01"
-                              value={paymentAmountInput}
-                              onChange={(event) => setPaymentAmountInput(event.target.value)}
-                              disabled={(deviceData.receipt?.total || 0) > 0 || isGeneratingPaymentQr}
-                              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-right text-sm font-semibold text-white disabled:opacity-50"
-                              placeholder="1.00"
-                            />
-                          </div>
+                          <span className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-semibold text-white">
+                            {formatDeviceMoney(effectivePaymentAmount)}
+                          </span>
                         </div>
                         <div className="mt-3 flex items-center justify-between text-sm">
                           <span className="text-slate-500">Amount sent in POST body</span>

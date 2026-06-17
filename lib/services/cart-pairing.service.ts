@@ -5,7 +5,6 @@ import { RequestOwner, ownerCreateData, ownerWhere } from '@/lib/guest-session';
 import { ACTIVE_CART_SESSION_STATUSES } from '@/lib/cart-session-status';
 import { buildCartCodeLookupWhere, normalizeCartCode } from '@/lib/cart-code';
 import { buildCurrentCustomerCartSessionWhere, isCurrentCustomerSessionLive } from '@/lib/current-cart-session';
-import { buildReceiptItemsFromListItems, calculateReceiptTotals } from '@/lib/receipt-items';
 import { ApiErrorResponse } from '../api-response';
 import { CartConnectionService } from './cart-connection.service';
 import { EMPTY_LIST_MESSAGE } from '@/lib/list-constants';
@@ -240,11 +239,8 @@ export class CartPairingService {
           items: {
             select: {
               id: true,
-              name: true,
-              quantity: true,
-              price: true,
-              category: true,
             },
+            take: 1,
           },
         },
       });
@@ -256,9 +252,6 @@ export class CartPairingService {
       if (list.items.length === 0) {
         throw new ApiErrorResponse(EMPTY_LIST_MESSAGE, 409, 'EMPTY_LIST');
       }
-
-      const receiptItems = buildReceiptItemsFromListItems(list.items);
-      const receiptTotals = calculateReceiptTotals(receiptItems);
 
       // 2. Find and validate the physical cart
       const cart = await tx.cart.findFirst({
@@ -403,12 +396,9 @@ export class CartPairingService {
               status: 'DRAFT',
               paymentMethod: 'CARD',
               paymentStatus: 'PENDING',
-              subtotal: receiptTotals.subtotal,
-              tax: receiptTotals.tax,
-              total: receiptTotals.total,
-              items: {
-                create: receiptItems,
-              },
+              subtotal: 0,
+              tax: 0,
+              total: 0,
             },
           },
         },

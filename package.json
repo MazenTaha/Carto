@@ -22,7 +22,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:seed:admins": "tsx prisma/seed-admins.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "debug:verify-cart-session": "tsx scripts/verify-cart-session-separation.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.19.0",

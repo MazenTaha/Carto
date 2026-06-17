@@ -314,6 +314,14 @@ async function lockActiveReceiptForDeviceCheckout(
     throw new ApiErrorResponse('Payment for this receipt has already been completed.', 409, 'PAYMENT_ALREADY_COMPLETED');
   }
 
+  if (cartSession.receipt.items.length === 0) {
+    throw new ApiErrorResponse(
+      'Cannot generate payment QR because no scanned items have been added to the receipt.',
+      400,
+      'INVALID_RECEIPT_TOTAL',
+    );
+  }
+
   const normalizedCurrency = (input.currency || PAYMOB_CURRENCY).trim().toUpperCase() || PAYMOB_CURRENCY;
 
   if (normalizedCurrency !== PAYMOB_CURRENCY) {
@@ -387,6 +395,14 @@ export class DevicePaymentService {
 
     if (!receipt) {
       throw new ApiErrorResponse('Receipt is not ready for payment.', 409, 'RECEIPT_NOT_READY');
+    }
+
+    if (receipt.items.length === 0) {
+      throw new ApiErrorResponse(
+        'Cannot generate payment QR because no scanned items have been added to the receipt.',
+        400,
+        'INVALID_RECEIPT_TOTAL',
+      );
     }
 
     const normalizedCurrency = (input.currency || PAYMOB_CURRENCY).trim().toUpperCase() || PAYMOB_CURRENCY;
