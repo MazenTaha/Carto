@@ -154,6 +154,14 @@ function formatDeviceMoney(amount: number, currency = 'EGP') {
   return formatCurrency(amount, currency);
 }
 
+function normalizeItemName(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function hasValidPositivePrice(price: number | null | undefined) {
+  return Number.isFinite(price) && Number(price) > 0;
+}
+
 const jsonFetcher = async ([url, deviceSecret]: [string, string]) => {
   const response = await fetch(url, {
     headers: {
@@ -182,6 +190,13 @@ export default function DeviceSimulatorPage() {
   const [paymentQrData, setPaymentQrData] = useState<PaymentQrResponse | null>(null);
   const [paymentStatusData, setPaymentStatusData] = useState<PaymentStatusResponse | null>(null);
   const [paymentError, setPaymentError] = useState<string>('');
+  const [demoPriceInput, setDemoPriceInput] = useState('1.00');
+  const [isAddingListedItems, setIsAddingListedItems] = useState(false);
+  const [showAddListedItemsDialog, setShowAddListedItemsDialog] = useState(false);
+  const [listedItemsNotice, setListedItemsNotice] = useState<{
+    tone: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
   const [isGeneratingPaymentQr, setIsGeneratingPaymentQr] = useState(false);
   const [isCheckingPaymentStatus, setIsCheckingPaymentStatus] = useState(false);
   const paymentCompletionHandledRef = useRef(false);
@@ -288,6 +303,54 @@ export default function DeviceSimulatorPage() {
   const paymentQrExpiresAtLabel = paymentQrData?.expiresAt
     ? new Date(paymentQrData.expiresAt).toLocaleTimeString()
     : null;
+  const plannedShoppingListItems = useMemo(
+    () => activeDeviceData?.shoppingList.items ?? [],
+    [activeDeviceData?.shoppingList.items]
+  );
+  const currentReceiptItems = useMemo(
+    () => activeDeviceData?.receipt?.items ?? [],
+    [activeDeviceData?.receipt?.items]
+  );
+  const parsedDemoPrice = Number(demoPriceInput);
+  const hasValidDemoPrice = Number.isFinite(parsedDemoPrice) && parsedDemoPrice > 0;
+  const currentReceiptItemNames = useMemo(
+    () => new Set(currentReceiptItems.map((item) => normalizeItemName(item.name))),
+    [currentReceiptItems]
+  );
+  const listedItemsToAdd = useMemo(
+    () => plannedShoppingListItems.filter((item) => !currentReceiptItemNames.has(normalizeItemName(item.name))),
+    [currentReceiptItemNames, plannedShoppingListItems]
+  );
+  const listedItemsAlreadyInReceiptCount = plannedShoppingListItems.length - listedItemsToAdd.length;
+  const listedItemsMissingPriceCount = useMemo(
+    () => listedItemsToAdd.filter((item) => !hasValidPositivePrice(item.price)).length,
+    [listedItemsToAdd]
+  );
+  const receiptIsPaidOrCompleted =
+    activeDeviceData?.receipt?.status === 'PAID' ||
+    activeDeviceData?.receipt?.paymentStatus === 'COMPLETED' ||
+    activeDeviceData?.payment?.status === 'PAID';
+  const receiptIsLocked = activeDeviceData?.receipt?.status === 'LOCKED';
+
+  let addListedItemsDisabledReason: string | null = null;
+
+  if (!isActive) {
+    addListedItemsDisabledReason = 'No active session is available for this cart.';
+  } else if (!trimmedCartCode || !trimmedDeviceSecret) {
+    addListedItemsDisabledReason = 'Connect the simulator with a valid cart code and device secret first.';
+  } else if (!activeDeviceData?.receipt?.id) {
+    addListedItemsDisabledReason = 'No active receipt exists for this session.';
+  } else if (receiptIsPaidOrCompleted) {
+    addListedItemsDisabledReason = 'The receipt has already been paid or payment is completed.';
+  } else if (receiptIsLocked) {
+    addListedItemsDisabledReason = 'The receipt is locked for checkout and cannot accept more items.';
+  } else if (plannedShoppingListItems.length === 0) {
+    addListedItemsDisabledReason = 'No shopping list items are available to add.';
+  } else if (listedItemsToAdd.length === 0) {
+    addListedItemsDisabledReason = 'All listed items are already in the receipt.';
+  } else if (listedItemsMissingPriceCount > 0 && !hasValidDemoPrice) {
+    addListedItemsDisabledReason = 'Enter a valid demo price for listed items that do not have a price yet.';
+  }
 
   const qrKey = useMemo(
     () =>
@@ -323,6 +386,8 @@ export default function DeviceSimulatorPage() {
       setPaymentQrData(null);
       setPaymentStatusData(null);
       setPaymentError('');
+      setListedItemsNotice(null);
+      setShowAddListedItemsDialog(false);
       paymentCompletionHandledRef.current = false;
       return;
     }
@@ -331,6 +396,8 @@ export default function DeviceSimulatorPage() {
       setPaymentQrData(null);
       setPaymentStatusData(null);
       setPaymentError('');
+      setListedItemsNotice(null);
+      setShowAddListedItemsDialog(false);
       paymentCompletionHandledRef.current = false;
     }
   }, [activeDeviceData?.cartSessionId, isActive, paymentQrData?.cartSessionId]);
@@ -481,6 +548,128 @@ export default function DeviceSimulatorPage() {
     effectivePaymentAmount,
     isActive,
     isGeneratingPaymentQr,
+    trimmedCartCode,
+    trimmedDeviceSecret,
+  ]);
+
+  const handleConfirmAddListedItems = useCallback(async () => {
+    if (!isActive || !trimmedCartCode || !trimmedDeviceSecret || isAddingListedItems) {
+      return;
+    }
+
+    if (addListedItemsDisabledReason) {
+      setListedItemsNotice({
+        tone: 'error',
+        message: addListedItemsDisabledReason,
+      });
+      return;
+    }
+
+    const itemsToAdd = listedItemsToAdd.map((item) => ({
+      name: item.name,
+      quantity: item.quantity,
+      category: item.category,
+      price: hasValidPositivePrice(item.price) ? item.price : parsedDemoPrice,
+    }));
+
+    setIsAddingListedItems(true);
+    setShowAddListedItemsDialog(false);
+    setListedItemsNotice(null);
+    setPaymentError('');
+    setPaymentQrData(null);
+    setPaymentStatusData(null);
+    paymentCompletionHandledRef.current = false;
+
+    const responseStatuses: number[] = [];
+    let latestPayload: DeviceResponse | null = null;
+
+    appendLog(`Adding ${itemsToAdd.length} listed item${itemsToAdd.length === 1 ? '' : 's'} to receipt...`);
+    console.info('[DeviceSimulator] add-listed-items start', {
+      cartCode: trimmedCartCode,
+      itemCount: itemsToAdd.length,
+    });
+
+    try {
+      for (const item of itemsToAdd) {
+        const response = await fetch(`/api/carts/${encodeURIComponent(trimmedCartCode)}/items`, {
+          method: 'POST',
+          cache: 'no-store',
+          headers: {
+            Authorization: `Bearer ${trimmedDeviceSecret}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            category: item.category ?? undefined,
+          }),
+        });
+
+        responseStatuses.push(response.status);
+        console.info('[DeviceSimulator] add-listed-items response', {
+          cartCode: trimmedCartCode,
+          itemCount: itemsToAdd.length,
+          status: response.status,
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data?.success === false) {
+          throw new Error(
+            getApiErrorMessage(
+              data,
+              'Could not add listed items to receipt. Check the device secret and active session.'
+            )
+          );
+        }
+
+        latestPayload = data.data as DeviceResponse;
+      }
+
+      if (latestPayload) {
+        await refreshDevice(latestPayload, { revalidate: false });
+      }
+
+      await refreshDevice();
+
+      const nextMessage =
+        listedItemsAlreadyInReceiptCount > 0
+          ? `Listed items added to receipt. Payment QR can now be generated. ${listedItemsAlreadyInReceiptCount} item${listedItemsAlreadyInReceiptCount === 1 ? ' was' : 's were'} already in the receipt and skipped.`
+          : 'Listed items added to receipt. Payment QR can now be generated.';
+
+      setListedItemsNotice({
+        tone: 'success',
+        message: nextMessage,
+      });
+      appendLog(`Listed items added to receipt. ${listedItemsAlreadyInReceiptCount > 0 ? `Skipped ${listedItemsAlreadyInReceiptCount} existing item${listedItemsAlreadyInReceiptCount === 1 ? '' : 's'}.` : 'Payment QR is ready to generate.'}`);
+      console.info('[DeviceSimulator] add-listed-items complete', {
+        cartCode: trimmedCartCode,
+        itemCount: itemsToAdd.length,
+        responseStatuses,
+      });
+    } catch (error: any) {
+      const message =
+        error?.message || 'Could not add listed items to receipt. Check the device secret and active session.';
+
+      setListedItemsNotice({
+        tone: 'error',
+        message,
+      });
+      appendLog(`Listed-item sync failed: ${message}`);
+      await refreshDevice();
+    } finally {
+      setIsAddingListedItems(false);
+    }
+  }, [
+    addListedItemsDisabledReason,
+    appendLog,
+    isActive,
+    isAddingListedItems,
+    listedItemsAlreadyInReceiptCount,
+    listedItemsToAdd,
+    parsedDemoPrice,
+    refreshDevice,
     trimmedCartCode,
     trimmedDeviceSecret,
   ]);
@@ -861,6 +1050,86 @@ export default function DeviceSimulatorPage() {
                           ))}
                         </ul>
                       )}
+                      <div className="mt-6 space-y-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-4">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                            Demo receipt sync
+                          </p>
+                          <p className="mt-1 text-sm text-slate-400">
+                            This simulator-only action calls the real cart item API to confirm planned items into the receipt for testing.
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                            Demo price for listed items without price
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <span className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-300">
+                              EGP
+                            </span>
+                            <input
+                              type="number"
+                              min="0.01"
+                              step="0.01"
+                              value={demoPriceInput}
+                              onChange={(event) => setDemoPriceInput(event.target.value)}
+                              disabled={isAddingListedItems}
+                              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                              placeholder="1.00"
+                            />
+                          </div>
+                          <p className="mt-2 text-xs text-slate-500">
+                            Used only when a planned list item does not already have a valid price.
+                          </p>
+                          {listedItemsMissingPriceCount > 0 && !hasValidDemoPrice && (
+                            <p className="mt-2 text-xs text-red-300">
+                              Enter a valid positive demo price before adding listed items to the receipt.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3 text-xs text-slate-400">
+                          <p>{listedItemsToAdd.length} listed item{listedItemsToAdd.length === 1 ? '' : 's'} ready to add.</p>
+                          {listedItemsAlreadyInReceiptCount > 0 && (
+                            <p className="mt-1">
+                              {listedItemsAlreadyInReceiptCount} item{listedItemsAlreadyInReceiptCount === 1 ? '' : 's'} already exist in the receipt and will be skipped.
+                            </p>
+                          )}
+                          {listedItemsMissingPriceCount > 0 && (
+                            <p className="mt-1">
+                              {listedItemsMissingPriceCount} item{listedItemsMissingPriceCount === 1 ? '' : 's'} will use the demo fallback price of {hasValidDemoPrice ? formatDeviceMoney(parsedDemoPrice) : 'a valid price'}.
+                            </p>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowAddListedItemsDialog(true)}
+                          disabled={Boolean(addListedItemsDisabledReason) || isAddingListedItems}
+                          className="w-full rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isAddingListedItems ? 'Adding listed items to receipt...' : 'Add listed items to receipt'}
+                        </button>
+
+                        {addListedItemsDisabledReason && (
+                          <p className="text-xs text-slate-500">{addListedItemsDisabledReason}</p>
+                        )}
+
+                        {listedItemsNotice && (
+                          <div
+                            className={`rounded-xl px-4 py-3 text-sm ${
+                              listedItemsNotice.tone === 'success'
+                                ? 'bg-emerald-500/15 text-emerald-200'
+                                : listedItemsNotice.tone === 'error'
+                                  ? 'bg-red-500/15 text-red-200'
+                                  : 'bg-slate-800 text-slate-200'
+                            }`}
+                          >
+                            {listedItemsNotice.message}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex min-h-0 flex-col rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
@@ -990,6 +1259,48 @@ export default function DeviceSimulatorPage() {
           </div>
         </div>
       </div>
+
+      {showAddListedItemsDialog && isActive && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4">
+          <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+            <h2 className="text-xl font-bold text-white">Add listed items to receipt</h2>
+            <p className="mt-3 text-sm text-slate-300">
+              This will simulate scanning all planned shopping list items and add them to the receipt. Continue?
+            </p>
+
+            <div className="mt-4 space-y-2 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-300">
+              <p>{listedItemsToAdd.length} listed item{listedItemsToAdd.length === 1 ? '' : 's'} will be added.</p>
+              {listedItemsAlreadyInReceiptCount > 0 && (
+                <p>{listedItemsAlreadyInReceiptCount} item{listedItemsAlreadyInReceiptCount === 1 ? '' : 's'} already in the receipt will be skipped.</p>
+              )}
+              {listedItemsMissingPriceCount > 0 && (
+                <p>
+                  {listedItemsMissingPriceCount} item{listedItemsMissingPriceCount === 1 ? '' : 's'} will use the demo fallback price of {formatDeviceMoney(hasValidDemoPrice ? parsedDemoPrice : 0)}.
+                </p>
+              )}
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAddListedItemsDialog(false)}
+                disabled={isAddingListedItems}
+                className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmAddListedItems()}
+                disabled={isAddingListedItems}
+                className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-amber-400 disabled:opacity-50"
+              >
+                {isAddingListedItems ? 'Adding listed items to receipt...' : 'Confirm add items'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }
