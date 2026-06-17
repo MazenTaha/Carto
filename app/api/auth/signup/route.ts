@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
 import { signUpSchema } from '@/lib/validations';
-import { errorResponse, successResponse } from '@/lib/api-response';
+import { noStoreErrorResponse, noStoreSuccessResponse } from '@/lib/http-cache';
 import { getPrismaConnectivityMessage } from '@/lib/prisma-errors';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      return errorResponse('An account with that email already exists.', 409, 'EMAIL_IN_USE');
+      return noStoreErrorResponse('An account with that email already exists.', 409, 'EMAIL_IN_USE');
     }
 
     const hashedPassword = await hashPassword(validatedData.password);
@@ -41,23 +41,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return successResponse(user, 201);
+    return noStoreSuccessResponse(user, 201);
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return errorResponse(error.errors[0]?.message || 'Invalid signup details', 400, 'VALIDATION_ERROR');
+      return noStoreErrorResponse(error.errors[0]?.message || 'Invalid signup details', 400, 'VALIDATION_ERROR');
     }
 
     if (error?.code === 'P2002') {
-      return errorResponse('An account with that email already exists.', 409, 'EMAIL_IN_USE');
+      return noStoreErrorResponse('An account with that email already exists.', 409, 'EMAIL_IN_USE');
     }
 
     const databaseMessage = getPrismaConnectivityMessage(error);
     if (databaseMessage) {
-      return errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
+      return noStoreErrorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
     }
 
     console.error('Signup error:', error);
-    return errorResponse('Unable to create account with these details', 500, 'SIGNUP_FAILED');
+    return noStoreErrorResponse('Unable to create account with these details', 500, 'SIGNUP_FAILED');
   }
 }
 

@@ -3,11 +3,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
+import { withNoStoreHeaders } from '@/lib/http-cache';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = "nodejs";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // GET /api/users/stats - Get or create user stats
 export async function GET(request: NextRequest) {
@@ -15,7 +17,7 @@ export async function GET(request: NextRequest) {
         const session = await getServerSession(authOptions);
 
         if (!session) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return withNoStoreHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
         }
 
         // Upsert: return existing stats or create new ones
@@ -30,12 +32,14 @@ export async function GET(request: NextRequest) {
             },
         });
 
-        return NextResponse.json({ success: true, data: stats });
+        return withNoStoreHeaders(NextResponse.json({ success: true, data: stats }));
     } catch (error) {
         console.error('Error fetching user stats:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch user stats' },
-            { status: 500 }
+        return withNoStoreHeaders(
+            NextResponse.json(
+                { error: 'Failed to fetch user stats' },
+                { status: 500 }
+            )
         );
     }
 }

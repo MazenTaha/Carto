@@ -3,12 +3,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
+import { withNoStoreHeaders } from '@/lib/http-cache';
 import { prisma } from '@/lib/prisma';
 import { markNotificationsReadSchema } from '@/lib/validations';
 
 export const runtime = "nodejs";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // GET /api/notifications - List user's notifications
 export async function GET(request: NextRequest) {
@@ -16,7 +18,7 @@ export async function GET(request: NextRequest) {
         const session = await getServerSession(authOptions);
 
         if (!session) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return withNoStoreHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
         }
 
         const { searchParams } = new URL(request.url);
@@ -39,18 +41,22 @@ export async function GET(request: NextRequest) {
             }),
         ]);
 
-        return NextResponse.json({
-            success: true,
-            data: {
-                notifications,
-                unreadCount,
-            },
-        });
+        return withNoStoreHeaders(
+            NextResponse.json({
+                success: true,
+                data: {
+                    notifications,
+                    unreadCount,
+                },
+            })
+        );
     } catch (error) {
         console.error('Error fetching notifications:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch notifications' },
-            { status: 500 }
+        return withNoStoreHeaders(
+            NextResponse.json(
+                { error: 'Failed to fetch notifications' },
+                { status: 500 }
+            )
         );
     }
 }
@@ -61,7 +67,7 @@ export async function PUT(request: NextRequest) {
         const session = await getServerSession(authOptions);
 
         if (!session) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return withNoStoreHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
         }
 
         const body = await request.json();
@@ -75,19 +81,23 @@ export async function PUT(request: NextRequest) {
             data: { isRead: true },
         });
 
-        return NextResponse.json({ success: true });
+        return withNoStoreHeaders(NextResponse.json({ success: true }));
     } catch (error: any) {
         if (error.name === 'ZodError') {
-            return NextResponse.json(
-                { error: error.errors[0].message },
-                { status: 400 }
+            return withNoStoreHeaders(
+                NextResponse.json(
+                    { error: error.errors[0].message },
+                    { status: 400 }
+                )
             );
         }
 
         console.error('Error marking notifications read:', error);
-        return NextResponse.json(
-            { error: 'Failed to update notifications' },
-            { status: 500 }
+        return withNoStoreHeaders(
+            NextResponse.json(
+                { error: 'Failed to update notifications' },
+                { status: 500 }
+            )
         );
     }
 }

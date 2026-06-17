@@ -22,6 +22,7 @@ import { formatCurrency } from '@/lib/utils';
 
 const STORAGE_KEY = 'carto_device_simulator_config_v2';
 const LEGACY_STORAGE_KEY = 'carto_device_simulator_config';
+// Demo-only simulator state. Persisted device secrets here are not a production auth pattern.
 const DEFAULT_SIMULATOR_PRESET = getDefaultSimulatorCartPreset();
 const KNOWN_PRESET_SECRETS = new Set(DEMO_CART_PRESETS.map((preset) => preset.deviceSecret));
 const LEGACY_CART_02_DEVICE_SECRET = 'dev-device-secret-02';
@@ -168,6 +169,7 @@ function hasValidPositivePrice(price: number | null | undefined) {
 
 const jsonFetcher = async ([url, deviceSecret]: [string, string]) => {
   const response = await fetch(url, {
+    cache: 'no-store',
     headers: {
       Authorization: `Bearer ${deviceSecret}`,
       'Cache-Control': 'no-cache',

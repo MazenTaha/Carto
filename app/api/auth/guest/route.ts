@@ -7,7 +7,8 @@ import {
   renewGuestSession,
   setGuestSessionCookie,
 } from '@/lib/guest-session';
-import { errorResponse, successResponse } from '@/lib/api-response';
+import { successResponse } from '@/lib/api-response';
+import { noStoreErrorResponse, noStoreSuccessResponse, withNoStoreHeaders } from '@/lib/http-cache';
 import { getPrismaConnectivityMessage, logSafeDatabaseError } from '@/lib/prisma-errors';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ export async function POST() {
     const userId = await getAuthenticatedUserId();
 
     if (userId) {
-      return successResponse({
+      return noStoreSuccessResponse({
         guestSessionId: null,
         reused: false,
         redirectTo: '/dashboard',
@@ -31,7 +32,7 @@ export async function POST() {
       ? await renewGuestSession(existingGuestSession.id)
       : await createGuestSession();
 
-    const response = successResponse({
+    const response = noStoreSuccessResponse({
       guestSessionId: guestSession.id,
       reused: Boolean(existingGuestSession),
       expiresAt: guestSession.expiresAt,
@@ -53,15 +54,15 @@ export async function POST() {
 
     if (databaseMessage) {
       logSafeDatabaseError('auth/guest POST', error);
-      return errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
+      return noStoreErrorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
     }
 
-    return errorResponse('Could not start guest mode. Please try again.', 500, 'GUEST_SESSION_CREATE_FAILED');
+    return noStoreErrorResponse('Could not start guest mode. Please try again.', 500, 'GUEST_SESSION_CREATE_FAILED');
   }
 }
 
 export async function DELETE() {
-  const response = successResponse({ cleared: true });
+  const response = withNoStoreHeaders(successResponse({ cleared: true }));
   clearGuestSessionCookie(response);
   clearLegacyGuestCookies(response);
   return response;

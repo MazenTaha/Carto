@@ -3,7 +3,7 @@
 import useSWR, { mutate } from 'swr';
 import { AdminCart } from '@/types/admin';
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then((r) => r.json());
 const KEY = '/api/admin/carts';
 
 export function useAdminCarts() {

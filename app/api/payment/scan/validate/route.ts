@@ -1,12 +1,14 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { errorResponse, successResponse, ApiErrorResponse } from '@/lib/api-response';
+import { ApiErrorResponse } from '@/lib/api-response';
+import { noStoreErrorResponse, noStoreSuccessResponse } from '@/lib/http-cache';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { validatePaymentQrToken } from '@/lib/payment-qr';
 import { DevicePaymentService } from '@/lib/services/device-payment.service';
 import { PaymentService } from '@/lib/services/payment.service';
 
 export const runtime = 'nodejs';
+// Must be dynamic: validates short-lived checkout scan tokens and current session state.
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -148,21 +150,21 @@ export async function POST(request: NextRequest) {
     const parsedQr = parsePaymentQrValue(qrValue, request);
 
     if ('error' in parsedQr) {
-      return errorResponse(parsedQr.error, 400, 'INVALID_PAYMENT_QR');
+      return noStoreErrorResponse(parsedQr.error, 400, 'INVALID_PAYMENT_QR');
     }
 
     if ('attemptId' in parsedQr) {
       if (!parsedQr.paymentToken) {
-        return errorResponse('This payment QR code is missing its access token.', 400, 'INVALID_PAYMENT_QR_TOKEN');
+        return noStoreErrorResponse('This payment QR code is missing its access token.', 400, 'INVALID_PAYMENT_QR_TOKEN');
       }
 
       const attempt = await DevicePaymentService.getPublicCheckoutAttempt(parsedQr.attemptId, parsedQr.paymentToken);
 
       if (!attempt) {
-        return errorResponse('This payment QR code is not available anymore.', 404, 'PAYMENT_QR_NOT_FOUND');
+        return noStoreErrorResponse('This payment QR code is not available anymore.', 404, 'PAYMENT_QR_NOT_FOUND');
       }
 
-      return successResponse({
+      return noStoreSuccessResponse({
         sessionId: attempt.attempt.sessionId,
         receiptId: attempt.attempt.receiptId,
         checkoutUrl: `/checkout/${encodeURIComponent(parsedQr.attemptId)}?token=${encodeURIComponent(parsedQr.paymentToken)}`,
@@ -172,13 +174,13 @@ export async function POST(request: NextRequest) {
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
+      return noStoreErrorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
     if ('checkoutToken' in parsedQr) {
       const attempt = await PaymentService.getOwnedAttemptByPaymentQrToken(owner, parsedQr.checkoutToken);
 
-      return successResponse({
+      return noStoreSuccessResponse({
         sessionId: attempt.sessionId,
         receiptId: attempt.receiptId,
         checkoutUrl: `/checkout?sessionId=${encodeURIComponent(attempt.sessionId)}`,
@@ -204,25 +206,25 @@ export async function POST(request: NextRequest) {
     });
 
     if (!cartSession) {
-      return errorResponse('This payment QR code is not available for your session.', 404, 'PAYMENT_QR_NOT_FOUND');
+      return noStoreErrorResponse('This payment QR code is not available for your session.', 404, 'PAYMENT_QR_NOT_FOUND');
     }
 
     if (parsedQr.receiptId && cartSession.receipt?.id !== parsedQr.receiptId) {
-      return errorResponse('This payment QR code does not match the current receipt.', 400, 'PAYMENT_QR_MISMATCH');
+      return noStoreErrorResponse('This payment QR code does not match the current receipt.', 400, 'PAYMENT_QR_MISMATCH');
     }
 
     if (parsedQr.paymentToken && !validatePaymentQrToken({
       sessionId: cartSession.id,
       receiptId: parsedQr.receiptId ?? cartSession.receipt?.id ?? null,
     }, parsedQr.paymentToken)) {
-      return errorResponse('Invalid payment QR token.', 400, 'INVALID_PAYMENT_QR_TOKEN');
+      return noStoreErrorResponse('Invalid payment QR token.', 400, 'INVALID_PAYMENT_QR_TOKEN');
     }
 
     if (!['ACTIVE', 'DISCONNECTED', 'COMPLETED', 'CHECKED_OUT'].includes(cartSession.status)) {
-      return errorResponse('This session is not ready for checkout.', 409, 'SESSION_NOT_READY');
+      return noStoreErrorResponse('This session is not ready for checkout.', 409, 'SESSION_NOT_READY');
     }
 
-    return successResponse({
+    return noStoreSuccessResponse({
       sessionId: cartSession.id,
       receiptId: cartSession.receipt?.id ?? null,
       checkoutUrl: cartSession.receipt?.status === 'PAID'
@@ -231,10 +233,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof ApiErrorResponse) {
-      return errorResponse(error.message, error.statusCode, error.code, error.details);
+      return noStoreErrorResponse(error.message, error.statusCode, error.code, error.details);
     }
 
     console.error('Error validating payment QR:', error);
-    return errorResponse('Failed to validate payment QR code.', 500, 'INTERNAL_SERVER_ERROR');
+    return noStoreErrorResponse('Failed to validate payment QR code.', 500, 'INTERNAL_SERVER_ERROR');
   }
 }

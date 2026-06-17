@@ -5,7 +5,10 @@ import { prisma } from '@/lib/prisma';
 import { verifyFirebaseIdToken } from '@/lib/firebase/admin';
 import { normalizeEgyptianMobileNumber } from '@/lib/phone';
 import { phoneAuthVerifySchema } from '@/lib/validations';
-import { errorResponse, successResponse } from '@/lib/api-response';
+import { noStoreErrorResponse, noStoreSuccessResponse } from '@/lib/http-cache';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 function readPhoneVerifyError(error: any) {
   const message = String(error?.message || '');
@@ -29,7 +32,7 @@ export async function POST(request: NextRequest) {
     const phoneNumber = normalizeEgyptianMobileNumber(decodedToken.phone_number || '');
 
     if (!phoneNumber) {
-      return errorResponse('Invalid phone verification. Please request a new code and try again.', 400, 'INVALID_PHONE_VERIFICATION');
+      return noStoreErrorResponse('Invalid phone verification. Please request a new code and try again.', 400, 'INVALID_PHONE_VERIFICATION');
     }
 
     const user = await prisma.user.upsert({
@@ -45,17 +48,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return successResponse({
+    return noStoreSuccessResponse({
       userId: user.id,
       phoneNumber: user.phoneNumber,
     });
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return errorResponse('Invalid phone verification. Please request a new code and try again.', 400, 'VALIDATION_ERROR');
+      return noStoreErrorResponse('Invalid phone verification. Please request a new code and try again.', 400, 'VALIDATION_ERROR');
     }
 
     console.error('Phone verification error:', error);
     const authError = readPhoneVerifyError(error);
-    return errorResponse(authError.message, 401, authError.code);
+    return noStoreErrorResponse(authError.message, 401, authError.code);
   }
 }

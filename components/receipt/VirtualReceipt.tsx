@@ -35,7 +35,9 @@ export function VirtualReceipt({ receipt, sessionId, poll = true }: VirtualRecei
     isFetchingRef.current = true;
 
     try {
-      const response = await fetch(`/api/receipts/${receipt.id}`);
+      const response = await fetch(`/api/receipts/${receipt.id}`, {
+        cache: 'no-store',
+      });
       const data = await response.json();
       if (data.success && isMountedRef.current) {
         setItems(data.data.items || []);

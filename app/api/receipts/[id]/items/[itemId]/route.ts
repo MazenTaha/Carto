@@ -4,8 +4,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+import { withNoStoreHeaders } from '@/lib/http-cache';
 
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const updateItemSchema = z.object({
   quantity: z.number().int().positive().optional(),
@@ -20,7 +23,7 @@ export async function PUT(
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return withNoStoreHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
     }
 
     // Verify receipt ownership
@@ -32,13 +35,15 @@ export async function PUT(
     });
 
     if (!receipt) {
-      return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
+      return withNoStoreHeaders(NextResponse.json({ error: 'Receipt not found' }, { status: 404 }));
     }
 
     if (receipt.status === 'LOCKED') {
-      return NextResponse.json(
-        { error: 'Receipt is locked' },
-        { status: 400 }
+      return withNoStoreHeaders(
+        NextResponse.json(
+          { error: 'Receipt is locked' },
+          { status: 400 }
+        )
       );
     }
 
@@ -51,7 +56,7 @@ export async function PUT(
     });
 
     if (!existingItem) {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      return withNoStoreHeaders(NextResponse.json({ error: 'Item not found' }, { status: 404 }));
     }
 
     const item = await prisma.receiptItem.update({
@@ -59,23 +64,27 @@ export async function PUT(
       data: validatedData,
     });
 
-    return NextResponse.json({ success: true, data: item });
+    return withNoStoreHeaders(NextResponse.json({ success: true, data: item }));
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: error.errors[0].message },
-        { status: 400 }
+      return withNoStoreHeaders(
+        NextResponse.json(
+          { error: error.errors[0].message },
+          { status: 400 }
+        )
       );
     }
 
     if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      return withNoStoreHeaders(NextResponse.json({ error: 'Item not found' }, { status: 404 }));
     }
 
     console.error('Error updating receipt item:', error);
-    return NextResponse.json(
-      { error: 'Failed to update item' },
-      { status: 500 }
+    return withNoStoreHeaders(
+      NextResponse.json(
+        { error: 'Failed to update item' },
+        { status: 500 }
+      )
     );
   }
 }
@@ -89,7 +98,7 @@ export async function DELETE(
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return withNoStoreHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
     }
 
     // Verify receipt ownership
@@ -101,13 +110,15 @@ export async function DELETE(
     });
 
     if (!receipt) {
-      return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
+      return withNoStoreHeaders(NextResponse.json({ error: 'Receipt not found' }, { status: 404 }));
     }
 
     if (receipt.status === 'LOCKED') {
-      return NextResponse.json(
-        { error: 'Receipt is locked' },
-        { status: 400 }
+      return withNoStoreHeaders(
+        NextResponse.json(
+          { error: 'Receipt is locked' },
+          { status: 400 }
+        )
       );
     }
 
@@ -117,23 +128,25 @@ export async function DELETE(
     });
 
     if (!item) {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      return withNoStoreHeaders(NextResponse.json({ error: 'Item not found' }, { status: 404 }));
     }
 
     await prisma.receiptItem.delete({
       where: { id: item.id },
     });
 
-    return NextResponse.json({ success: true });
+    return withNoStoreHeaders(NextResponse.json({ success: true }));
   } catch (error: any) {
     if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      return withNoStoreHeaders(NextResponse.json({ error: 'Item not found' }, { status: 404 }));
     }
 
     console.error('Error deleting receipt item:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete item' },
-      { status: 500 }
+    return withNoStoreHeaders(
+      NextResponse.json(
+        { error: 'Failed to delete item' },
+        { status: 500 }
+      )
     );
   }
 }

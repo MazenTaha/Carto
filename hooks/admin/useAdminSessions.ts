@@ -3,7 +3,7 @@
 import useSWR, { mutate } from 'swr';
 import { AdminSessionRow } from '@/types/admin';
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then((r) => r.json());
 
 export function useAdminSessions(params: { status?: string; page?: number; pageSize?: number } = {}) {
   const search = new URLSearchParams();

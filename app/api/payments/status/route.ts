@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { errorResponse, successResponse } from '@/lib/api-response';
+import { noStoreErrorResponse, noStoreSuccessResponse } from '@/lib/http-cache';
 import { requireUserOrGuest } from '@/lib/guest-session';
 import { centsToAmount } from '@/lib/payment-money';
 import { PaymentService } from '@/lib/services/payment.service';
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
+      return noStoreErrorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
     const attemptId = request.nextUrl.searchParams.get('attemptId')?.trim() || null;
@@ -44,10 +44,10 @@ export async function GET(request: NextRequest) {
       : await PaymentService.getLatestOwnedAttempt(owner, sessionId);
 
     if (!attempt || !attempt.receipt) {
-      return errorResponse('Payment attempt not found.', 404, 'PAYMENT_ATTEMPT_NOT_FOUND');
+      return noStoreErrorResponse('Payment attempt not found.', 404, 'PAYMENT_ATTEMPT_NOT_FOUND');
     }
 
-    return successResponse({
+    return noStoreSuccessResponse({
       paymentStatus: getApiPaymentStatus({
         attemptStatus: attempt.status,
         receiptStatus: attempt.receipt.status,
@@ -61,6 +61,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching payment status:', error);
-    return errorResponse('Failed to fetch payment status.', 500, 'INTERNAL_SERVER_ERROR');
+    return noStoreErrorResponse('Failed to fetch payment status.', 500, 'INTERNAL_SERVER_ERROR');
   }
 }

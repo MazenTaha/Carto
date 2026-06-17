@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server';
-import { errorResponse, successResponse, ApiErrorResponse } from '@/lib/api-response';
+import { ApiErrorResponse } from '@/lib/api-response';
+import { noStoreErrorResponse, noStoreSuccessResponse } from '@/lib/http-cache';
 import { PaymentService } from '@/lib/services/payment.service';
 import { verifyPaymobHmac } from '@/lib/paymob';
 
 export const runtime = 'nodejs';
+// Must be dynamic: processes signed gateway callbacks and updates payment state.
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -57,14 +59,14 @@ export async function POST(request: NextRequest) {
     const hmac = request.nextUrl.searchParams.get('hmac') || extracted.hmac;
 
     if (!extracted.transaction) {
-      return errorResponse('Paymob webhook transaction payload is missing.', 400, 'INVALID_PAYMOB_WEBHOOK');
+      return noStoreErrorResponse('Paymob webhook transaction payload is missing.', 400, 'INVALID_PAYMOB_WEBHOOK');
     }
 
     const hmacVerified = verifyPaymobHmac(extracted.transaction, hmac);
     const hmacRequired = Boolean(process.env.PAYMOB_HMAC_SECRET?.trim());
 
     if (hmacRequired && !hmacVerified) {
-      return errorResponse('Invalid Paymob HMAC signature.', 401, 'INVALID_PAYMOB_HMAC');
+      return noStoreErrorResponse('Invalid Paymob HMAC signature.', 401, 'INVALID_PAYMOB_HMAC');
     }
 
     const success = Boolean(extracted.transaction.success);
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
         transaction: extracted.transaction,
       });
 
-      return successResponse({
+      return noStoreSuccessResponse({
         received: true,
         status: 'SUCCEEDED',
         ...result,
@@ -85,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (pending) {
-      return successResponse({
+      return noStoreSuccessResponse({
         received: true,
         status: 'PENDING',
       });
@@ -100,16 +102,16 @@ export async function POST(request: NextRequest) {
       extracted.transaction?.txn_response_code || extracted.transaction?.data?.message || 'Payment failed or is still pending.'
     );
 
-    return successResponse({
+    return noStoreSuccessResponse({
       received: true,
       status: 'FAILED',
     });
   } catch (error) {
     if (error instanceof ApiErrorResponse) {
-      return errorResponse(error.message, error.statusCode, error.code);
+      return noStoreErrorResponse(error.message, error.statusCode, error.code);
     }
 
     console.error('Error handling Paymob webhook:', error);
-    return errorResponse('Failed to process Paymob webhook.', 500, 'INTERNAL_SERVER_ERROR');
+    return noStoreErrorResponse('Failed to process Paymob webhook.', 500, 'INTERNAL_SERVER_ERROR');
   }
 }

@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server';
 import { linkCartSchema } from '@/lib/validations';
 import { requireUserOrGuest } from '@/lib/guest-session';
 import { CartPairingService } from '@/lib/services/cart-pairing.service';
-import { successResponse, errorResponse, ApiErrorResponse } from '@/lib/api-response';
+import { ApiErrorResponse } from '@/lib/api-response';
+import { noStoreErrorResponse, noStoreSuccessResponse } from '@/lib/http-cache';
 import { getPrismaConnectivityMessage, logSafeDatabaseError } from '@/lib/prisma-errors';
 
 async function linkCartWithRecovery(
@@ -48,14 +49,14 @@ export async function POST(request: NextRequest) {
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return errorResponse('Unauthorized', 401, 'UNAUTHORIZED');
+      return noStoreErrorResponse('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return errorResponse('Request body must be valid JSON.', 400, 'INVALID_JSON');
+      return noStoreErrorResponse('Request body must be valid JSON.', 400, 'INVALID_JSON');
     }
 
     const validatedData = linkCartSchema.parse(body);
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     const redirectUrl = `/session/ready?sessionId=${encodeURIComponent(sessionData.id)}`;
 
-    return successResponse(
+    return noStoreSuccessResponse(
       {
         id: sessionData.id,
         cartSessionId: sessionData.id,
@@ -86,24 +87,24 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return errorResponse(error.errors[0].message, 400, 'VALIDATION_ERROR');
+      return noStoreErrorResponse(error.errors[0].message, 400, 'VALIDATION_ERROR');
     }
 
     if (error instanceof ApiErrorResponse) {
-      return errorResponse(error.message, error.statusCode, error.code);
+      return noStoreErrorResponse(error.message, error.statusCode, error.code);
     }
 
     if (error?.code === 'P2034') {
-      return errorResponse('We could not confirm the cart link yet. Please tap Send list again.', 409, 'CART_LINK_CONFLICT');
+      return noStoreErrorResponse('We could not confirm the cart link yet. Please tap Send list again.', 409, 'CART_LINK_CONFLICT');
     }
 
     const databaseMessage = getPrismaConnectivityMessage(error);
     if (databaseMessage) {
       logSafeDatabaseError('cart/link POST', error);
-      return errorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
+      return noStoreErrorResponse(databaseMessage, 503, 'DATABASE_UNAVAILABLE');
     }
 
     console.error('Error linking cart:', { message: 'Unexpected cart link failure.' });
-    return errorResponse('Failed to link cart', 500, 'INTERNAL_SERVER_ERROR');
+    return noStoreErrorResponse('Failed to link cart', 500, 'INTERNAL_SERVER_ERROR');
   }
 }

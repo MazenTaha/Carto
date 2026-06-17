@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 
 export const runtime = "nodejs";
-import { prisma } from '@/lib/prisma';
+export const revalidate = 3600;
 import { LOCAL_PRODUCTS } from '@/lib/product-dataset';
 import { ProductCategorySummary } from '@/types';
-import { PRODUCT_CATEGORY_FALLBACKS, sortProductCategoryNames } from '@/lib/product-finder';
+import { PRODUCT_CATEGORY_FALLBACKS } from '@/lib/product-finder';
+import { getCachedProductCategories } from '@/lib/cache/catalog-cache';
+import { withPublicCacheHeaders, withNoStoreHeaders } from '@/lib/http-cache';
 
 function buildLocalCategorySummaries() {
   const counts = new Map<string, number>();
@@ -28,37 +30,25 @@ function buildLocalCategorySummaries() {
 export async function GET() {
   try {
     if (!process.env.DATABASE_URL) {
-      return NextResponse.json({ success: true, data: buildLocalCategorySummaries() });
+      return withPublicCacheHeaders(
+        NextResponse.json({ success: true, data: buildLocalCategorySummaries() }),
+        { sMaxAge: 3600, staleWhileRevalidate: 86400 }
+      );
     }
 
-    const groupedCategories = await prisma.product.groupBy({
-      by: ['category'],
-      _count: {
-        category: true,
-      },
-    });
+    const data = await getCachedProductCategories();
 
-    const sortedCategories = sortProductCategoryNames(
-      groupedCategories
-        .map((entry) => entry.category?.trim())
-        .filter((category): category is string => Boolean(category))
+    return withPublicCacheHeaders(
+      NextResponse.json({ success: true, data }),
+      { sMaxAge: 3600, staleWhileRevalidate: 86400 }
     );
-
-    const countByCategory = new Map(
-      groupedCategories.map((entry) => [entry.category, entry._count.category])
-    );
-
-    const data: ProductCategorySummary[] = sortedCategories.map((name) => ({
-      name,
-      count: countByCategory.get(name) ?? 0,
-    }));
-
-    return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error('Product categories error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch product categories' },
-      { status: 500 }
+    return withNoStoreHeaders(
+      NextResponse.json(
+        { success: false, error: 'Failed to fetch product categories' },
+        { status: 500 }
+      )
     );
   }
 }

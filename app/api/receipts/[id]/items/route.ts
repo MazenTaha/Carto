@@ -5,8 +5,11 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { ReceiptItem } from '@/types';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
+import { withNoStoreHeaders } from '@/lib/http-cache';
 
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const addItemSchema = z.object({
   name: z.string().min(1),
@@ -24,7 +27,7 @@ export async function POST(
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return withNoStoreHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
     }
 
     // Verify receipt ownership
@@ -36,13 +39,15 @@ export async function POST(
     });
 
     if (!receipt) {
-      return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
+      return withNoStoreHeaders(NextResponse.json({ error: 'Receipt not found' }, { status: 404 }));
     }
 
     if (receipt.status === 'LOCKED' || receipt.status === 'PAID') {
-      return NextResponse.json(
-        { error: 'Receipt is locked or paid' },
-        { status: 400 }
+      return withNoStoreHeaders(
+        NextResponse.json(
+          { error: 'Receipt is locked or paid' },
+          { status: 400 }
+        )
       );
     }
 
@@ -97,19 +102,23 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({ success: true, data: item }, { status: 201 });
+    return withNoStoreHeaders(NextResponse.json({ success: true, data: item }, { status: 201 }));
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: error.errors[0].message },
-        { status: 400 }
+      return withNoStoreHeaders(
+        NextResponse.json(
+          { error: error.errors[0].message },
+          { status: 400 }
+        )
       );
     }
 
     console.error('Error adding receipt item:', error);
-    return NextResponse.json(
-      { error: 'Failed to add item' },
-      { status: 500 }
+    return withNoStoreHeaders(
+      NextResponse.json(
+        { error: 'Failed to add item' },
+        { status: 500 }
+      )
     );
   }
 }

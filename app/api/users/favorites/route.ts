@@ -3,10 +3,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
+import { withNoStoreHeaders } from '@/lib/http-cache';
 import { prisma } from '@/lib/prisma';
 import { addFavoriteSchema } from '@/lib/validations';
 
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // GET /api/users/favorites - List user's favorite products
 export async function GET(request: NextRequest) {
@@ -14,7 +17,7 @@ export async function GET(request: NextRequest) {
         const session = await getServerSession(authOptions);
 
         if (!session) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return withNoStoreHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
         }
 
         const favorites = await prisma.userFavoriteProduct.findMany({
@@ -23,12 +26,14 @@ export async function GET(request: NextRequest) {
             orderBy: { purchaseCount: 'desc' },
         });
 
-        return NextResponse.json({ success: true, data: favorites });
+        return withNoStoreHeaders(NextResponse.json({ success: true, data: favorites }));
     } catch (error) {
         console.error('Error fetching favorites:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch favorites' },
-            { status: 500 }
+        return withNoStoreHeaders(
+            NextResponse.json(
+                { error: 'Failed to fetch favorites' },
+                { status: 500 }
+            )
         );
     }
 }
@@ -39,7 +44,7 @@ export async function POST(request: NextRequest) {
         const session = await getServerSession(authOptions);
 
         if (!session) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return withNoStoreHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
         }
 
         const body = await request.json();
@@ -51,7 +56,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!product) {
-            return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+            return withNoStoreHeaders(NextResponse.json({ error: 'Product not found' }, { status: 404 }));
         }
 
         // Upsert: create or increment
@@ -74,19 +79,23 @@ export async function POST(request: NextRequest) {
             include: { product: true },
         });
 
-        return NextResponse.json({ success: true, data: favorite }, { status: 201 });
+        return withNoStoreHeaders(NextResponse.json({ success: true, data: favorite }, { status: 201 }));
     } catch (error: any) {
         if (error.name === 'ZodError') {
-            return NextResponse.json(
-                { error: error.errors[0].message },
-                { status: 400 }
+            return withNoStoreHeaders(
+                NextResponse.json(
+                    { error: error.errors[0].message },
+                    { status: 400 }
+                )
             );
         }
 
         console.error('Error adding favorite:', error);
-        return NextResponse.json(
-            { error: 'Failed to add favorite' },
-            { status: 500 }
+        return withNoStoreHeaders(
+            NextResponse.json(
+                { error: 'Failed to add favorite' },
+                { status: 500 }
+            )
         );
     }
 }
@@ -97,14 +106,14 @@ export async function DELETE(request: NextRequest) {
         const session = await getServerSession(authOptions);
 
         if (!session) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return withNoStoreHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
         }
 
         const { searchParams } = new URL(request.url);
         const productId = searchParams.get('productId');
 
         if (!productId) {
-            return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+            return withNoStoreHeaders(NextResponse.json({ error: 'Product ID is required' }, { status: 400 }));
         }
 
         await prisma.userFavoriteProduct.deleteMany({
@@ -114,12 +123,14 @@ export async function DELETE(request: NextRequest) {
             },
         });
 
-        return NextResponse.json({ success: true });
+        return withNoStoreHeaders(NextResponse.json({ success: true }));
     } catch (error) {
         console.error('Error removing favorite:', error);
-        return NextResponse.json(
-            { error: 'Failed to remove favorite' },
-            { status: 500 }
+        return withNoStoreHeaders(
+            NextResponse.json(
+                { error: 'Failed to remove favorite' },
+                { status: 500 }
+            )
         );
     }
 }

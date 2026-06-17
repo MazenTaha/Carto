@@ -1,12 +1,14 @@
 // Sessions API routes
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withNoStoreHeaders } from '@/lib/http-cache';
 import { prisma } from '@/lib/prisma';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 
 export const runtime = "nodejs";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // GET /api/sessions - Get all user sessions
 export async function GET(request: NextRequest) {
@@ -14,7 +16,7 @@ export async function GET(request: NextRequest) {
     const owner = await requireUserOrGuest();
 
     if (!owner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return withNoStoreHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
     }
 
     const cartSessions = await prisma.cartSession.findMany({
@@ -30,12 +32,14 @@ export async function GET(request: NextRequest) {
       orderBy: { startedAt: 'desc' },
     });
 
-    return NextResponse.json({ success: true, data: cartSessions });
+    return withNoStoreHeaders(NextResponse.json({ success: true, data: cartSessions }));
   } catch (error) {
     console.error('Error fetching sessions:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch sessions' },
-      { status: 500 }
+    return withNoStoreHeaders(
+      NextResponse.json(
+        { error: 'Failed to fetch sessions' },
+        { status: 500 }
+      )
     );
   }
 }

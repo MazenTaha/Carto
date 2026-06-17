@@ -4,6 +4,8 @@ export const runtime = "nodejs";
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-config';
+import { getCachedPublicProducts } from '@/lib/cache/catalog-cache';
+import { withNoStoreHeaders, withPublicCacheHeaders } from '@/lib/http-cache';
 import { LOCAL_PRODUCTS } from '@/lib/product-dataset';
 import { ProductFinderTab, ProductSearchResult } from '@/types';
 import { isProductFinderTab } from '@/lib/product-finder';
@@ -147,63 +149,51 @@ async function getFavoriteProducts({
     .filter((product): product is ProductSearchResult => Boolean(product));
 }
 
-function buildDbWhere(query: string, category: string) {
-  return {
-    ...(category ? { category: { equals: category, mode: 'insensitive' as const } } : {}),
-    ...(query
-      ? {
-          OR: [
-            { name: { contains: query, mode: 'insensitive' as const } },
-            { category: { contains: query, mode: 'insensitive' as const } },
-          ],
-        }
-      : {}),
-  };
-}
-
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const query = normalizeQuery(searchParams);
   const limit = normalizeLimit(searchParams);
   const category = normalizeCategory(searchParams);
   const tab = normalizeTab(searchParams);
+  const publicCacheProfile = query
+    ? { sMaxAge: 120, staleWhileRevalidate: 600 }
+    : { sMaxAge: 300, staleWhileRevalidate: 3600 };
 
   try {
     if (!process.env.DATABASE_URL) {
       const localResults = filterLocalProducts({ query, limit, category, tab });
-      return NextResponse.json({ success: true, data: localResults });
+      return withPublicCacheHeaders(
+        NextResponse.json({ success: true, data: localResults }),
+        publicCacheProfile
+      );
     }
 
     if (tab === 'favorites') {
       const favoriteProducts = await getFavoriteProducts({ query, limit, category });
-      return NextResponse.json({ success: true, data: favoriteProducts });
+      return withNoStoreHeaders(NextResponse.json({ success: true, data: favoriteProducts }));
     }
 
-    const where = buildDbWhere(query, category);
-    const orderBy =
-      tab === 'recent'
-        ? [{ createdAt: 'desc' as const }, { popularity: 'desc' as const }]
-        : [{ popularity: 'desc' as const }, { createdAt: 'desc' as const }];
-
-    const products = await prisma.product.findMany({
-      where,
-      orderBy,
-      take: limit,
-      select: productSearchSelect,
+    const products = await getCachedPublicProducts({
+      query,
+      category,
+      limit,
+      tab: tab === 'recent' ? 'recent' : 'popular',
     });
 
-    return NextResponse.json({
-      success: true,
-      data: products.map((product) => ({
-        ...product,
-        price: normalizeBasePriceEGP(product.price),
-      })),
-    });
+    return withPublicCacheHeaders(
+      NextResponse.json({
+        success: true,
+        data: products,
+      }),
+      publicCacheProfile
+    );
   } catch (error: any) {
     console.error('Product search error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch products' },
-      { status: 500 }
+    return withNoStoreHeaders(
+      NextResponse.json(
+        { success: false, error: 'Failed to fetch products' },
+        { status: 500 }
+      )
     );
   }
 }

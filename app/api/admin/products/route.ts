@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+import { revalidateTag } from 'next/cache';
 import { guardAdminApi } from '@/lib/admin-auth';
+import { withNoStoreHeaders } from '@/lib/http-cache';
 import { prisma } from '@/lib/prisma';
 import { normalizeBasePriceEGP } from '@/lib/pricing';
 import { z } from 'zod';
@@ -62,21 +66,25 @@ export async function GET(req: NextRequest) {
       prisma.product.count({ where }),
     ]);
 
-    return NextResponse.json({
-      success: true,
-      data: data.map((product) => ({
-        ...product,
-        price: normalizeBasePriceEGP(product.price),
-      })),
-      total,
-      page,
-      pageSize,
-    });
+    return withNoStoreHeaders(
+      NextResponse.json({
+        success: true,
+        data: data.map((product) => ({
+          ...product,
+          price: normalizeBasePriceEGP(product.price),
+        })),
+        total,
+        page,
+        pageSize,
+      })
+    );
   } catch (error: any) {
     console.error('[admin/products GET]', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch products' },
-      { status: 500 }
+    return withNoStoreHeaders(
+      NextResponse.json(
+        { success: false, error: 'Failed to fetch products' },
+        { status: 500 }
+      )
     );
   }
 }
@@ -102,18 +110,24 @@ export async function POST(req: NextRequest) {
         price: normalizeBasePriceEGP(parsed.data.price),
       },
     });
-    return NextResponse.json({ success: true, data: product }, { status: 201 });
+    revalidateTag('products');
+    revalidateTag('categories');
+    return withNoStoreHeaders(NextResponse.json({ success: true, data: product }, { status: 201 }));
   } catch (error: any) {
     if (error.code === 'P2002') {
-      return NextResponse.json(
-        { success: false, error: 'A product with that name already exists' },
-        { status: 409 }
+      return withNoStoreHeaders(
+        NextResponse.json(
+          { success: false, error: 'A product with that name already exists' },
+          { status: 409 }
+        )
       );
     }
     console.error('[admin/products POST]', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to create product' },
-      { status: 500 }
+    return withNoStoreHeaders(
+      NextResponse.json(
+        { success: false, error: 'Failed to create product' },
+        { status: 500 }
+      )
     );
   }
 }
@@ -141,12 +155,16 @@ export async function PATCH(req: NextRequest) {
         price: data.price === undefined ? undefined : normalizeBasePriceEGP(data.price),
       },
     });
-    return NextResponse.json({ success: true, data: product });
+    revalidateTag('products');
+    revalidateTag('categories');
+    return withNoStoreHeaders(NextResponse.json({ success: true, data: product }));
   } catch (error: any) {
     console.error('[admin/products PATCH]', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to update product' },
-      { status: 500 }
+    return withNoStoreHeaders(
+      NextResponse.json(
+        { success: false, error: 'Failed to update product' },
+        { status: 500 }
+      )
     );
   }
 }
@@ -158,20 +176,26 @@ export async function DELETE(req: NextRequest) {
 
   const id = req.nextUrl.searchParams.get('id');
   if (!id) {
-    return NextResponse.json(
-      { success: false, error: 'Product ID required' },
-      { status: 400 }
+    return withNoStoreHeaders(
+      NextResponse.json(
+        { success: false, error: 'Product ID required' },
+        { status: 400 }
+      )
     );
   }
 
   try {
     await prisma.product.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    revalidateTag('products');
+    revalidateTag('categories');
+    return withNoStoreHeaders(NextResponse.json({ success: true }));
   } catch (error: any) {
     console.error('[admin/products DELETE]', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to delete product' },
-      { status: 500 }
+    return withNoStoreHeaders(
+      NextResponse.json(
+        { success: false, error: 'Failed to delete product' },
+        { status: 500 }
+      )
     );
   }
 }
