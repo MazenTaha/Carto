@@ -2,7 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
-import { RefreshCw, Receipt, ShoppingCart, Wifi, WifiOff } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  Power,
+  QrCode,
+  ReceiptText,
+  RefreshCw,
+  ShoppingCart,
+  SlidersHorizontal,
+  SquareTerminal,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { PageContainer } from '@/components/layout/PageContainer';
 import {
@@ -157,6 +171,10 @@ function getApiErrorMessage(data: any, fallback: string) {
 
 function formatDeviceMoney(amount: number, currency = 'EGP') {
   return formatCurrency(amount, currency);
+}
+
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ');
 }
 
 function normalizeItemName(name: string) {
@@ -799,478 +817,890 @@ export default function DeviceSimulatorPage() {
         : lastPollAt
           ? `Last poll ${new Date(lastPollAt).toLocaleTimeString()}`
           : 'Waiting for first poll';
+  const lastPollLabel = lastPollAt ? new Date(lastPollAt).toLocaleTimeString() : 'Waiting...';
+  const screenModeLabel = isActive ? 'Active session' : cartStatus === 'AVAILABLE' ? 'Pairing QR' : cartStatus;
+  const paymentStatusLabel =
+    paymentStatusData?.paymentStatus ||
+    activeDeviceData?.receipt?.paymentStatus ||
+    activeDeviceData?.payment?.status ||
+    activeDeviceData?.receipt?.status ||
+    'Not started';
+  const paymentStatusNormalized = paymentStatusLabel.toUpperCase();
+  const connectionBadgeClassName = cn(
+    'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+    !isConnected
+      ? 'border-rose-400/30 bg-rose-500/10 text-rose-200'
+      : deviceError
+        ? 'border-amber-400/30 bg-amber-500/10 text-amber-200'
+        : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
+  );
+  const cartStatusBadgeClassName = cn(
+    'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+    isActive
+      ? 'border-sky-400/30 bg-sky-500/10 text-sky-200'
+      : cartStatus === 'AVAILABLE'
+        ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
+        : 'border-amber-400/30 bg-amber-500/10 text-amber-200'
+  );
+  const paymentStatusBadgeClassName = cn(
+    'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+    paymentStatusNormalized === 'PAID' || paymentStatusNormalized === 'COMPLETED'
+      ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
+      : paymentStatusNormalized === 'PENDING' || paymentStatusNormalized === 'PROCESSING'
+        ? 'border-amber-400/30 bg-amber-500/10 text-amber-200'
+        : paymentStatusNormalized === 'FAILED'
+          ? 'border-rose-400/30 bg-rose-500/10 text-rose-200'
+          : 'border-slate-600 bg-slate-800/80 text-slate-200'
+  );
+  const sessionReference = activeDeviceData?.session.id
+    ? activeDeviceData.session.id.slice(-6).toUpperCase()
+    : null;
+  const receiptReference = currentReceiptId ? currentReceiptId.slice(-6).toUpperCase() : null;
 
   return (
     <PageContainer>
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-8 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-1">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-white">
-              <RefreshCw className="h-5 w-5 text-indigo-500" />
-              Device Config
-            </h2>
-
-            <form onSubmit={handleConnect} className="space-y-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Demo Cart
-                </label>
-                <select
-                  value={selectedPresetCartCode}
-                  onChange={(event) => {
-                    const nextPreset = getDemoCartPreset(event.target.value);
-                    applyCartPreset(event.target.value, nextPreset?.deviceSecret);
-                  }}
-                  disabled={isConnected}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950"
-                >
-                  {DEMO_CART_PRESETS.map((preset) => (
-                    <option key={preset.cartCode} value={preset.cartCode}>
-                      {preset.label} ({preset.cartCode})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Cart Code
-                </label>
-                <input
-                  type="text"
-                  value={cartCode}
-                  onChange={(event) => setCartCode(event.target.value)}
-                  disabled={isConnected}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950"
-                  placeholder="cart-02"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Device Secret
-                </label>
-                <input
-                  type="text"
-                  value={deviceSecret}
-                  onChange={(event) => setDeviceSecret(event.target.value)}
-                  disabled={isConnected}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950"
-                  placeholder="Device secret for the selected cart"
-                />
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Presets default to the repo demo secrets. If your current database uses a custom secret for {trimmedCartCode || DEFAULT_SIMULATOR_CART_CODE}, replace it here before connecting.
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-6 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <div className="bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_34%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_28%)] px-6 py-6 sm:px-8">
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+              <div className="max-w-3xl">
+                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
+                  <QrCode className="h-3.5 w-3.5" />
+                  Device Simulator
+                </div>
+                <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-4xl">
+                  Live cart preview with pairing, session, receipt, and payment handoff
+                </h1>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-400 sm:text-base">
+                  The simulator logic stays the same. This cleanup makes the control panel, device screen, and log much easier to read while keeping cart pairing, session polling, payment QR generation, and disconnect flows intact.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 rounded-2xl bg-slate-50 p-4 text-sm dark:bg-slate-950">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-slate-500">Pairing code</span>
-                  <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
-                    {qrData?.payload?.pairingCode ?? 'Waiting...'}
-                  </span>
+              <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[440px] xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-200 bg-white/90 px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Connection
+                  </p>
+                  <p className="mt-3 text-base font-semibold text-slate-950 dark:text-white">{connectionLabel}</p>
                 </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-slate-500">Expires</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">
-                    {qrData?.expiresAt ? new Date(qrData.expiresAt).toLocaleTimeString() : 'Waiting...'}
-                  </span>
+                <div className="rounded-2xl border border-slate-200 bg-white/90 px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Cart
+                  </p>
+                  <p className="mt-3 text-base font-semibold text-slate-950 dark:text-white">
+                    {trimmedCartCode || DEFAULT_SIMULATOR_CART_CODE}
+                  </p>
                 </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-slate-500">Cart status</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{cartStatus}</span>
+                <div className="rounded-2xl border border-slate-200 bg-white/90 px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Screen
+                  </p>
+                  <p className="mt-3 text-base font-semibold text-slate-950 dark:text-white">{screenModeLabel}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white/90 px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Last poll
+                  </p>
+                  <p className="mt-3 text-base font-semibold text-slate-950 dark:text-white">{lastPollLabel}</p>
                 </div>
               </div>
-
-              {deviceError && (
-                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
-                  {deviceError.message}
-                </div>
-              )}
-
-              {qrError && (
-                <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
-                  {qrError.message}
-                </div>
-              )}
-
-              {paymentError && (
-                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
-                  {paymentError}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                {isConnected ? (
-                  <button
-                    type="button"
-                    onClick={handleDisconnect}
-                    disabled={isDisconnecting}
-                    className="col-span-2 rounded-xl bg-slate-200 py-2.5 font-medium text-slate-900 transition-colors hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
-                  >
-                    {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
-                  </button>
-                ) : (
-                  <button
-                    type="submit"
-                    className="col-span-2 rounded-xl bg-indigo-600 py-2.5 font-medium text-white transition-colors hover:bg-indigo-700"
-                  >
-                    Power On and Connect
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => void refreshDevice()}
-                  disabled={!isConnected || isDisconnecting}
-                  className="rounded-xl border border-slate-200 py-2 text-sm font-medium text-slate-700 disabled:opacity-50 dark:border-slate-800 dark:text-slate-200"
-                >
-                  Poll now
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void refreshQr()}
-                  disabled={!isConnected || isDisconnecting || isActive || cartStatus !== 'AVAILABLE'}
-                  className="rounded-xl border border-slate-200 py-2 text-sm font-medium text-slate-700 disabled:opacity-50 dark:border-slate-800 dark:text-slate-200"
-                >
-                  Refresh QR
-                </button>
-                {process.env.NODE_ENV !== 'production' && (
-                  <button
-                    type="button"
-                    onClick={() => void handleResetCart()}
-                    disabled={!isConnected || isResetting || isDisconnecting}
-                    className="col-span-2 rounded-xl border border-amber-300 bg-amber-50 py-2.5 text-sm font-semibold text-amber-900 transition-colors hover:bg-amber-100 disabled:opacity-50 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
-                  >
-                    {isResetting ? 'Resetting Cart...' : 'Reset Cart'}
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-
-          <div className="h-52 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 p-4 font-mono text-xs text-green-400 shadow-sm">
-            <p className="mb-2 text-slate-500">Device Log</p>
-            {!isConnected ? (
-              <p className="text-slate-500">&gt; Device offline</p>
-            ) : (
-              <>
-                <p>&gt; Authenticated cart: {trimmedCartCode}</p>
-                <p>&gt; Poll status: {pollStatus}</p>
-                <p>&gt; Screen mode: {isActive ? 'ACTIVE SESSION' : cartStatus === 'AVAILABLE' ? 'PAIRING QR' : cartStatus}</p>
-                {qrData && !isActive && <p>&gt; QR refreshed until {new Date(qrData.expiresAt).toLocaleTimeString()}</p>}
-                {isQrLoading && !qrData && <p>&gt; Requesting fresh pairing QR...</p>}
-                {deviceData?.active && <p>&gt; Session {(deviceData.cartSessionId || deviceData.session.id).slice(-6).toUpperCase()} pushed to device screen</p>}
-                {paymentQrData && <p>&gt; Payment QR live for receipt {paymentQrData.receiptId.slice(-6).toUpperCase()}</p>}
-                {paymentStatusData && <p>&gt; Payment status: {paymentStatusData.paymentStatus}</p>}
-                {isGeneratingPaymentQr && <p>&gt; Creating secure payment QR...</p>}
-                {isCheckingPaymentStatus && <p>&gt; Polling payment status every 2s...</p>}
-                {isDisconnecting && <p>&gt; Releasing cart session and refreshing QR...</p>}
-                {isResetting && <p>&gt; Resetting cart lifecycle from simulator...</p>}
-                {eventLogs.map((entry) => (
-                  <p key={entry}>&gt; {entry}</p>
-                ))}
-              </>
-            )}
+            </div>
           </div>
         </div>
 
-        <div className="lg:col-span-2">
-          <div className="relative flex aspect-[4/3] flex-col overflow-hidden rounded-[2rem] border-[12px] border-slate-800 bg-black p-8 shadow-2xl">
-            <div className="z-10 mb-8 flex items-center justify-between text-slate-400">
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                <span className="font-bold tracking-widest">{trimmedCartCode || 'CART'}</span>
+        <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-start">
+          <div className="space-y-6">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="mb-6 flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white dark:bg-slate-100 dark:text-slate-950">
+                  <SlidersHorizontal className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-950 dark:text-white">Device Config</h2>
+                  <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                    Choose the demo cart, confirm its secret, then power on the simulator.
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                {isConnected && !deviceError ? (
-                  <Wifi className="h-4 w-4 text-green-400" />
-                ) : (
-                  <WifiOff className="h-4 w-4 text-red-400" />
-                )}
-                <span className="text-sm font-medium">{connectionLabel}</span>
-              </div>
-            </div>
 
-            <div className="z-10 flex min-h-0 flex-1 flex-col items-center justify-center text-center">
-              {!isConnected ? (
-                <div className="flex flex-col items-center text-slate-500">
-                  <WifiOff className="mb-4 h-16 w-16 opacity-50" />
-                  <p className="text-lg">No Power</p>
+              <form onSubmit={handleConnect} className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Demo Cart
+                  </label>
+                  <select
+                    value={selectedPresetCartCode}
+                    onChange={(event) => {
+                      const nextPreset = getDemoCartPreset(event.target.value);
+                      applyCartPreset(event.target.value, nextPreset?.deviceSecret);
+                    }}
+                    disabled={isConnected}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-950 transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-slate-600 dark:focus:ring-slate-800"
+                  >
+                    {DEMO_CART_PRESETS.map((preset) => (
+                      <option key={preset.cartCode} value={preset.cartCode}>
+                        {preset.label} ({preset.cartCode})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ) : isDeviceLoading && !deviceData ? (
-                <div className="flex flex-col items-center text-slate-400">
-                  <RefreshCw className="mb-4 h-12 w-12 animate-spin opacity-50" />
-                  <p>Booting OS...</p>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Cart Code
+                  </label>
+                  <input
+                    type="text"
+                    value={cartCode}
+                    onChange={(event) => setCartCode(event.target.value)}
+                    disabled={isConnected}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-950 transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-slate-600 dark:focus:ring-slate-800"
+                    placeholder="cart-02"
+                  />
                 </div>
-              ) : !isActive && cartStatus === 'AVAILABLE' ? (
-                <div className="-translate-y-5 flex flex-col items-center">
-                  <div className="mb-6 flex min-h-[260px] min-w-[260px] items-center justify-center rounded-3xl bg-white p-6 shadow-2xl">
-                    {qrData?.qrValue ? (
-                      <QRCode value={qrData.qrValue} size={220} />
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Device Secret
+                  </label>
+                  <input
+                    type="text"
+                    value={deviceSecret}
+                    onChange={(event) => setDeviceSecret(event.target.value)}
+                    disabled={isConnected}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-950 transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-slate-600 dark:focus:ring-slate-800"
+                    placeholder="Device secret for the selected cart"
+                  />
+                  <p className="mt-2 text-xs leading-6 text-slate-500 dark:text-slate-400">
+                    Presets default to the repo demo secrets. If your current database uses a custom secret for{' '}
+                    {trimmedCartCode || DEFAULT_SIMULATOR_CART_CODE}, replace it here before connecting.
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                      Pairing code
+                    </p>
+                    <p className="mt-3 font-mono text-lg font-semibold text-slate-950 dark:text-white">
+                      {qrData?.payload?.pairingCode ?? 'Waiting...'}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                      Expires
+                    </p>
+                    <p className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">
+                      {qrData?.expiresAt ? new Date(qrData.expiresAt).toLocaleTimeString() : 'Waiting...'}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                      Cart status
+                    </p>
+                    <p className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">{cartStatus}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                      Poll status
+                    </p>
+                    <p className="mt-3 text-sm font-medium leading-6 text-slate-700 dark:text-slate-300">
+                      {pollStatus}
+                    </p>
+                  </div>
+                </div>
+
+                {deviceError && (
+                  <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p>{deviceError.message}</p>
+                  </div>
+                )}
+
+                {qrError && (
+                  <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p>{qrError.message}</p>
+                  </div>
+                )}
+
+                {paymentError && (
+                  <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p>{paymentError}</p>
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Simulator controls
+                  </p>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    {isConnected ? (
+                      <button
+                        type="button"
+                        onClick={handleDisconnect}
+                        disabled={isDisconnecting}
+                        className="col-span-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-200"
+                      >
+                        {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
+                      </button>
                     ) : (
-                      <RefreshCw className="h-8 w-8 animate-spin text-slate-300" />
+                      <button
+                        type="submit"
+                        className="col-span-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                      >
+                        Power On and Connect
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void refreshDevice()}
+                      disabled={!isConnected || isDisconnecting}
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      Poll now
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void refreshQr()}
+                      disabled={!isConnected || isDisconnecting || isActive || cartStatus !== 'AVAILABLE'}
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      Refresh QR
+                    </button>
+                    {process.env.NODE_ENV !== 'production' && (
+                      <button
+                        type="button"
+                        onClick={() => void handleResetCart()}
+                        disabled={!isConnected || isResetting || isDisconnecting}
+                        className="col-span-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:opacity-50 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
+                      >
+                        {isResetting ? 'Resetting Cart...' : 'Reset Cart'}
+                      </button>
                     )}
                   </div>
-                  <h1 className="mb-2 text-3xl font-bold text-white">Scan to Shop</h1>
-                  <p className="max-w-md text-lg text-slate-400">Use the Carto app to scan this live cart QR code.</p>
-                  <div className="mt-6 grid grid-cols-1 gap-2 rounded-2xl bg-slate-800/50 px-6 py-4 text-left font-mono text-sm text-slate-300">
-                    <div>Cart Code: {trimmedCartCode}</div>
-                    <div>Pairing Code: {qrData?.payload?.pairingCode ?? 'Loading...'}</div>
-                    <div>Expires: {qrData?.expiresAt ? new Date(qrData.expiresAt).toLocaleTimeString() : 'Loading...'}</div>
-                  </div>
                 </div>
-              ) : !isActive ? (
-                <div className="flex flex-col items-center text-slate-400">
-                  <RefreshCw className="mb-4 h-12 w-12 animate-spin opacity-50" />
-                  <p>Waiting for cart to return to AVAILABLE mode...</p>
-                </div>
-              ) : (
-                <div className="flex h-full w-full min-h-0 flex-col items-start overflow-y-auto pr-1 text-left">
-                  <div className="mb-6 flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500">
-                      <Receipt className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h1 className="text-2xl font-bold text-white">Active Session</h1>
-                      <p className="text-indigo-300">{deviceData.list.name}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid min-h-0 w-full flex-1 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.92fr)]">
-                    <div className="overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
-                      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">Shopping List</h3>
-                      {deviceData.list.items.length === 0 ? (
-                        <p className="italic text-slate-500">List is empty</p>
-                      ) : (
-                        <ul className="space-y-3">
-                          {deviceData.list.items.map((item) => (
-                            <li
-                              key={item.id}
-                              className={`flex items-center justify-between ${item.isCollected ? 'opacity-50 line-through' : ''}`}
-                            >
-                              <span className="text-slate-200">{item.name}</span>
-                              <span className="text-slate-500">x{item.quantity}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <div className="mt-6 space-y-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-4">
-                        <div>
-                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                            Demo receipt sync
-                          </p>
-                          <p className="mt-1 text-sm text-slate-400">
-                            This simulator-only action calls the real cart item API to confirm planned items into the receipt for testing.
-                          </p>
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                            Demo price for listed items without price
-                          </label>
-                          <div className="flex items-center gap-3">
-                            <span className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-300">
-                              EGP
-                            </span>
-                            <input
-                              type="number"
-                              min="0.01"
-                              step="0.01"
-                              value={demoPriceInput}
-                              onChange={(event) => setDemoPriceInput(event.target.value)}
-                              disabled={isAddingListedItems}
-                              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                              placeholder="1.00"
-                            />
-                          </div>
-                          <p className="mt-2 text-xs text-slate-500">
-                            Used only when a planned list item does not already have a valid price.
-                          </p>
-                          {listedItemsMissingPriceCount > 0 && !hasValidDemoPrice && (
-                            <p className="mt-2 text-xs text-red-300">
-                              Enter a valid positive demo price before adding listed items to the receipt.
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3 text-xs text-slate-400">
-                          <p>{listedItemsToAdd.length} listed item{listedItemsToAdd.length === 1 ? '' : 's'} ready to add.</p>
-                          {listedItemsAlreadyInReceiptCount > 0 && (
-                            <p className="mt-1">
-                              {listedItemsAlreadyInReceiptCount} item{listedItemsAlreadyInReceiptCount === 1 ? '' : 's'} already exist in the receipt and will be skipped.
-                            </p>
-                          )}
-                          {listedItemsMissingPriceCount > 0 && (
-                            <p className="mt-1">
-                              {listedItemsMissingPriceCount} item{listedItemsMissingPriceCount === 1 ? '' : 's'} will use the demo fallback price of {hasValidDemoPrice ? formatDeviceMoney(parsedDemoPrice) : 'a valid price'}.
-                            </p>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => setShowAddListedItemsDialog(true)}
-                          disabled={Boolean(addListedItemsDisabledReason) || isAddingListedItems}
-                          className="w-full rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {isAddingListedItems ? 'Adding listed items to receipt...' : 'Add listed items to receipt'}
-                        </button>
-
-                        {addListedItemsDisabledReason && (
-                          <p className="text-xs text-slate-500">{addListedItemsDisabledReason}</p>
-                        )}
-
-                        {listedItemsNotice && (
-                          <div
-                            className={`rounded-xl px-4 py-3 text-sm ${
-                              listedItemsNotice.tone === 'success'
-                                ? 'bg-emerald-500/15 text-emerald-200'
-                                : listedItemsNotice.tone === 'error'
-                                  ? 'bg-red-500/15 text-red-200'
-                                  : 'bg-slate-800 text-slate-200'
-                            }`}
-                          >
-                            {listedItemsNotice.message}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex min-h-0 flex-col rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <div>
-                          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Current Receipt</h3>
-                          <p className="mt-1 text-xs text-slate-500">
-                            The device sends the payable amount to the backend, and the QR only carries a short-lived token.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => void handleGeneratePaymentQr()}
-                          disabled={!deviceData.receipt?.id || isGeneratingPaymentQr}
-                          className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {isGeneratingPaymentQr ? 'Generating payment QR...' : paymentQrData ? 'Generate new payment QR' : 'Generate payment QR'}
-                        </button>
-                      </div>
-                      <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Checkout amount</p>
-                            <p className="mt-1 text-sm text-slate-400">
-                              Demo mode always charges a fixed {formatDeviceMoney(DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY)} regardless of the current receipt total.
-                            </p>
-                          </div>
-                          <span className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-semibold text-white">
-                            {formatDeviceMoney(effectivePaymentAmount, DEMO_PAYMENT_CURRENCY)}
-                          </span>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between text-sm">
-                          <span className="text-slate-500">Amount sent in POST body</span>
-                          <span className="font-mono font-bold text-white">{formatDeviceMoney(effectivePaymentAmount, DEMO_PAYMENT_CURRENCY)}</span>
-                        </div>
-                      </div>
-                      {paymentQrData ? (
-                        <div className="mt-4 rounded-3xl border border-emerald-500/30 bg-slate-950 p-5 shadow-[0_0_0_1px_rgba(16,185,129,0.08)]">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Secure payment QR</p>
-                            <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-200">
-                              {paymentStatusData?.paymentStatus || paymentQrData.paymentStatus}
-                            </span>
-                          </div>
-                          <div className="mt-4 flex justify-center rounded-3xl bg-white p-5 shadow-inner">
-                            <QRCode value={paymentQrData.qrValue} size={220} />
-                          </div>
-                          <div className="mt-4 space-y-2 text-sm">
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400">Amount</span>
-                              <span className="font-bold text-white">{paymentQrData.amountDisplay}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400">Receipt</span>
-                              <span className="font-mono font-semibold text-slate-200">{paymentQrData.receiptId.slice(-6).toUpperCase()}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400">Expires</span>
-                              <span className="font-semibold text-slate-200">{paymentQrExpiresAtLabel}</span>
-                            </div>
-                          </div>
-                          {paymentStatusData?.paymentStatus === 'PAID' ? (
-                            <div className="mt-4 rounded-2xl bg-emerald-500/15 px-4 py-3 text-sm font-bold text-emerald-200">
-                              Payment successful. Returning cart to pairing mode...
-                            </div>
-                          ) : (
-                            <>
-                              <p className="mt-4 text-sm font-medium text-slate-300">
-                                Scan this QR with your phone to continue secure checkout.
-                              </p>
-                              <p className="mt-2 text-sm text-slate-400">
-                                The QR only contains a short-lived token. Carto loads the stored amount from the backend after scan.
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="mt-4 rounded-2xl border border-dashed border-slate-700 px-4 py-3 text-sm text-slate-400">
-                          {deviceData.payment?.status === 'PENDING'
-                            ? `Payment is pending for ${formatDeviceMoney(deviceData.payment.amount, deviceData.payment.currency)}. Generate a fresh QR to continue on a phone.`
-                            : 'Generate a payment QR when the shopper is ready to pay on their phone.'}
-                        </div>
-                      )}
-
-                      <div className="mt-4 min-h-0 flex-1 overflow-y-auto rounded-2xl border border-slate-800/80 bg-slate-950/60 p-4">
-                        <div className="mb-3 flex items-center justify-between">
-                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Receipt items</p>
-                          <span className="text-xs font-semibold text-slate-500">
-                            {deviceData.receipt?.items.length || 0} item{deviceData.receipt?.items.length === 1 ? '' : 's'}
-                          </span>
-                        </div>
-                        {!deviceData.receipt || deviceData.receipt.items.length === 0 ? (
-                          <p className="italic text-slate-500">Scan items to add them</p>
-                        ) : (
-                          <ul className="space-y-3">
-                            {deviceData.receipt.items.map((item) => (
-                              <li key={item.id} className="flex items-center justify-between text-sm">
-                                <span className="text-slate-300">
-                                  {item.name} <span className="text-slate-600">x{item.quantity}</span>
-                                </span>
-                                <span className="font-mono text-slate-300">
-                                  {formatDeviceMoney(item.price * item.quantity)}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-
-                      <div className="mt-4 border-t border-slate-800 pt-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400">Total</span>
-                          <span className="font-mono text-2xl font-bold text-white">
-                            {formatDeviceMoney(deviceData.receipt?.total || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </form>
             </div>
 
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-white/[0.08]" />
+            <div className="overflow-hidden rounded-[1.75rem] border border-slate-800 bg-slate-950 shadow-sm">
+              <div className="border-b border-slate-800 px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300">
+                    <SquareTerminal className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Device Log</h2>
+                    <p className="mt-1 text-sm text-slate-500">Live simulator events and backend polling activity.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="max-h-[320px] min-h-[280px] overflow-y-auto px-5 py-4 font-mono text-xs text-emerald-300 sm:text-sm">
+                {!isConnected ? (
+                  <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-500">
+                    &gt; Device offline
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                      &gt; Authenticated cart: {trimmedCartCode}
+                    </div>
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                      &gt; Poll status: {pollStatus}
+                    </div>
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                      &gt; Screen mode: {screenModeLabel.toUpperCase()}
+                    </div>
+                    {qrData && !isActive && (
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                        &gt; QR refreshed until {new Date(qrData.expiresAt).toLocaleTimeString()}
+                      </div>
+                    )}
+                    {isQrLoading && !qrData && (
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                        &gt; Requesting fresh pairing QR...
+                      </div>
+                    )}
+                    {deviceData?.active && (
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                        &gt; Session {(deviceData.cartSessionId || deviceData.session.id).slice(-6).toUpperCase()} pushed to device screen
+                      </div>
+                    )}
+                    {paymentQrData && (
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                        &gt; Payment QR live for receipt {paymentQrData.receiptId.slice(-6).toUpperCase()}
+                      </div>
+                    )}
+                    {paymentStatusData && (
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                        &gt; Payment status: {paymentStatusData.paymentStatus}
+                      </div>
+                    )}
+                    {isGeneratingPaymentQr && (
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                        &gt; Creating secure payment QR...
+                      </div>
+                    )}
+                    {isCheckingPaymentStatus && (
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                        &gt; Polling payment status every 2s...
+                      </div>
+                    )}
+                    {isDisconnecting && (
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                        &gt; Releasing cart session and refreshing QR...
+                      </div>
+                    )}
+                    {isResetting && (
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-slate-300">
+                        &gt; Resetting cart lifecycle from simulator...
+                      </div>
+                    )}
+                    {eventLogs.map((entry) => (
+                      <div key={entry} className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-emerald-300">
+                        &gt; {entry}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white px-5 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Live Device Preview
+                  </p>
+                  <h2 className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+                    Full-size cart screen
+                  </h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className={connectionBadgeClassName}>
+                    {isConnected && !deviceError ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+                    {connectionLabel}
+                  </span>
+                  <span className={cartStatusBadgeClassName}>{cartStatus}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[2.25rem] bg-gradient-to-br from-slate-200 via-white to-slate-100 p-3 shadow-[0_24px_80px_rgba(15,23,42,0.14)] dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
+              <div className="relative overflow-hidden rounded-[2rem] border-[14px] border-slate-950 bg-[#050816] shadow-2xl">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.12),transparent_30%)]" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-white/[0.08]" />
+
+                <div className="relative flex min-h-[680px] flex-col px-5 py-5 sm:px-7 sm:py-6 xl:min-h-[860px]">
+                  <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-white/10 text-white backdrop-blur">
+                        <ShoppingCart className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+                          Cart device
+                        </p>
+                        <h3 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
+                          {trimmedCartCode || 'Cart'}
+                        </h3>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
+                          {pollStatus}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <span className={connectionBadgeClassName}>
+                        {isConnected && !deviceError ? (
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        ) : (
+                          <Power className="h-3.5 w-3.5" />
+                        )}
+                        {connectionLabel}
+                      </span>
+                      <span className={cartStatusBadgeClassName}>{screenModeLabel}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex min-h-0 flex-1 flex-col">
+                    {!isConnected ? (
+                      <div className="flex flex-1 items-center justify-center">
+                        <div className="max-w-xl text-center">
+                          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/5 text-slate-300 shadow-lg backdrop-blur">
+                            <Power className="h-11 w-11" />
+                          </div>
+                          <h1 className="mt-6 text-3xl font-semibold text-white sm:text-4xl">Simulator offline</h1>
+                          <p className="mt-4 text-base leading-8 text-slate-400">
+                            Power on the simulator to load the live pairing QR, active-session state, and secure checkout handoff for this cart.
+                          </p>
+                        </div>
+                      </div>
+                    ) : isDeviceLoading && !deviceData ? (
+                      <div className="flex flex-1 items-center justify-center">
+                        <div className="max-w-xl text-center">
+                          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/5 text-slate-300 shadow-lg backdrop-blur">
+                            <RefreshCw className="h-11 w-11 animate-spin" />
+                          </div>
+                          <h1 className="mt-6 text-3xl font-semibold text-white sm:text-4xl">Booting cart OS</h1>
+                          <p className="mt-4 text-base leading-8 text-slate-400">
+                            The simulator is polling the backend and preparing the device state.
+                          </p>
+                        </div>
+                      </div>
+                    ) : !isActive && cartStatus === 'AVAILABLE' ? (
+                      <div className="grid flex-1 gap-8 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-center">
+                        <div className="mx-auto flex w-full max-w-[360px] items-center justify-center rounded-[2.5rem] bg-white p-7 shadow-[0_30px_80px_rgba(15,23,42,0.35)]">
+                          {qrData?.qrValue ? (
+                            <QRCode value={qrData.qrValue} size={280} />
+                          ) : (
+                            <RefreshCw className="h-10 w-10 animate-spin text-slate-300" />
+                          )}
+                        </div>
+
+                        <div className="space-y-6">
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300">
+                              Ready to pair
+                            </p>
+                            <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
+                              Scan this live QR to start shopping
+                            </h1>
+                            <p className="mt-4 max-w-2xl text-base leading-8 text-slate-300">
+                              Use the Carto app to scan this cart. The pairing code stays live on the device surface and refreshes through the backend.
+                            </p>
+                          </div>
+
+                          <div className="grid gap-4 sm:grid-cols-3">
+                            <div className="rounded-[1.75rem] border border-white/10 bg-white/5 px-5 py-5 backdrop-blur">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Cart code
+                              </p>
+                              <p className="mt-3 text-xl font-semibold text-white">{trimmedCartCode}</p>
+                            </div>
+                            <div className="rounded-[1.75rem] border border-white/10 bg-white/5 px-5 py-5 backdrop-blur">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Pairing code
+                              </p>
+                              <p className="mt-3 font-mono text-xl font-semibold text-white">
+                                {qrData?.payload?.pairingCode ?? 'Loading...'}
+                              </p>
+                            </div>
+                            <div className="rounded-[1.75rem] border border-white/10 bg-white/5 px-5 py-5 backdrop-blur">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Expires
+                              </p>
+                              <p className="mt-3 text-xl font-semibold text-white">
+                                {qrData?.expiresAt ? new Date(qrData.expiresAt).toLocaleTimeString() : 'Loading...'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="rounded-[1.75rem] border border-sky-400/20 bg-sky-500/10 px-5 py-5 text-sky-50">
+                            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-200">
+                              Scan flow
+                            </p>
+                            <p className="mt-3 text-base leading-7 text-sky-50/90">
+                              Keep the simulator powered on, then scan this cart from the mobile app to push the active shopping session onto the device screen.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : !isActive ? (
+                      <div className="flex flex-1 items-center justify-center">
+                        <div className="max-w-xl text-center">
+                          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/5 text-slate-300 shadow-lg backdrop-blur">
+                            <Clock3 className="h-11 w-11" />
+                          </div>
+                          <h1 className="mt-6 text-3xl font-semibold text-white sm:text-4xl">
+                            Waiting for pairing mode
+                          </h1>
+                          <p className="mt-4 text-base leading-8 text-slate-400">
+                            The cart is not currently in AVAILABLE mode. Disconnect or finish the current workflow to show the live pairing QR again.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex min-h-0 flex-1 flex-col">
+                        <div className="mb-6 rounded-[1.75rem] border border-white/10 bg-white/5 p-5 backdrop-blur">
+                          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-500/90 text-white shadow-lg">
+                                <ReceiptText className="h-7 w-7" />
+                              </div>
+                              <div>
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-300">
+                                  Active session
+                                </p>
+                                <h1 className="mt-2 text-2xl font-semibold text-white">{deviceData.list.name}</h1>
+                                <p className="mt-1 text-sm text-slate-300">
+                                  {sessionReference ? `Session ${sessionReference}` : 'Session is active on this cart'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              {activeSessionStatus && <span className={cartStatusBadgeClassName}>{activeSessionStatus}</span>}
+                              {activeReceiptStatus && <span className={paymentStatusBadgeClassName}>{activeReceiptStatus}</span>}
+                              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-200">
+                                {deviceData.list.items.length} list item{deviceData.list.items.length === 1 ? '' : 's'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid min-h-0 flex-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_420px]">
+                          <div className="flex min-h-0 flex-col rounded-[1.9rem] border border-sky-400/20 bg-slate-950/60 p-5">
+                            <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-200">
+                                  <ShoppingCart className="h-6 w-6" />
+                                </div>
+                                <div>
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300">
+                                    Shopping List
+                                  </p>
+                                  <h3 className="mt-1 text-xl font-semibold text-white">
+                                    Planned items for this trip
+                                  </h3>
+                                </div>
+                              </div>
+                              <span className="inline-flex items-center rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-200">
+                                {deviceData.list.items.length} item{deviceData.list.items.length === 1 ? '' : 's'}
+                              </span>
+                            </div>
+
+                            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                              {deviceData.list.items.length === 0 ? (
+                                <div className="rounded-[1.75rem] border border-dashed border-slate-700 bg-slate-950/60 px-5 py-6 text-sm text-slate-400">
+                                  No items are currently planned for this list.
+                                </div>
+                              ) : (
+                                <ul className="space-y-3">
+                                  {deviceData.list.items.map((item) => (
+                                    <li
+                                      key={item.id}
+                                      className={cn(
+                                        'flex items-center justify-between rounded-[1.5rem] border px-4 py-4 transition',
+                                        item.isCollected
+                                          ? 'border-slate-800 bg-slate-900/60 opacity-55'
+                                          : 'border-sky-400/10 bg-slate-900/80'
+                                      )}
+                                    >
+                                      <div className="min-w-0 pr-4">
+                                        <p
+                                          className={cn(
+                                            'truncate text-base font-medium',
+                                            item.isCollected ? 'text-slate-500 line-through' : 'text-slate-100'
+                                          )}
+                                        >
+                                          {item.name}
+                                        </p>
+                                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-500">
+                                          {item.category || 'Uncategorized'}
+                                        </p>
+                                      </div>
+                                      <span className="shrink-0 rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">
+                                        Qty {item.quantity}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+
+                            <div className="mt-5 rounded-[1.75rem] border border-amber-400/20 bg-amber-400/10 p-5">
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-100">
+                                  <AlertTriangle className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200">
+                                    Demo receipt sync
+                                  </p>
+                                  <p className="mt-2 text-sm leading-6 text-amber-50/90">
+                                    This simulator-only action calls the real cart item API to confirm planned items into the receipt for testing.
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="mt-5">
+                                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/80">
+                                  Demo price for listed items without price
+                                </label>
+                                <div className="flex items-center gap-3">
+                                  <span className="rounded-2xl border border-amber-300/20 bg-slate-950/60 px-4 py-3 text-sm font-semibold text-amber-50">
+                                    EGP
+                                  </span>
+                                  <input
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    value={demoPriceInput}
+                                    onChange={(event) => setDemoPriceInput(event.target.value)}
+                                    disabled={isAddingListedItems}
+                                    className="w-full rounded-2xl border border-amber-300/20 bg-slate-950/60 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                                    placeholder="1.00"
+                                  />
+                                </div>
+                                <p className="mt-3 text-xs leading-6 text-amber-50/70">
+                                  Used only when a planned list item does not already have a valid price.
+                                </p>
+                                {listedItemsMissingPriceCount > 0 && !hasValidDemoPrice && (
+                                  <p className="mt-2 text-xs text-red-100">
+                                    Enter a valid positive demo price before adding listed items to the receipt.
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="mt-4 rounded-[1.5rem] border border-amber-300/20 bg-slate-950/50 p-4 text-sm text-amber-50/85">
+                                <p>
+                                  {listedItemsToAdd.length} listed item{listedItemsToAdd.length === 1 ? '' : 's'} ready to add.
+                                </p>
+                                {listedItemsAlreadyInReceiptCount > 0 && (
+                                  <p className="mt-2">
+                                    {listedItemsAlreadyInReceiptCount} item{listedItemsAlreadyInReceiptCount === 1 ? '' : 's'} already exist in the receipt and will be skipped.
+                                  </p>
+                                )}
+                                {listedItemsMissingPriceCount > 0 && (
+                                  <p className="mt-2">
+                                    {listedItemsMissingPriceCount} item{listedItemsMissingPriceCount === 1 ? '' : 's'} will use the demo fallback price of{' '}
+                                    {hasValidDemoPrice ? formatDeviceMoney(parsedDemoPrice) : 'a valid price'}.
+                                  </p>
+                                )}
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setShowAddListedItemsDialog(true)}
+                                disabled={Boolean(addListedItemsDisabledReason) || isAddingListedItems}
+                                className="mt-4 w-full rounded-2xl bg-amber-400 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {isAddingListedItems ? 'Adding listed items to receipt...' : 'Add listed items to receipt'}
+                              </button>
+
+                              {addListedItemsDisabledReason && (
+                                <p className="mt-3 text-xs leading-6 text-amber-50/70">{addListedItemsDisabledReason}</p>
+                              )}
+
+                              {listedItemsNotice && (
+                                <div
+                                  className={cn(
+                                    'mt-4 rounded-[1.5rem] px-4 py-3 text-sm',
+                                    listedItemsNotice.tone === 'success'
+                                      ? 'bg-emerald-500/15 text-emerald-100'
+                                      : listedItemsNotice.tone === 'error'
+                                        ? 'bg-rose-500/15 text-rose-100'
+                                        : 'bg-slate-800 text-slate-200'
+                                  )}
+                                >
+                                  {listedItemsNotice.message}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex min-h-0 flex-col rounded-[1.9rem] border border-emerald-400/20 bg-slate-950/70 p-5">
+                            <div className="mb-5 flex flex-col gap-4">
+                              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-200">
+                                    <CreditCard className="h-6 w-6" />
+                                  </div>
+                                  <div>
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
+                                      Current Receipt
+                                    </p>
+                                    <h3 className="mt-1 text-xl font-semibold text-white">Checkout and payment</h3>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleGeneratePaymentQr()}
+                                  disabled={!deviceData.receipt?.id || isGeneratingPaymentQr}
+                                  className="rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {isGeneratingPaymentQr
+                                    ? 'Generating payment QR...'
+                                    : paymentQrData
+                                      ? 'Generate new payment QR'
+                                      : 'Generate payment QR'}
+                                </button>
+                              </div>
+
+                              <p className="text-sm leading-6 text-slate-400">
+                                The device sends the payable amount to the backend, and the QR only carries a short-lived token.
+                              </p>
+                            </div>
+
+                            <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                    Checkout amount
+                                  </p>
+                                  <p className="mt-2 text-sm leading-6 text-slate-300">
+                                    Demo mode always charges a fixed{' '}
+                                    {formatDeviceMoney(DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY)} regardless of the current receipt total.
+                                  </p>
+                                </div>
+                                <span className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
+                                  {formatDeviceMoney(effectivePaymentAmount, DEMO_PAYMENT_CURRENCY)}
+                                </span>
+                              </div>
+                              <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+                                <span className="text-slate-500">Amount sent in POST body</span>
+                                <span className="font-mono font-bold text-white">
+                                  {formatDeviceMoney(effectivePaymentAmount, DEMO_PAYMENT_CURRENCY)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {paymentQrData ? (
+                              <div className="mt-5 rounded-[1.9rem] border border-emerald-400/25 bg-slate-950/90 p-5 shadow-[0_0_0_1px_rgba(16,185,129,0.08)]">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                  <div>
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
+                                      Secure payment QR
+                                    </p>
+                                    <p className="mt-2 text-sm text-slate-300">
+                                      Scan on a phone to continue secure checkout.
+                                    </p>
+                                  </div>
+                                  <span className={paymentStatusBadgeClassName}>
+                                    {paymentStatusData?.paymentStatus || paymentQrData.paymentStatus}
+                                  </span>
+                                </div>
+
+                                <div className="mt-5 flex justify-center rounded-[1.8rem] bg-white p-6 shadow-inner">
+                                  <QRCode value={paymentQrData.qrValue} size={240} />
+                                </div>
+
+                                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                      Amount
+                                    </p>
+                                    <p className="mt-2 text-base font-semibold text-white">{paymentQrData.amountDisplay}</p>
+                                  </div>
+                                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                      Receipt
+                                    </p>
+                                    <p className="mt-2 font-mono text-base font-semibold text-white">
+                                      {paymentQrData.receiptId.slice(-6).toUpperCase()}
+                                    </p>
+                                  </div>
+                                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                      Expires
+                                    </p>
+                                    <p className="mt-2 text-base font-semibold text-white">
+                                      {paymentQrExpiresAtLabel}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {paymentStatusData?.paymentStatus === 'PAID' ? (
+                                  <div className="mt-5 rounded-[1.5rem] bg-emerald-500/15 px-4 py-4 text-sm font-semibold text-emerald-100">
+                                    Payment successful. Returning cart to pairing mode...
+                                  </div>
+                                ) : (
+                                  <p className="mt-5 text-sm leading-7 text-slate-400">
+                                    The QR only contains a short-lived token. Carto loads the stored amount from the backend after scan.
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="mt-5 rounded-[1.75rem] border border-dashed border-slate-700 bg-white/[0.03] px-5 py-4 text-sm leading-7 text-slate-400">
+                                {deviceData.payment?.status === 'PENDING'
+                                  ? `Payment is pending for ${formatDeviceMoney(deviceData.payment.amount, deviceData.payment.currency)}. Generate a fresh QR to continue on a phone.`
+                                  : 'Generate a payment QR when the shopper is ready to pay on their phone.'}
+                              </div>
+                            )}
+
+                            <div className="mt-5 flex min-h-0 flex-1 flex-col rounded-[1.75rem] border border-white/10 bg-white/5 p-4">
+                              <div className="mb-4 flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                    Receipt items
+                                  </p>
+                                  <p className="mt-1 text-sm text-slate-400">
+                                    {receiptReference ? `Receipt ${receiptReference}` : 'No receipt items yet'}
+                                  </p>
+                                </div>
+                                <span className="inline-flex items-center rounded-full border border-white/10 bg-slate-950 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-200">
+                                  {deviceData.receipt?.items.length || 0} item{deviceData.receipt?.items.length === 1 ? '' : 's'}
+                                </span>
+                              </div>
+
+                              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                                {!deviceData.receipt || deviceData.receipt.items.length === 0 ? (
+                                  <div className="rounded-[1.5rem] border border-dashed border-slate-700 bg-slate-950/60 px-4 py-5 text-sm text-slate-400">
+                                    Scan or sync items to start building the receipt.
+                                  </div>
+                                ) : (
+                                  <ul className="space-y-3">
+                                    {deviceData.receipt.items.map((item) => (
+                                      <li
+                                        key={item.id}
+                                        className="flex items-center justify-between rounded-[1.5rem] border border-emerald-400/10 bg-slate-950/70 px-4 py-4 text-sm"
+                                      >
+                                        <div className="min-w-0 pr-4">
+                                          <p className="truncate font-medium text-slate-100">{item.name}</p>
+                                          <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-500">
+                                            Qty {item.quantity}
+                                          </p>
+                                        </div>
+                                        <span className="font-mono text-slate-100">
+                                          {formatDeviceMoney(item.price * item.quantity)}
+                                        </span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="mt-5 rounded-[1.75rem] border border-emerald-400/15 bg-emerald-500/10 px-5 py-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm font-medium text-emerald-100/80">Total</span>
+                                <span className="font-mono text-3xl font-bold text-white">
+                                  {formatDeviceMoney(deviceData.receipt?.total || 0)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {showAddListedItemsDialog && isActive && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4">
-          <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-            <h2 className="text-xl font-bold text-white">Add listed items to receipt</h2>
-            <p className="mt-3 text-sm text-slate-300">
-              This will simulate scanning all planned shopping list items and add them to the receipt. Continue?
-            </p>
+          <div className="w-full max-w-md rounded-[2rem] border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-200">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Add listed items to receipt</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  This will simulate scanning all planned shopping list items and add them to the receipt. Continue?
+                </p>
+              </div>
+            </div>
 
-            <div className="mt-4 space-y-2 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-300">
+            <div className="mt-5 space-y-2 rounded-[1.5rem] border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-300">
               <p>{listedItemsToAdd.length} listed item{listedItemsToAdd.length === 1 ? '' : 's'} will be added.</p>
               {listedItemsAlreadyInReceiptCount > 0 && (
                 <p>{listedItemsAlreadyInReceiptCount} item{listedItemsAlreadyInReceiptCount === 1 ? '' : 's'} already in the receipt will be skipped.</p>
@@ -1287,7 +1717,7 @@ export default function DeviceSimulatorPage() {
                 type="button"
                 onClick={() => setShowAddListedItemsDialog(false)}
                 disabled={isAddingListedItems}
-                className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
+                className="rounded-2xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -1295,7 +1725,7 @@ export default function DeviceSimulatorPage() {
                 type="button"
                 onClick={() => void handleConfirmAddListedItems()}
                 disabled={isAddingListedItems}
-                className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-amber-400 disabled:opacity-50"
+                className="rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-amber-400 disabled:opacity-50"
               >
                 {isAddingListedItems ? 'Adding listed items to receipt...' : 'Confirm add items'}
               </button>
