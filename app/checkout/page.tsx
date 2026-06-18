@@ -60,8 +60,8 @@ function getCheckoutStatusCopy(paymentStatus: string | null | undefined) {
       };
     default:
       return {
-        label: 'Pending confirmation',
-        description: 'Confirmed only after webhook verification',
+        label: 'Ready to pay',
+        description: 'Awaiting payment',
       };
   }
 }
@@ -255,7 +255,7 @@ function CheckoutContent() {
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Payment summary</p>
                 <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Pay securely with Paymob</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                  You will be redirected to Paymob&apos;s hosted checkout to complete this payment securely. Carto only receives payment confirmation after verification.
+                  Review the amount and continue when you&apos;re ready.
                 </p>
               </div>
               <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -267,7 +267,6 @@ function CheckoutContent() {
               <div className="rounded-[1.75rem] border border-primary/10 bg-[#fffaf8] p-5 shadow-sm">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Amount to pay</p>
                 <p className="mt-3 text-4xl font-black tracking-tight text-slate-950">{demoAmountLabel}</p>
-                <p className="mt-2 text-sm text-slate-500">One secure demo payment through Paymob hosted checkout.</p>
               </div>
               <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Payment status</p>
@@ -283,40 +282,8 @@ function CheckoutContent() {
                   <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">#{receiptReference}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Payment method</p>
-                  <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">Paymob hosted checkout</p>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600 dark:bg-slate-950 dark:text-slate-300">
-                Your card and wallet details are handled by Paymob. Carto keeps your receipt pending until the payment webhook is verified.
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900 md:p-6">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">What happens next</p>
-            <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">A clean handoff to secure payment</h3>
-            <div className="mt-5 space-y-3">
-              <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-white">1</span>
-                <div>
-                  <p className="font-black text-slate-950 dark:text-slate-100">Continue to Paymob</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Tap the checkout button and Carto will open Paymob&apos;s hosted payment page.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-white">2</span>
-                <div>
-                  <p className="font-black text-slate-950 dark:text-slate-100">Paymob handles the secure step</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Your card or wallet details stay inside Paymob&apos;s checkout experience, not inside Carto.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-white">3</span>
-                <div>
-                  <p className="font-black text-slate-950 dark:text-slate-100">Carto confirms payment after verification</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Your receipt is marked paid only after the backend verifies Paymob&apos;s final webhook callback.</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Secure payment</p>
+                  <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">Powered by Paymob</p>
                 </div>
               </div>
             </div>
@@ -339,20 +306,8 @@ function CheckoutContent() {
 
             <div className="space-y-4 border-y border-dashed border-slate-200 p-5 dark:border-slate-800 md:p-6">
               <div className="rounded-[1.5rem] border border-primary/10 bg-[#fffaf8] p-4 shadow-sm">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Secure Paymob payment</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Amount</p>
                 <p className="mt-3 text-3xl font-black tracking-tight text-slate-950">{demoAmountLabel}</p>
-                <p className="mt-2 text-sm text-slate-500">Redirects to Paymob hosted checkout for secure card or wallet payment.</p>
-              </div>
-
-              <div className="rounded-[1.5rem] bg-slate-50 p-4 dark:bg-slate-950/70">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Items</span>
-                  <span className="font-bold text-slate-950 dark:text-slate-100">Demo checkout amount</span>
-                </div>
-                <div className="mt-4 flex justify-between text-sm">
-                  <span className="text-slate-500">Subtotal</span>
-                  <span className="font-bold text-slate-950 dark:text-slate-100">{demoAmountLabel}</span>
-                </div>
               </div>
 
               <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
@@ -360,18 +315,13 @@ function CheckoutContent() {
                   <span className="text-base font-black text-slate-950 dark:text-slate-100">Total</span>
                   <span className="text-3xl font-black text-primary">{demoAmountLabel}</span>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                  No delivery fee or service fee is added to this demo checkout.
-                </p>
               </div>
             </div>
 
             <div className="bg-[#fffaf8] p-5 dark:bg-slate-950/50 md:p-6">
               <div className="rounded-[1.5rem] border border-primary/10 bg-white p-4 shadow-sm dark:bg-slate-950">
-                <p className="text-sm font-black text-slate-950 dark:text-slate-100">Ready to continue?</p>
-                <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                  Paymob handles the secure payment screen. Carto only updates your receipt after verification.
-                </p>
+                <p className="text-sm font-black text-slate-950 dark:text-slate-100">Secure payment</p>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Powered by Paymob</p>
               </div>
 
               <Button

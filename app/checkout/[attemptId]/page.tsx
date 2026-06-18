@@ -125,7 +125,7 @@ export default async function DeviceCheckoutPage({
               ? 'This receipt has already been paid and verified by the backend.'
               : previewMode
               ? 'Paymob credentials are not configured, so this secure preview page does not complete payment by itself.'
-              : 'Carto validates this payment attempt first, then sends you to Paymob hosted checkout to pay securely in EGP.'}
+              : 'Carto validates this payment attempt first, then opens secure Paymob payment in EGP.'}
           </p>
 
           {!alreadyPaid && (
