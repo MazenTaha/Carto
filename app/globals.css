@@ -5,41 +5,65 @@
 @layer base {
   :root {
     color-scheme: light;
-    --background: #FFFFFF;
-    --foreground: #722F37;
+    /* Warm neutral foundation that pairs with the wine brand colour. */
+    --color-canvas: 250 248 246;
+    --color-surface: 255 255 255;
+    --color-surface-muted: 245 243 241;
+    --color-surface-sunken: 238 235 232;
+    --color-ink: 28 25 23;
+    --color-ink-muted: 87 83 78;
+    --color-ink-subtle: 110 103 98;
+    --color-line: 231 227 223;
+    --color-line-strong: 214 209 204;
+
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  .dark {
-    color-scheme: light;
-    --background: #FFFFFF;
-    --foreground: #722F37;
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
   }
 
   body {
-    @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-900 min-h-screen antialiased;
+    @apply min-h-screen bg-canvas font-sans text-ink antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  ::selection {
-    @apply bg-primary/20 text-slate-950;
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-tight text-ink;
+    text-wrap: balance;
   }
 
-  button,
-  a {
-    touch-action: manipulation;
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-ink;
   }
 
   button,
   a,
-  input,
-  textarea,
-  select {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background-light dark:focus-visible:ring-offset-background-light;
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  :where(button, a, input, textarea, select, summary, [tabindex]):focus-visible {
+    @apply outline-none ring-2 ring-primary/70 ring-offset-2 ring-offset-canvas;
+  }
+
+  [type="number"] {
+    font-variant-numeric: tabular-nums;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
@@ -48,57 +72,43 @@
 }
 
 @layer components {
-  .glass {
-    @apply bg-white/85 dark:bg-white/85 backdrop-blur-md border border-warm-border/50 dark:border-warm-border/50;
+  .surface-card {
+    @apply rounded-2xl border border-line bg-surface shadow-card;
   }
 
-  .card-surface {
-    @apply rounded-2xl border border-warm-border/45 bg-white shadow-card dark:border-warm-border/45 dark:bg-white;
-  }
-
-  .receipt-edge {
-    background-image:
-      radial-gradient(circle at 0 12px, transparent 12px, #FFFFFF 13px),
-      radial-gradient(circle at 100% 12px, transparent 12px, #FFFFFF 13px);
-    background-size: 100% 28px;
-    background-repeat: repeat-y;
-  }
-
-  .material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    display: inline-block;
-    line-height: 1;
-    text-transform: none;
-    letter-spacing: normal;
-    word-wrap: normal;
-    white-space: nowrap;
-    direction: ltr;
-  }
-
-  .fill-1 {
-    font-variation-settings: 'FILL' 1;
+  .eyebrow {
+    @apply text-2xs font-semibold uppercase tracking-[0.14em] text-ink-subtle;
   }
 }
 
 @layer utilities {
+  .pb-safe {
+    padding-bottom: max(0.75rem, var(--safe-bottom));
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-line-strong)) transparent;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
-    width: 10px;
+    width: 8px;
+    height: 8px;
   }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(114,47,55,0.08);
-    border-radius: 999px;
-  }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(114,47,55,0.35);
+    background: rgb(var(--color-line-strong));
     border-radius: 999px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(114,47,55,0.55);
   }
 
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;

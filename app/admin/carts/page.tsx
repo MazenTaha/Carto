@@ -5,7 +5,9 @@ import { CartsGrid } from '@/components/admin/carts/CartsGrid';
 import { PageHeader } from '@/components/admin/shared/PageHeader';
 import { LoadingSkeleton } from '@/components/admin/shared/LoadingSkeleton';
 import { EmptyState } from '@/components/admin/shared/EmptyState';
-import { ShoppingCart, RefreshCw } from 'lucide-react';
+import { CircleAlert, ShoppingCart } from 'lucide-react';
+import { Toast, useToast } from '@/components/admin/shared/Toast';
+import { ChipTabs } from '@/components/ui/ChipTabs';
 import { useState } from 'react';
 
 const STATUS_FILTERS = ['All', 'AVAILABLE', 'IN_USE', 'MAINTENANCE', 'OFFLINE'];
@@ -13,9 +15,7 @@ const STATUS_FILTERS = ['All', 'AVAILABLE', 'IN_USE', 'MAINTENANCE', 'OFFLINE'];
 export default function CartsPage() {
   const { carts, isLoading, error, resetCart, setStatus, generateQR } = useAdminCarts();
   const [filter, setFilter] = useState('All');
-  const [toast, setToast] = useState('');
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+  const toast = useToast();
 
   const filtered = filter === 'All' ? carts : carts.filter((c) => c.status === filter);
 
@@ -27,64 +27,54 @@ export default function CartsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Cart Management"
-        description={`${carts.length} carts in fleet`}
+        title="Carts"
+        description={`${carts.length} cart${carts.length === 1 ? '' : 's'} in the fleet · refreshes every 10s`}
         icon={ShoppingCart}
-        actions={
-          <span className="text-xs text-slate-400 flex items-center gap-1">
-            <RefreshCw size={11} /> Auto-refreshes every 10s
-          </span>
-        }
       />
 
-      {/* Status filter tabs */}
-      <div className="flex flex-wrap gap-2">
-        {STATUS_FILTERS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${
-              filter === s
-                ? 'bg-indigo-600 text-white'
-                : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            {s.replace('_', ' ')}
-            {s !== 'All' && counts[s] != null && (
-              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${
-                filter === s ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'
-              }`}>
-                {counts[s]}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <ChipTabs
+        ariaLabel="Filter by status"
+        value={filter}
+        onChange={setFilter}
+        options={STATUS_FILTERS.map((s) => ({
+          value: s,
+          label: s === 'All' ? 'All' : s.replace('_', ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase()),
+          count: s === 'All' ? carts.length : counts[s],
+        }))}
+      />
 
       {isLoading ? (
-        <LoadingSkeleton rows={8} />
+        <div className="surface-card overflow-hidden">
+          <LoadingSkeleton rows={6} />
+        </div>
       ) : error ? (
-        <EmptyState title="Failed to load carts" description={error.message} icon={<ShoppingCart size={22} />} />
+        <div className="surface-card">
+          <EmptyState tone="danger" icon={<CircleAlert />} title="Could not load carts" description={error.message} />
+        </div>
       ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={<ShoppingCart size={22} />}
-          title={filter === 'All' ? 'No carts configured' : `No ${filter.replace('_', ' ').toLowerCase()} carts`}
-          description="Carts are added by connecting physical devices to the system."
-        />
+        <div className="surface-card">
+          <EmptyState
+            icon={<ShoppingCart />}
+            title={filter === 'All' ? 'No carts configured' : `No ${filter.replace('_', ' ').toLowerCase()} carts`}
+            description="Carts appear here once a device is provisioned for a store."
+          />
+        </div>
       ) : (
         <CartsGrid
           carts={filtered}
-          onReset={async (id) => { await resetCart(id); showToast('Cart reset successfully'); }}
-          onSetStatus={async (id, status) => { await setStatus(id, status); showToast(`Status updated to ${status}`); }}
+          onReset={async (id) => {
+            await resetCart(id);
+            toast.show('Cart reset');
+          }}
+          onSetStatus={async (id, status) => {
+            await setStatus(id, status);
+            toast.show(`Status set to ${status.replace('_', ' ').toLowerCase()}`);
+          }}
           onGenerateQR={generateQR}
         />
       )}
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-lg">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast.message} />
     </div>
   );
 }

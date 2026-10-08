@@ -1,69 +1,57 @@
+import type { LucideIcon } from 'lucide-react';
+import { TrendingDown, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface StatsCardProps {
   title: string;
   value: string | number;
   icon: LucideIcon;
-  iconColor?: string;
-  iconBg?: string;
   trend?: { value: number; label: string };
   suffix?: string;
+  helper?: string;
+  tone?: 'neutral' | 'success' | 'danger';
   className?: string;
 }
 
-export function StatsCard({
-  title,
-  value,
-  icon: Icon,
-  iconColor = 'text-indigo-600',
-  iconBg = 'bg-indigo-50',
-  trend,
-  suffix,
-  className,
-}: StatsCardProps) {
+const iconTones = {
+  neutral: 'bg-brand-50 text-primary',
+  success: 'bg-emerald-50 text-emerald-600',
+  danger: 'bg-red-50 text-red-600',
+};
+
+export function StatsCard({ title, value, icon: Icon, trend, suffix, helper, tone = 'neutral', className }: StatsCardProps) {
   const isPositive = trend && trend.value >= 0;
 
   return (
-    <div
-      className={cn(
-        'group relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-shadow hover:shadow-md',
-        className
-      )}
-    >
-      <div className="flex items-start justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{title}</p>
-        <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', iconBg)}>
-          <Icon size={18} className={iconColor} />
-        </div>
+    <div className={cn('surface-card p-4 sm:p-5', className)}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-ink-muted">{title}</p>
+        <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg', iconTones[tone])}>
+          <Icon className="size-4" aria-hidden="true" />
+        </span>
       </div>
 
-      <div className="mt-3 flex items-end gap-1">
-        <span className="text-2xl font-bold tracking-tight text-slate-900">{value}</span>
-        {suffix && <span className="mb-0.5 text-sm font-medium text-slate-500">{suffix}</span>}
-      </div>
+      <p className="mt-2 flex items-baseline gap-1">
+        <span className="tabular font-display text-2xl font-semibold tracking-tight text-ink">{value}</span>
+        {suffix && <span className="text-sm text-ink-subtle">{suffix}</span>}
+      </p>
+
+      {helper && <p className="mt-0.5 text-xs text-ink-subtle">{helper}</p>}
 
       {trend && (
-        <div className="mt-2 flex items-center gap-1">
+        <p className="mt-1 flex items-center gap-1 text-xs">
           {isPositive ? (
-            <TrendingUp size={12} className="text-emerald-500" />
+            <TrendingUp className="size-3 text-emerald-600" aria-hidden="true" />
           ) : (
-            <TrendingDown size={12} className="text-red-400" />
+            <TrendingDown className="size-3 text-red-600" aria-hidden="true" />
           )}
-          <span
-            className={cn(
-              'text-xs font-medium',
-              isPositive ? 'text-emerald-600' : 'text-red-500'
-            )}
-          >
-            {isPositive ? '+' : ''}{trend.value}%
+          <span className={cn('font-medium', isPositive ? 'text-emerald-700' : 'text-red-700')}>
+            {isPositive ? '+' : ''}
+            {trend.value}%
           </span>
-          <span className="text-xs text-slate-400">{trend.label}</span>
-        </div>
+          <span className="text-ink-subtle">{trend.label}</span>
+        </p>
       )}
-
-      {/* Subtle gradient accent */}
-      <div className="pointer-events-none absolute -right-4 -top-4 h-20 w-20 rounded-full bg-gradient-to-br from-indigo-50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
     </div>
   );
 }

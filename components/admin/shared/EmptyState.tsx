@@ -1,26 +1,31 @@
+import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 interface EmptyStateProps {
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   title: string;
   description?: string;
-  action?: React.ReactNode;
+  action?: ReactNode;
+  tone?: 'neutral' | 'danger';
   className?: string;
 }
 
-export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, tone = 'neutral', className }: EmptyStateProps) {
   return (
-    <div className={cn('flex flex-col items-center justify-center py-16 text-center', className)}>
+    <div className={cn('flex flex-col items-center justify-center px-6 py-14 text-center', className)}>
       {icon && (
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+        <div
+          className={cn(
+            'mb-4 flex size-12 items-center justify-center rounded-2xl [&_svg]:size-6',
+            tone === 'danger' ? 'bg-red-50 text-red-600' : 'bg-surface-muted text-ink-subtle'
+          )}
+        >
           {icon}
         </div>
       )}
-      <h3 className="text-base font-semibold text-slate-800">{title}</h3>
-      {description && (
-        <p className="mt-1 max-w-sm text-sm text-slate-500">{description}</p>
-      )}
-      {action && <div className="mt-4">{action}</div>}
+      <h3 className="font-sans text-base font-semibold text-ink">{title}</h3>
+      {description && <p className="mt-1 max-w-sm text-sm text-ink-muted">{description}</p>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }

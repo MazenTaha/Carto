@@ -2,9 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDebounce } from '@/lib/hooks';
-import { Badge } from '@/components/ui/Badge';
+import { Loader2, Package, Plus, Search, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { ChipTabs } from '@/components/ui/ChipTabs';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { inputClassName } from '@/components/ui/Input';
+import { Skeleton } from '@/components/ui/LoadingState';
 import { CategoryFilter } from '@/components/lists/CategoryFilter';
+import { cn } from '@/lib/utils';
 import { ProductCategorySummary, ProductFinderTab, ProductSearchResult } from '@/types';
 import { PRODUCT_CATEGORY_FALLBACKS } from '@/lib/product-finder';
 import { DEFAULT_BASE_PRICE_EGP } from '@/lib/pricing';
@@ -19,7 +24,8 @@ const TAB_OPTIONS: Array<{ label: string; value: ProductFinderTab }> = [
 
 interface ProductSearchProps {
   onSelect: (product: ProductSearchResult) => void | Promise<void>;
-  onCancel: () => void;
+  /** Kept for API compatibility; the surrounding modal owns dismissal. */
+  onCancel?: () => void;
 }
 
 function buildFallbackCategories(): ProductCategorySummary[] {
@@ -37,7 +43,7 @@ function readCategoryResponse(payload: any): ProductCategorySummary[] {
   return Array.isArray(payload?.data) ? payload.data : [];
 }
 
-export function ProductSearch({ onSelect, onCancel }: ProductSearchProps) {
+export function ProductSearch({ onSelect }: ProductSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ProductSearchResult[]>([]);
   const [categories, setCategories] = useState<ProductCategorySummary[]>(buildFallbackCategories());
@@ -157,106 +163,101 @@ export function ProductSearch({ onSelect, onCancel }: ProductSearchProps) {
       : 'Try another search term or switch categories.';
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
-      <div className="shrink-0 border-b border-slate-200 pb-4 dark:border-slate-800">
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <Badge variant="success">Product finder</Badge>
-            <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Find Products</h3>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Search or choose popular products for this list.</p>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onCancel} aria-label="Back to list">
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            Back
-          </Button>
-        </div>
-
-        <div className="relative mb-4">
-          <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+    <div className="flex min-h-0 w-full flex-1 flex-col">
+      <div className="shrink-0 space-y-3 border-b border-line px-5 pb-4 pt-2 sm:px-6">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-[1.125rem] -translate-y-1/2 text-ink-subtle" aria-hidden="true" />
+          <label htmlFor="product-search" className="sr-only">
+            Search products
+          </label>
           <input
+            id="product-search"
             ref={inputRef}
-            type="text"
-            placeholder="Search milk, apples, coffee..."
-            className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+            type="search"
+            autoFocus
+            autoComplete="off"
+            placeholder="Search milk, apples, coffee…"
+            className={cn(inputClassName, 'pl-11 pr-11')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
           {(isLoading || isCategoryLoading) && (
-            <div className="absolute right-5 top-1/2 size-5 -translate-y-1/2 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+            <Loader2 className="absolute right-3.5 top-1/2 size-[1.125rem] -translate-y-1/2 animate-spin text-primary" aria-label="Loading" />
           )}
         </div>
 
-        <div className="mb-4">
-          <CategoryFilter
-            categories={categoryOptions}
-            selectedCategory={selectedCategory}
-            onSelect={setSelectedCategory}
-          />
-        </div>
+        <ChipTabs
+          ariaLabel="Product list"
+          size="sm"
+          options={TAB_OPTIONS}
+          value={activeTab}
+          onChange={setActiveTab}
+        />
 
-        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {TAB_OPTIONS.map((tab) => {
-            const isActive = activeTab === tab.value;
-
-            return (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => setActiveTab(tab.value)}
-                aria-pressed={isActive}
-                className={`shrink-0 rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.14em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950 ${
-                  isActive
-                    ? 'bg-primary text-white'
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <CategoryFilter
+          categories={categoryOptions}
+          selectedCategory={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
       </div>
 
       <div
-        className="custom-scrollbar flex-1 overflow-y-auto overscroll-contain pr-1 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-4"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-safe pt-4 sm:px-6 sm:pb-6"
+        aria-busy={isLoading}
       >
-        <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${isLoading ? 'opacity-60' : 'opacity-100'}`}>
-          {results.length > 0 ? (
-            results.map((product) => (
-              <button
-                key={product.id}
-                type="button"
-                onClick={() => handleSelectProduct(product)}
-                disabled={selectingProductId !== null}
-                className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-primary/40 hover:bg-primary/5 disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-xl text-primary">
-                    {product.emoji || <span className="material-symbols-outlined">inventory_2</span>}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="truncate font-black text-slate-950 dark:text-slate-100">{product.name}</div>
-                    <div className="mt-0.5 truncate text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{product.category}</div>
-                  </div>
+        {results.length > 0 ? (
+          <ul className={cn('grid grid-cols-1 gap-2 transition-opacity sm:grid-cols-2 lg:grid-cols-3', isLoading && 'opacity-60')}>
+            {results.map((product) => {
+              const isSelecting = selectingProductId === product.id;
+
+              return (
+                <li key={product.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectProduct(product)}
+                    disabled={selectingProductId !== null}
+                    className="group flex w-full items-center gap-3 rounded-xl border border-line bg-surface p-3 text-left transition hover:border-brand-200 hover:bg-brand-50/50 disabled:opacity-60"
+                  >
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-xl" aria-hidden="true">
+                      {product.emoji || <Package className="size-5 text-ink-subtle" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-ink">{product.name}</span>
+                      <span className="mt-0.5 block truncate text-xs text-ink-subtle">{product.category}</span>
+                    </span>
+                    <span
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-muted text-ink-muted transition group-hover:bg-primary group-hover:text-white"
+                      aria-hidden="true"
+                    >
+                      {isSelecting ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                    </span>
+                    <span className="sr-only">Add {product.name}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : isLoading ? (
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <li key={index} className="flex items-center gap-3 rounded-xl border border-line p-3">
+                <Skeleton className="size-11 rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3.5 w-2/3" />
+                  <Skeleton className="h-3 w-1/3" />
                 </div>
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition group-hover:bg-primary group-hover:text-white dark:bg-slate-800">
-                  <span className={`material-symbols-outlined text-[20px] ${selectingProductId === product.id ? 'animate-spin' : ''}`}>
-                    {selectingProductId === product.id ? 'progress_activity' : 'add'}
-                  </span>
-                </span>
-              </button>
-            ))
-          ) : (
-            <div className="col-span-full rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center dark:border-slate-800 dark:bg-slate-900">
-              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <span className="material-symbols-outlined text-3xl">search_off</span>
-              </div>
-              <p className="font-bold text-slate-700 dark:text-slate-200">{emptyStateTitle}</p>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{emptyStateDescription}</p>
-              {query.trim() && (
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState
+            icon={SearchX}
+            title={emptyStateTitle}
+            description={emptyStateDescription}
+            className="border-0 bg-transparent"
+            action={
+              query.trim() ? (
                 <Button
-                  className="mt-5"
                   variant="outline"
                   onClick={() => handleSelectProduct({
                     id: 'custom',
@@ -268,12 +269,13 @@ export function ProductSearch({ onSelect, onCancel }: ProductSearchProps) {
                   })}
                   disabled={selectingProductId !== null}
                 >
-                  Add &quot;{query}&quot; anyway
+                  <Plus aria-hidden="true" />
+                  Add &quot;{query.trim()}&quot; anyway
                 </Button>
-              )}
-            </div>
-          )}
-        </div>
+              ) : undefined
+            }
+          />
+        )}
       </div>
     </div>
   );

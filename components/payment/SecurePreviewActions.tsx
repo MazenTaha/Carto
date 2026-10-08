@@ -1,9 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Unlink } from 'lucide-react';
+import { Alert } from '@/components/ui/Alert';
+import { Button, ButtonLink } from '@/components/ui/Button';
 
 function getApiErrorMessage(data: any, fallback: string) {
   if (data?.error?.message) return data.error.message;
@@ -50,34 +51,23 @@ export function SecurePreviewActions({ returnHref, sessionId }: SecurePreviewAct
   }
 
   return (
-    <div className="mt-6">
+    <div className="pt-2">
       {error && (
-        <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+        <Alert tone="danger" className="mb-3">
           {error}
-        </div>
+        </Alert>
       )}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Link
-          href={returnHref}
-          className="inline-flex h-12 items-center justify-center rounded-2xl bg-primary px-5 text-sm font-black text-white shadow-glow transition active:scale-[0.98]"
-        >
-          Back to my session
-        </Link>
-        <Link
-          href="/dashboard"
-          className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 transition hover:border-primary/30 hover:text-primary dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-        >
-          Back to home
-        </Link>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-12 rounded-2xl border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
-          onClick={() => void handleDisconnect()}
-          disabled={isDisconnecting}
-        >
-          {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
+        <ButtonLink href={returnHref} size="lg">
+          Back to session
+        </ButtonLink>
+        <ButtonLink href="/dashboard" size="lg" variant="outline">
+          Home
+        </ButtonLink>
+        <Button size="lg" variant="danger-soft" onClick={() => void handleDisconnect()} loading={isDisconnecting}>
+          {!isDisconnecting && <Unlink aria-hidden="true" />}
+          {isDisconnecting ? 'Disconnecting…' : 'Disconnect'}
         </Button>
       </div>
     </div>

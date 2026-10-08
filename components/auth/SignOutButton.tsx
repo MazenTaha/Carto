@@ -1,44 +1,48 @@
 'use client';
 
 import { signOut } from 'next-auth/react';
+import { LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+export async function signOutAndRedirect() {
+  await signOut({ redirect: false });
+  window.location.href = '/auth/signin';
+}
 
 interface SignOutButtonProps {
   className?: string;
-  variant?: 'outline' | 'ghost' | 'icon';
+  variant?: 'outline' | 'menu';
 }
 
 export function SignOutButton({ className, variant = 'outline' }: SignOutButtonProps) {
-  const handleSignOut = async () => {
-    await signOut({ redirect: false });
-    window.location.href = '/auth/signin';
-  };
-
-  if (variant === 'icon') {
+  if (variant === 'menu') {
     return (
       <button
-        onClick={handleSignOut}
+        type="button"
+        role="menuitem"
+        onClick={() => void signOutAndRedirect()}
         className={cn(
-          "flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-red-50 hover:text-red-600 dark:bg-slate-800 dark:text-slate-400",
+          'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-700 transition hover:bg-red-50',
           className
         )}
-        aria-label="Sign out"
       >
-        <span className="material-symbols-outlined">logout</span>
+        <LogOut className="size-4" aria-hidden="true" />
+        Sign out
       </button>
     );
   }
 
   return (
     <button
-      onClick={handleSignOut}
+      type="button"
+      onClick={() => void signOutAndRedirect()}
       className={cn(
-        "inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition-all hover:border-red-100 hover:bg-red-50 hover:text-red-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-red-900/20",
+        'inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 text-sm font-semibold text-ink-muted transition hover:border-red-200 hover:bg-red-50 hover:text-red-700',
         className
       )}
     >
-      <span className="material-symbols-outlined text-[20px]">logout</span>
-      Sign Out
+      <LogOut className="size-4" aria-hidden="true" />
+      Sign out
     </button>
   );
 }

@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { PageContainer } from '@/components/layout/PageContainer';
-import { Header } from '@/components/layout/Header';
-import { BottomNav } from '@/components/layout/BottomNav';
+import { Camera, ChevronRight, ListChecks, ReceiptText, ScanLine, ShoppingCart, UserRound } from 'lucide-react';
+import { SignOutButton } from '@/components/auth/SignOutButton';
+import { AppShell } from '@/components/layout/AppShell';
+import { AVATAR_CHANGED_EVENT, LOCAL_AVATAR_KEY } from '@/components/layout/UserMenu';
 import { Badge } from '@/components/ui/Badge';
-
-const LOCAL_AVATAR_KEY = 'carto_profile_avatar';
+import { ButtonLink } from '@/components/ui/Button';
+import { DescriptionList } from '@/components/ui/DescriptionList';
+import { Skeleton } from '@/components/ui/LoadingState';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 type ActiveSessionSummary = {
   sessionId: string;
@@ -51,7 +54,10 @@ export default function ProfilePage() {
   const [isCheckingActiveSession, setIsCheckingActiveSession] = useState(true);
 
   useEffect(() => {
-    const savedAvatar = window.localStorage.getItem(LOCAL_AVATAR_KEY) || '';
+    let savedAvatar = '';
+    try {
+      savedAvatar = window.localStorage.getItem(LOCAL_AVATAR_KEY) || '';
+    } catch {}
     if (savedAvatar) {
       setAvatar(savedAvatar);
       return;
@@ -124,11 +130,17 @@ export default function ProfilePage() {
     reader.onload = () => {
       const value = String(reader.result || '');
       setAvatar(value);
-      window.localStorage.setItem(LOCAL_AVATAR_KEY, value);
+      try {
+        window.localStorage.setItem(LOCAL_AVATAR_KEY, value);
+        window.dispatchEvent(new Event(AVATAR_CHANGED_EVENT));
+      } catch {
+        // Storage can be full or blocked (private mode); the preview still updates for this visit.
+      }
     };
     reader.readAsDataURL(file);
   };
 
+  const isSignedIn = status === 'authenticated';
   const displayName = session?.user?.name?.trim() || session?.user?.email?.trim() || 'Guest shopper';
   const emailLabel = session?.user?.email?.trim() || '';
   const initials = useMemo(
@@ -142,43 +154,25 @@ export default function ProfilePage() {
   );
 
   return (
-    <PageContainer maxWidth="lg">
-      <Header title="Profile" showBack />
+    <AppShell maxWidth="lg">
+      <PageHeader title="Profile" description="Your account, photo and current shopping session." />
 
-      <main className="grid flex-1 gap-6 pb-32 pt-6 md:grid-cols-[360px_1fr] md:pb-10">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-col items-center text-center">
-            <div className="relative">
-              <div className="flex size-32 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-4xl font-black text-primary ring-4 ring-primary/10">
-                {avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatar} alt="Profile preview" className="h-full w-full object-cover" />
-                ) : initials ? (
-                  initials
-                ) : (
-                  <span className="material-symbols-outlined text-6xl">person</span>
-                )}
-              </div>
-              <label className="absolute bottom-1 right-1 flex size-11 cursor-pointer items-center justify-center rounded-full bg-primary text-white shadow-lg transition-transform active:scale-95">
-                <span className="material-symbols-outlined text-xl">photo_camera</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(event) => handleAvatarChange(event.target.files?.[0])}
-                />
-              </label>
-            </div>
-
-            {status === 'authenticated' && (
-              <Badge className="mt-5 bg-primary/10 text-primary ring-primary/10">
-                Signed in
-              </Badge>
-            )}
-            <h1 className="mt-4 text-2xl font-black text-slate-900 dark:text-slate-100">{displayName}</h1>
-            {emailLabel && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{emailLabel}</p>}
-            <label className="mt-5 inline-flex h-12 cursor-pointer items-center justify-center rounded-2xl bg-primary px-5 text-sm font-black text-white shadow-glow transition active:scale-[0.98]">
-              Change photo
+      <div className="mt-8 grid items-start gap-6 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+        <section aria-label="Account" className="surface-card flex flex-col items-center p-6 text-center">
+          <div className="relative">
+            <span className="flex size-28 items-center justify-center overflow-hidden rounded-full bg-brand-100 font-display text-3xl font-semibold text-primary ring-4 ring-surface shadow-card">
+              {avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatar} alt="Profile photo" className="size-full object-cover" />
+              ) : isSignedIn && initials ? (
+                initials
+              ) : (
+                <UserRound className="size-12" aria-hidden="true" />
+              )}
+            </span>
+            <label className="absolute bottom-0.5 right-0.5 flex size-10 cursor-pointer items-center justify-center rounded-full bg-primary text-white shadow-brand ring-4 ring-surface transition hover:bg-primary-hover focus-within:ring-primary/40">
+              <Camera className="size-[1.125rem]" aria-hidden="true" />
+              <span className="sr-only">Change profile photo</span>
               <input
                 type="file"
                 accept="image/*"
@@ -187,71 +181,102 @@ export default function ProfilePage() {
               />
             </label>
           </div>
+
+          <h2 className="mt-5 break-words text-xl font-semibold">{displayName}</h2>
+          {emailLabel && <p className="mt-0.5 break-all text-sm text-ink-muted">{emailLabel}</p>}
+          <div className="mt-3">
+            <Badge tone={isSignedIn ? 'success' : 'neutral'} dot>
+              {status === 'loading' ? 'Checking…' : isSignedIn ? 'Signed in' : 'Guest mode'}
+            </Badge>
+          </div>
+          <p className="mt-4 text-xs leading-5 text-ink-subtle">Your photo is stored on this device only.</p>
+
+          <div className="mt-6 w-full border-t border-line pt-5">
+            <SignOutButton className="w-full" />
+          </div>
         </section>
 
-        <section className="space-y-6">
-          {activeSession ? (
-            <Link
-              href={`/session?sessionId=${encodeURIComponent(activeSession.sessionId)}`}
-              className="block rounded-3xl border border-slate-200 bg-white p-6 shadow-card transition hover:border-primary/25 hover:shadow-soft dark:border-slate-800 dark:bg-slate-900"
-            >
-              <div className="flex items-start gap-4">
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <span className="material-symbols-outlined">sensors</span>
+        <div className="space-y-6">
+          <section aria-labelledby="active-session-heading">
+            <h2 id="active-session-heading" className="mb-3 text-base font-semibold">
+              Current session
+            </h2>
+            {isCheckingActiveSession ? (
+              <div className="surface-card flex items-center gap-4 p-5" aria-busy="true">
+                <Skeleton className="size-11 rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-56" />
                 </div>
+              </div>
+            ) : activeSession ? (
+              <Link
+                href={`/session?sessionId=${encodeURIComponent(activeSession.sessionId)}`}
+                className="group surface-card flex items-center gap-4 p-5 transition hover:border-brand-200 hover:shadow-raised"
+              >
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <ShoppingCart className="size-5" aria-hidden="true" />
+                </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Active session</p>
-                  <h2 className="mt-2 text-xl font-black text-slate-950 dark:text-slate-100">View cart progress</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                    {activeSession.shoppingList.name} is connected to {activeSession.cartCode}. Open the live session whenever you are ready to continue.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                      {activeSession.shoppingList.itemsCount} item{activeSession.shoppingList.itemsCount === 1 ? '' : 's'}
-                    </span>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                      {activeSession.cartCode}
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <p className="truncate font-semibold text-ink">{activeSession.shoppingList.name}</p>
+                    <Badge tone="success" pulse>
+                      Live
+                    </Badge>
                   </div>
+                  <p className="mt-0.5 truncate text-sm text-ink-subtle">
+                    On <span className="font-mono">{activeSession.cartCode}</span> · {activeSession.shoppingList.itemsCount} item
+                    {activeSession.shoppingList.itemsCount === 1 ? '' : 's'}
+                  </p>
                 </div>
-                <span className="material-symbols-outlined text-slate-400">chevron_right</span>
+                <ChevronRight className="size-4 shrink-0 text-ink-subtle transition group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden="true" />
+              </Link>
+            ) : (
+              <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-line-strong bg-surface p-5 sm:flex-row sm:items-center">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-ink-subtle">
+                  <ShoppingCart className="size-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-ink">No active cart session</p>
+                  <p className="text-sm text-ink-subtle">Pick a list and scan a cart to start shopping.</p>
+                </div>
+                <ButtonLink href="/lists?activate=1" variant="outline" size="sm">
+                  <ScanLine aria-hidden="true" />
+                  Start shopping
+                </ButtonLink>
               </div>
-            </Link>
-          ) : (
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-start gap-4">
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                  <span className="material-symbols-outlined">shopping_cart</span>
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Active session</p>
-                  <h2 className="mt-2 text-xl font-black text-slate-950 dark:text-slate-100">
-                    {isCheckingActiveSession ? 'Checking your cart session...' : 'No active cart session right now.'}
-                  </h2>
-                </div>
-              </div>
-            </section>
-          )}
+            )}
+          </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Profile details</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Display name</p>
-                <p className="mt-2 text-base font-black text-slate-950 dark:text-slate-100">{displayName}</p>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Mode</p>
-                <p className="mt-2 text-base font-black text-slate-950 dark:text-slate-100">
-                  {status === 'authenticated' ? 'Account profile' : 'Guest profile'}
-                </p>
-              </div>
+          <section aria-labelledby="details-heading">
+            <h2 id="details-heading" className="mb-3 text-base font-semibold">
+              Account details
+            </h2>
+            <div className="surface-card px-5 py-4">
+              <DescriptionList
+                items={[
+                  { label: 'Display name', value: displayName },
+                  { label: 'Email', value: emailLabel || '—' },
+                  { label: 'Account type', value: isSignedIn ? 'Carto account' : 'Guest' },
+                ]}
+              />
             </div>
           </section>
-        </section>
-      </main>
 
-      <BottomNav />
-    </PageContainer>
+          <nav aria-label="Shortcuts" className="grid gap-3 sm:grid-cols-2">
+            <Link href="/lists" className="group surface-card flex items-center gap-3 p-4 transition hover:border-brand-200">
+              <ListChecks className="size-5 text-primary" aria-hidden="true" />
+              <span className="flex-1 text-sm font-semibold text-ink">My lists</span>
+              <ChevronRight className="size-4 text-ink-subtle" aria-hidden="true" />
+            </Link>
+            <Link href="/history" className="group surface-card flex items-center gap-3 p-4 transition hover:border-brand-200">
+              <ReceiptText className="size-5 text-primary" aria-hidden="true" />
+              <span className="flex-1 text-sm font-semibold text-ink">Receipts</span>
+              <ChevronRight className="size-4 text-ink-subtle" aria-hidden="true" />
+            </Link>
+          </nav>
+        </div>
+      </div>
+    </AppShell>
   );
 }

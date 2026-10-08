@@ -1,45 +1,48 @@
 'use client';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { isCustomerNavActive } from '@/lib/customer-nav';
+import { CUSTOMER_NAV_ITEMS, isCustomerNavActive } from '@/lib/customer-nav';
 import { cn } from '@/lib/utils';
 
 export function BottomNav() {
   const pathname = usePathname();
-  const navItems = [
-    { label: 'Home', href: '/dashboard', icon: 'home' },
-    { label: 'Lists', href: '/lists', icon: 'list_alt' },
-    { label: 'History', href: '/history', icon: 'history' },
-    { label: 'Profile', href: '/profile', icon: 'person' },
-  ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[60] w-full max-w-full overflow-x-hidden border-t border-warm-border/45 bg-white/92 px-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_rgba(114,47,55,0.12)] backdrop-blur-xl pointer-events-auto dark:border-warm-border/45 dark:bg-white/92 md:hidden">
-      <div className="mx-auto grid w-full max-w-md grid-cols-4 gap-1 px-1">
-        {navItems.map((item) => {
+    <nav
+      aria-label="Primary"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-safe shadow-nav-top backdrop-blur-lg supports-[backdrop-filter]:bg-surface/85 lg:hidden"
+    >
+      <ul className="mx-auto grid max-w-lg grid-cols-5 px-2 pt-1.5">
+        {CUSTOMER_NAV_ITEMS.map((item) => {
           const active = isCustomerNavActive(pathname, item.href);
+          const Icon = item.icon;
 
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={false}
-              className={cn(
-                'relative flex min-h-14 w-full touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-2xl text-xs font-bold transition-all pointer-events-auto',
-                active
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-slate-500 hover:bg-primary/10 hover:text-primary dark:text-slate-500 dark:hover:bg-primary/10 dark:hover:text-primary'
-              )}
-              aria-current={active ? 'page' : undefined}
-              aria-label={item.label}
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              <span className={cn('material-symbols-outlined text-[23px]', active && 'fill-1')}>{item.icon}</span>
-              <span className="text-[11px] leading-none">{item.label}</span>
-            </Link>
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                prefetch={false}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'group flex min-h-[3.25rem] flex-col items-center justify-center gap-1 rounded-xl text-2xs font-medium transition-colors',
+                  active ? 'text-primary' : 'text-ink-subtle hover:text-ink'
+                )}
+              >
+                <span
+                  className={cn(
+                    'flex h-7 w-12 items-center justify-center rounded-full transition-colors',
+                    active ? 'bg-brand-100' : 'group-hover:bg-surface-muted'
+                  )}
+                >
+                  <Icon className="size-5" strokeWidth={active ? 2.25 : 1.9} aria-hidden="true" />
+                </span>
+                {item.label}
+              </Link>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </nav>
   );
 }

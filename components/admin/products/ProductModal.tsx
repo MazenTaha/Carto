@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { AdminProduct } from '@/types/admin';
-import { X } from 'lucide-react';
+import { Alert } from '@/components/ui/Alert';
+import { Button } from '@/components/ui/Button';
+import { Input, inputClassName } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
+import { cn } from '@/lib/utils';
 
 const CATEGORIES = [
   'Dairy & Eggs', 'Bakery', 'Produce', 'Meat & Seafood',
@@ -39,8 +43,6 @@ export function ProductModal({ open, onClose, onSave, initial }: ProductModalPro
     setError('');
   }, [initial, open]);
 
-  if (!open) return null;
-
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -66,84 +68,66 @@ export function ProductModal({ open, onClose, onSave, initial }: ProductModalPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">
-            {initial ? 'Edit Product' : 'Add Product'}
-          </h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
-            <X size={16} />
-          </button>
+    <Modal
+      open={open}
+      onClose={onClose}
+      dismissible={!saving}
+      title={initial ? 'Edit product' : 'Add product'}
+      description={initial ? 'Changes apply to the catalog immediately.' : 'New products appear in shopper search right away.'}
+      footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="submit" form="product-form" loading={saving}>
+            {saving ? 'Saving…' : initial ? 'Save changes' : 'Add product'}
+          </Button>
+        </div>
+      }
+    >
+      <form id="product-form" onSubmit={handleSubmit} noValidate className="space-y-4 pt-2">
+        {error && <Alert tone="danger">{error}</Alert>}
+
+        <div className="grid grid-cols-[minmax(0,1fr)_5.5rem] gap-3">
+          <Input label="Product name" value={form.name} onChange={set('name')} required placeholder="e.g. Whole milk" autoFocus />
+          <Input label="Emoji" value={form.emoji} onChange={set('emoji')} placeholder="🥛" className="text-center text-lg" maxLength={4} />
         </div>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="space-y-4 p-6">
-          {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">{error}</div>
-          )}
+        <div>
+          <label htmlFor="product-category" className="mb-1.5 block text-sm font-medium text-ink">
+            Category
+          </label>
+          <select id="product-category" value={form.category} onChange={set('category')} className={cn(inputClassName, 'pr-10')}>
+            {CATEGORIES.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 space-y-1">
-              <label className="text-xs font-semibold text-slate-500">Product Name *</label>
-              <input
-                value={form.name} onChange={set('name')} required
-                placeholder="e.g. Whole Milk"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-500">Emoji</label>
-              <input
-                value={form.emoji} onChange={set('emoji')}
-                placeholder="🥛"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-center text-lg outline-none focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-500">Category *</label>
-            <select
-              value={form.category} onChange={set('category')}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-            >
-              {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-500">Price (EGP) *</label>
-              <input
-                type="number" min="0" step="0.01" value={form.price} onChange={set('price')} required
-                placeholder="1.00"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-500">Popularity (0–100)</label>
-              <input
-                type="number" min="0" max="100" value={form.popularity} onChange={set('popularity')}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-              Cancel
-            </button>
-            <button type="submit" disabled={saving}
-              className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
-              {saving ? 'Saving…' : initial ? 'Save Changes' : 'Add Product'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            label="Price (EGP)"
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            value={form.price}
+            onChange={set('price')}
+            required
+            placeholder="1.00"
+          />
+          <Input
+            label="Popularity"
+            hint="0 – 100"
+            type="number"
+            min="0"
+            max="100"
+            inputMode="numeric"
+            value={form.popularity}
+            onChange={set('popularity')}
+          />
+        </div>
+      </form>
+    </Modal>
   );
 }

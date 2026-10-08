@@ -2,9 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { createListSchema } from '@/lib/validations';
+
+const NAME_SUGGESTIONS = ['Weekly groceries', 'Weekend breakfast', 'Party supplies', 'Household restock'];
 
 function readApiErrorMessage(payload: unknown, fallback: string) {
   if (typeof payload === 'object' && payload !== null) {
@@ -66,56 +71,51 @@ export function NewListNamePageClient() {
 
   return (
     <>
-      <section className="overflow-hidden rounded-[2rem] bg-slate-950 text-white shadow-soft">
-        <div className="bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_transparent_42%)] p-6 sm:p-8">
-          <Badge className="bg-white/10 text-white ring-white/15">Step 1 of 2</Badge>
-          <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Name your list</h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-white/72 sm:text-base">
-            Start with a name, then continue to the list editor to add products and quantities.
-          </p>
+      <PageHeader
+        eyebrow={<Badge tone="brand">Step 1 of 2</Badge>}
+        title="Name your list"
+        description="Give it a name you will recognise at the store. You will add products on the next screen."
+      />
+
+      <form onSubmit={handleSubmit} noValidate className="surface-card mt-6 p-5 sm:p-6">
+        <Input
+          label="List name"
+          name="name"
+          autoFocus
+          autoComplete="off"
+          maxLength={100}
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            if (error) setError('');
+          }}
+          placeholder="e.g. Weekly groceries"
+          error={error || undefined}
+        />
+
+        <div className="mt-4 flex flex-wrap gap-2" aria-label="Suggestions">
+          {NAME_SUGGESTIONS.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => {
+                setName(suggestion);
+                setError('');
+              }}
+              className="rounded-full border border-line-strong bg-surface px-3 py-1.5 text-sm text-ink-muted transition hover:border-brand-200 hover:bg-brand-50 hover:text-primary"
+            >
+              {suggestion}
+            </button>
+          ))}
         </div>
-      </section>
 
-      <form onSubmit={handleSubmit} className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-        <label className="block">
-          <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">List name</span>
-          <input
-            type="text"
-            name="name"
-            autoFocus
-            autoComplete="off"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="e.g., Weekly groceries"
-            className="mt-3 h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-          />
-        </label>
-
-        {error && (
-          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
-            {error}
-          </div>
-        )}
-
-        <div className="mt-6 grid gap-3 pb-1 sm:grid-cols-2">
-          <Button
-            type="submit"
-            className="h-12 rounded-2xl text-sm font-black shadow-glow"
-            disabled={isSubmitting}
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              {isSubmitting ? 'progress_activity' : 'arrow_forward'}
-            </span>
-            {isSubmitting ? 'Creating...' : 'Continue'}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 rounded-2xl border-primary/20 bg-white text-sm font-black text-primary shadow-sm hover:border-primary/35 hover:bg-primary/5 dark:bg-slate-900"
-            onClick={() => router.back()}
-            disabled={isSubmitting}
-          >
+        <div className="mt-6 flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:justify-end">
+          <Button variant="ghost" onClick={() => router.back()} disabled={isSubmitting}>
             Cancel
+          </Button>
+          <Button type="submit" loading={isSubmitting}>
+            {isSubmitting ? 'Creating…' : 'Continue to add items'}
+            {!isSubmitting && <ArrowRight aria-hidden="true" />}
           </Button>
         </div>
       </form>

@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LoadingStateProps {
@@ -5,11 +6,29 @@ interface LoadingStateProps {
   className?: string;
 }
 
-export function LoadingState({ label = 'Loading...', className }: LoadingStateProps) {
+export function Spinner({ className, label }: { className?: string; label?: string }) {
   return (
-    <div className={cn('flex min-h-[280px] flex-col items-center justify-center gap-4 text-center', className)}>
-      <div className="size-12 rounded-full border-4 border-primary/15 border-t-primary animate-spin" />
-      <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+    <Loader2
+      className={cn('size-5 animate-spin text-primary', className)}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+    />
+  );
+}
+
+export function LoadingState({ label = 'Loading…', className }: LoadingStateProps) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={cn('flex min-h-[240px] flex-col items-center justify-center gap-3 text-center', className)}
+    >
+      <Spinner className="size-7" />
+      <p className="text-sm font-medium text-ink-muted">{label}</p>
     </div>
   );
+}
+
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn('animate-pulse rounded-lg bg-surface-sunken', className)} aria-hidden="true" />;
 }

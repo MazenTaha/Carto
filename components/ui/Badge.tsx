@@ -1,25 +1,57 @@
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
+export type BadgeTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'inverse';
+
 interface BadgeProps {
   children: ReactNode;
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'muted' | 'connected';
+  tone?: BadgeTone;
+  /** Shows a leading status dot; `pulse` animates it for live states. */
+  dot?: boolean;
+  pulse?: boolean;
   className?: string;
 }
 
-export function Badge({ children, variant = 'default', className }: BadgeProps) {
-  const variants = {
-    default: 'bg-primary/10 text-primary ring-primary/15',
-    success: 'bg-primary/10 text-primary ring-primary/20 dark:bg-primary/10 dark:text-primary dark:ring-primary/20',
-    warning: 'bg-surface-muted/65 text-slate-900 ring-warm-border/45 dark:bg-surface-muted/65 dark:text-slate-900 dark:ring-warm-border/45',
-    danger: 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-50 dark:text-red-700 dark:ring-red-200',
-    muted: 'bg-primary-soft text-warm-muted ring-warm-border/35 dark:bg-primary-soft dark:text-warm-muted dark:ring-warm-border/35',
-    connected: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-400/30',
-  };
+const tones: Record<BadgeTone, string> = {
+  neutral: 'bg-surface-muted text-ink-muted ring-line',
+  brand: 'bg-brand-50 text-primary ring-brand-200',
+  success: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+  warning: 'bg-amber-50 text-amber-800 ring-amber-200',
+  danger: 'bg-red-50 text-red-700 ring-red-200',
+  info: 'bg-sky-50 text-sky-800 ring-sky-200',
+  inverse: 'bg-white/10 text-white ring-white/20',
+};
 
+const dots: Record<BadgeTone, string> = {
+  neutral: 'bg-ink-subtle',
+  brand: 'bg-primary',
+  success: 'bg-emerald-500',
+  warning: 'bg-amber-500',
+  danger: 'bg-red-500',
+  info: 'bg-sky-500',
+  inverse: 'bg-white',
+};
+
+export function Badge({ children, tone = 'neutral', dot = false, pulse = false, className }: BadgeProps) {
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ring-1', variants[variant], className)}>
-      {children}
+    <span
+      className={cn(
+        'inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset',
+        tones[tone],
+        className
+      )}
+    >
+      {(dot || pulse) && (
+        <span className="relative flex size-1.5 shrink-0" aria-hidden="true">
+          {pulse && <span className={cn('absolute inset-0 animate-ping rounded-full opacity-60', dots[tone])} />}
+          <span className={cn('relative size-1.5 rounded-full', dots[tone])} />
+        </span>
+      )}
+      {typeof children === 'string' ? (
+        <span className="truncate">{children}</span>
+      ) : (
+        <span className="inline-flex min-w-0 items-center gap-1 [&>svg]:shrink-0">{children}</span>
+      )}
     </span>
   );
 }

@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { ArrowRight, ClipboardList, ListPlus, Loader2, Lock, RotateCcw, ScanLine, Trash2 } from 'lucide-react';
+import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { getDaysUntilPermanentDelete } from '@/lib/list-retention';
 import { cn } from '@/lib/utils';
@@ -25,6 +28,7 @@ interface ListsOverviewProps {
   isActivationFlow: boolean;
   activationDisabled?: boolean;
   activationDisabledMessage?: string;
+  canCreateList?: boolean;
 }
 
 function getPermanentDeleteAt(deletedAt = new Date()) {
@@ -38,7 +42,7 @@ export function ListsOverview({
   deletedLists,
   isActivationFlow,
   activationDisabled = false,
-  activationDisabledMessage = 'Finish the current cart session before activating another list.',
+  canCreateList = true,
 }: ListsOverviewProps) {
   const [activeLists, setActiveLists] = useState(lists);
   const [recentlyDeletedLists, setRecentlyDeletedLists] = useState(deletedLists);
@@ -135,21 +139,21 @@ export function ListsOverview({
   return (
     <>
       {error && (
-        <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+        <Alert tone="danger" className="mb-5">
           {error}
-        </div>
+        </Alert>
       )}
 
       {activeLists.length === 0 ? (
         <EmptyState
-          icon="format_list_bulleted_add"
-          title="No shopping lists yet"
+          icon={ListPlus}
+          title={isActivationFlow ? 'No lists ready to activate' : 'No shopping lists yet'}
           description="Create a list first. When you are ready to shop, activate it and scan the QR code on your cart."
-          actionLabel="Create your first list"
-          actionHref="/lists/new"
+          actionLabel={canCreateList ? 'Create your first list' : undefined}
+          actionHref={canCreateList ? '/lists/new' : undefined}
         />
       ) : (
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {activeLists.map((list) => {
             const count = list._count?.items || 0;
             const href = isActivationFlow ? `/session/start?listId=${list.id}` : `/lists/${list.id}`;
@@ -160,158 +164,155 @@ export function ListsOverview({
             const activationIsLocked = isActivationFlow && activationDisabled;
 
             return (
-              <article
+              <li
                 key={list.id}
                 className={cn(
-                  'group flex min-h-52 flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-card transition duration-150 dark:border-slate-800 dark:bg-slate-900',
-                  isOpening
-                    ? 'scale-[0.99] border-primary/40 ring-4 ring-primary/10'
-                    : !activationIsLocked && 'hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft',
-                  activationIsLocked && 'opacity-75'
+                  'group relative flex flex-col rounded-2xl border border-line bg-surface shadow-xs transition duration-150',
+                  isOpening && 'border-brand-300 ring-4 ring-primary/10',
+                  !activationIsLocked && !isOpening && 'hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-card',
+                  activationIsLocked && 'opacity-70'
                 )}
               >
-                <div>
-                  <div className="mb-5 flex min-h-10 items-start justify-end">
-                    {isConfirmingDelete ? (
-                      <div className="flex items-center gap-2 rounded-full bg-red-50 p-1 text-xs font-black text-red-700 dark:bg-red-950/30 dark:text-red-300">
-                        <button
-                          type="button"
-                          onClick={() => setConfirmingDeleteId(null)}
-                          className="rounded-full px-3 py-2 transition hover:bg-white/80"
-                          disabled={isBusy}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(list)}
-                          className="rounded-full bg-red-600 px-3 py-2 text-white transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-                          disabled={isBusy}
-                        >
-                          {pendingDeleteId === list.id ? 'Moving...' : 'Confirm'}
-                        </button>
-                      </div>
+                <div className="flex items-start gap-3 p-4 pb-3 sm:p-5 sm:pb-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-ink-muted transition group-hover:bg-brand-50 group-hover:text-primary">
+                    <ClipboardList className="size-5" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    {activationIsLocked ? (
+                      <h2 className="line-clamp-2 font-sans text-base font-semibold text-ink">{list.name}</h2>
                     ) : (
+                      <Link
+                        href={href}
+                        onClick={() => setOpeningId(list.id)}
+                        prefetch
+                        className="rounded-md after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-2 focus-visible:after:ring-primary/70"
+                      >
+                        <h2 className="line-clamp-2 font-sans text-base font-semibold text-ink">{list.name}</h2>
+                      </Link>
+                    )}
+                    <p className="mt-0.5 text-sm text-ink-subtle">
+                      {count} item{count === 1 ? '' : 's'} · Updated {updatedAt}
+                    </p>
+                  </div>
+
+                  <div className="relative z-10 -mr-1.5 -mt-1.5">
+                    {!isConfirmingDelete && (
                       <button
                         type="button"
                         onClick={() => void handleDelete(list)}
                         disabled={isBusy}
-                        className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-95 hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-red-950/30 dark:hover:text-red-300"
+                        className="flex size-10 items-center justify-center rounded-full text-ink-subtle transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
                         aria-label={`Delete ${list.name}`}
                         title="Delete list"
                       >
-                        <span className="material-symbols-outlined text-[21px]">
-                          {pendingDeleteId === list.id ? 'progress_activity' : 'delete'}
-                        </span>
+                        {pendingDeleteId === list.id ? (
+                          <Loader2 className="size-[1.125rem] animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Trash2 className="size-[1.125rem]" aria-hidden="true" />
+                        )}
                       </button>
                     )}
                   </div>
-                  {activationIsLocked ? (
-                    <div className="block rounded-xl">
-                      <h2 className="line-clamp-2 text-xl font-black text-slate-950 dark:text-slate-100">
-                        {list.name}
-                      </h2>
-                      <p className="mt-2 text-sm text-slate-500">{count} items - Updated {updatedAt}</p>
-                    </div>
-                  ) : (
-                    <Link
-                      href={href}
-                      onClick={() => setOpeningId(list.id)}
-                      className="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      prefetch
-                    >
-                      <h2 className="line-clamp-2 text-xl font-black text-slate-950 group-hover:text-primary dark:text-slate-100">
-                        {list.name}
-                      </h2>
-                      <p className="mt-2 text-sm text-slate-500">{count} items - Updated {updatedAt}</p>
-                    </Link>
-                  )}
                 </div>
 
-                {activationIsLocked ? (
-                  <div className="mt-6 border-t border-slate-100 pt-4 dark:border-slate-800">
-                    <span className="text-sm font-bold text-slate-400">
-                      {activationDisabledMessage}
-                    </span>
+                {isConfirmingDelete ? (
+                  <div
+                    role="alertdialog"
+                    aria-label={`Delete ${list.name}?`}
+                    className="relative z-10 mx-3 mb-3 flex items-center justify-between gap-3 rounded-xl bg-red-50 px-3 py-2.5 animate-fade-in sm:mx-4 sm:mb-4"
+                  >
+                    <p className="text-sm font-medium text-red-800">Move to recently deleted?</p>
+                    <div className="flex shrink-0 gap-1.5">
+                      <Button size="sm" variant="ghost" onClick={() => setConfirmingDeleteId(null)} disabled={isBusy} className="text-red-800 hover:bg-red-100 hover:text-red-900">
+                        Cancel
+                      </Button>
+                      <Button size="sm" variant="danger" onClick={() => void handleDelete(list)} disabled={isBusy} data-autofocus>
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <Link
-                    href={href}
-                    onClick={() => setOpeningId(list.id)}
-                    className={cn(
-                      'mt-6 flex items-center justify-between border-t border-slate-100 pt-4 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-slate-800',
-                      isOpening && 'text-primary'
-                    )}
-                    prefetch
-                  >
-                    <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
-                      {isOpening ? 'Opening...' : isActivationFlow ? 'Open QR scanner' : 'Manage list'}
-                    </span>
-                    <span
-                      className={cn(
-                        'flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition dark:bg-slate-800',
-                        isOpening ? 'bg-primary text-white' : 'group-hover:bg-primary group-hover:text-white'
-                      )}
-                    >
-                      <span className={cn('material-symbols-outlined', isOpening && 'animate-spin')}>
-                        {isOpening ? 'progress_activity' : 'arrow_forward'}
+                  <div className="mt-auto flex items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5">
+                    {activationIsLocked ? (
+                      <span className="flex items-center gap-2 text-sm text-ink-subtle">
+                        <Lock className="size-4 shrink-0" aria-hidden="true" />
+                        Finish your current session first
                       </span>
-                    </span>
-                  </Link>
+                    ) : (
+                      <>
+                        <span className={cn('text-sm font-medium', isActivationFlow ? 'text-primary' : 'text-ink-muted')}>
+                          {isOpening ? 'Opening…' : isActivationFlow ? 'Scan cart QR' : 'Open list'}
+                        </span>
+                        <span
+                          className={cn(
+                            'flex size-8 items-center justify-center rounded-full transition',
+                            isActivationFlow || isOpening
+                              ? 'bg-primary text-white'
+                              : 'bg-surface-muted text-ink-muted group-hover:bg-primary group-hover:text-white'
+                          )}
+                          aria-hidden="true"
+                        >
+                          {isOpening ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : isActivationFlow ? (
+                            <ScanLine className="size-4" />
+                          ) : (
+                            <ArrowRight className="size-4" />
+                          )}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 )}
-              </article>
+              </li>
             );
           })}
-        </section>
+        </ul>
       )}
 
       {recentlyDeletedLists.length > 0 && (
-        <section className="mt-10">
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <section aria-labelledby="recently-deleted" className="mt-12">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-red-500">Recently deleted</p>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Recently Deleted</h2>
+              <h2 id="recently-deleted" className="text-lg font-semibold">
+                Recently deleted
+              </h2>
+              <p className="mt-0.5 text-sm text-ink-muted">Lists are removed permanently after 30 days.</p>
             </div>
-            <Badge variant="warning">{recentlyDeletedLists.length} deleted</Badge>
+            <Badge tone="neutral">{recentlyDeletedLists.length} deleted</Badge>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
             {recentlyDeletedLists.map((list) => {
               const count = list._count?.items || 0;
               const daysRemaining = list.permanentDeleteAt ? getDaysUntilPermanentDelete(list.permanentDeleteAt) : 30;
               const isRecovering = pendingRecoverId === list.id;
 
               return (
-                <div
+                <li
                   key={list.id}
-                  className={cn(
-                    'rounded-2xl border border-red-100 bg-red-50/70 p-4 text-slate-800 transition duration-150 dark:border-red-950/60 dark:bg-red-950/20 dark:text-slate-100',
-                    isRecovering && 'scale-[0.99] opacity-70'
-                  )}
+                  className={cn('flex items-center gap-3 px-4 py-3 transition sm:px-5', isRecovering && 'opacity-60')}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-base font-black">{list.name}</h3>
-                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{count} items</p>
-                    </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-ink">{list.name}</p>
+                    <p className="mt-0.5 text-xs text-ink-subtle">
+                      {count} item{count === 1 ? '' : 's'} · Deletes in {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}
+                    </p>
                   </div>
-                  <p className="mt-4 rounded-xl bg-white/70 px-3 py-2 text-sm font-bold text-red-700 dark:bg-slate-950/40 dark:text-red-300">
-                    Permanently deletes in about {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}
-                  </p>
-                  <div className="mt-4">
-                    <button
-                      type="button"
-                      onClick={() => void handleRecover(list)}
-                      disabled={busyListId !== null}
-                      className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-black text-primary shadow-sm transition active:scale-95 hover:bg-primary hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-950/70"
-                    >
-                      {isRecovering ? 'Recovering...' : 'Recover'}
-                    </button>
-                  </div>
-                </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void handleRecover(list)}
+                    disabled={busyListId !== null}
+                    loading={isRecovering}
+                  >
+                    {!isRecovering && <RotateCcw aria-hidden="true" />}
+                    {isRecovering ? 'Recovering…' : 'Recover'}
+                  </Button>
+                </li>
               );
             })}
-          </div>
+          </ul>
         </section>
       )}
     </>

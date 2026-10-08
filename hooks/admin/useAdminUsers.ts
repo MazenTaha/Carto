@@ -32,7 +32,8 @@ export function useAdminUsers(params: { q?: string; page?: number; pageSize?: nu
     users: data?.data ?? [],
     total: data?.total ?? 0,
     isLoading,
-    error,
+    // The API answers auth failures with `{ success: false }`, which SWR does not treat as an error.
+    error: error ?? (data && data.success === false ? new Error('Failed to load users') : undefined),
     disableUser,
   };
 }

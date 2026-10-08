@@ -2,68 +2,56 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { isCustomerNavActive } from '@/lib/customer-nav';
+import { ScanLine } from 'lucide-react';
+import { CUSTOMER_NAV_ITEMS, isCustomerNavActive } from '@/lib/customer-nav';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 
-const navItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
-  { label: 'Lists', href: '/lists', icon: 'format_list_bulleted' },
-  { label: 'Active Session', href: '/session', icon: 'shopping_cart_checkout' },
-  { label: 'History', href: '/history', icon: 'receipt_long' },
-  { label: 'Profile', href: '/profile', icon: 'person' },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
 
   return (
-    <aside className="hidden min-h-screen w-72 shrink-0 border-r border-warm-border/45 bg-white/82 p-4 backdrop-blur-xl dark:border-warm-border/45 dark:bg-white/82 md:flex md:flex-col">
-      <Link href="/dashboard" aria-label="Go to Carto home" className="mb-6 flex items-center rounded-2xl p-2 transition hover:bg-primary/10 dark:hover:bg-primary/10">
-        <Logo width={118} height={42} />
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-surface px-4 pb-5 pt-5 lg:flex">
+      <Link href="/dashboard" aria-label="Carto home" className="mb-8 flex w-fit items-center rounded-lg px-2 py-1">
+        <Logo height={30} priority />
       </Link>
 
-      <div className="mb-5 rounded-2xl border border-primary/15 bg-primary/10 p-4">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Retail mode</p>
-        <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-900">
-          {session?.user?.name || session?.user?.email || 'Signed in'}
-        </p>
-      </div>
+      <nav aria-label="Primary" className="flex-1">
+        <ul className="space-y-1">
+          {CUSTOMER_NAV_ITEMS.map((item) => {
+            const active = isCustomerNavActive(pathname, item.href);
+            const Icon = item.icon;
 
-      <nav className="flex-1 space-y-1">
-        {navItems.map((item) => {
-          const active = isCustomerNavActive(pathname, item.href);
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition',
-                active
-                  ? 'bg-primary text-white shadow-glow'
-                  : 'text-slate-600 hover:bg-primary/10 hover:text-primary dark:text-slate-600 dark:hover:bg-primary/10 dark:hover:text-primary'
-              )}
-              aria-current={active ? 'page' : undefined}
-            >
-              <span className={cn('material-symbols-outlined text-[22px]', active && 'fill-1')}>{item.icon}</span>
-              {item.label}
-            </Link>
-          );
-        })}
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  prefetch={false}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                    active ? 'bg-brand-50 text-primary' : 'text-ink-muted hover:bg-surface-muted hover:text-ink'
+                  )}
+                >
+                  <Icon className="size-[1.125rem]" strokeWidth={active ? 2.25 : 1.9} aria-hidden="true" />
+                  {item.label === 'Cart' ? 'Shopping session' : item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
       <Link
         href="/lists?activate=1"
-        className="mt-5 flex items-center justify-between rounded-3xl bg-primary p-4 text-white shadow-soft transition active:scale-[0.98] dark:bg-primary"
+        prefetch={false}
+        className="group rounded-2xl bg-primary p-4 text-white shadow-brand transition hover:bg-primary-hover"
       >
-        <span>
-          <span className="block text-sm font-black">Start shopping</span>
-          <span className="mt-1 block text-xs text-white/70">Activate a list and scan a cart</span>
+        <span className="flex size-9 items-center justify-center rounded-xl bg-white/15">
+          <ScanLine className="size-5" aria-hidden="true" />
         </span>
-        <span className="material-symbols-outlined">arrow_forward</span>
+        <span className="mt-3 block font-display text-base font-semibold">Start shopping</span>
+        <span className="mt-0.5 block text-xs leading-5 text-white/75">Pick a list, then scan the QR on your cart.</span>
       </Link>
     </aside>
   );

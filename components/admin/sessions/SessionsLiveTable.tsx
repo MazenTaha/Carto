@@ -5,8 +5,11 @@ import { StatusBadge } from '@/components/admin/shared/StatusBadge';
 import { ConfirmDialog } from '@/components/admin/shared/ConfirmDialog';
 import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
 import { useState } from 'react';
-import { formatDistanceToNow, formatDistance } from 'date-fns';
-import { ShoppingCart, User, Clock, DollarSign, StopCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { ChevronDown, CircleStop, Clock, ShoppingCart } from 'lucide-react';
+import { EmptyState } from '@/components/admin/shared/EmptyState';
+import { Button } from '@/components/ui/Button';
+import { formatCurrency } from '@/lib/utils';
 
 interface SessionsLiveTableProps {
   sessions: AdminSessionRow[];
@@ -27,106 +30,99 @@ export function SessionsLiveTable({ sessions, onEndSession }: SessionsLiveTableP
 
   if (!sessions.length) {
     return (
-      <div className="flex flex-col items-center py-16 text-center text-slate-400">
-        <ShoppingCart size={36} className="mb-3 opacity-20" />
-        <p className="text-sm font-medium">No sessions found</p>
-        <p className="text-xs mt-1">Active sessions will appear here in real time.</p>
-      </div>
+      <EmptyState
+        icon={<ShoppingCart />}
+        title="No sessions found"
+        description="Sessions matching this filter will appear here in real time."
+      />
     );
   }
 
   return (
     <>
-      <div className="space-y-2">
+      <ul className="divide-y divide-line">
         {sessions.map((s) => {
           const isExpanded = expanded === s.id;
           const isActive = isActiveCartSessionStatus(s.status);
+          const detailsId = `session-details-${s.id}`;
+
           return (
-            <div
-              key={s.id}
-              className={`rounded-xl border transition-all ${
-                isActive ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-100 bg-white'
-              }`}
-            >
-              {/* Row */}
-              <div
-                className="flex cursor-pointer items-center gap-4 px-4 py-3"
-                onClick={() => setExpanded(isExpanded ? null : s.id)}
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 font-mono text-xs font-bold text-slate-600">
-                  {s.cartCode.slice(-3)}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-slate-900 truncate">
-                      {s.userName ?? s.userEmail ?? 'Guest'}
+            <li key={s.id} className={isActive ? 'bg-brand-50/30' : undefined}>
+              <div className="flex items-center gap-3 px-4 py-3 sm:gap-4 sm:px-5">
+                <button
+                  type="button"
+                  onClick={() => setExpanded(isExpanded ? null : s.id)}
+                  aria-expanded={isExpanded}
+                  aria-controls={detailsId}
+                  className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left sm:gap-4"
+                >
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted font-mono text-xs font-semibold text-ink-muted">
+                    {s.cartCode.slice(-2)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="truncate text-sm font-semibold text-ink">{s.userName ?? s.userEmail ?? 'Guest'}</span>
+                      <StatusBadge status={s.status} pulse={isActive} />
                     </span>
-                    <StatusBadge status={s.status} pulse={isActive} />
-                  </div>
-                  <p className="text-xs text-slate-400 truncate">{s.listName}</p>
-                </div>
-
-                <div className="hidden sm:flex items-center gap-5 shrink-0">
-                  <div className="flex items-center gap-1 text-xs text-slate-500">
-                    <Clock size={12} />
-                    {s.durationSeconds != null ? formatDuration(s.durationSeconds) : '—'}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-slate-500">
-                    <DollarSign size={12} />
-                    {(s.total ?? 0).toFixed(2)}
-                  </div>
-                  {isActive && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setEndTarget(s); }}
-                      className="flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-                    >
-                      <StopCircle size={12} /> End
-                    </button>
-                  )}
-                </div>
-
-                {isExpanded ? (
-                  <ChevronDown size={14} className="text-slate-400 shrink-0" />
-                ) : (
-                  <ChevronRight size={14} className="text-slate-400 shrink-0" />
+                    <span className="mt-0.5 block truncate text-xs text-ink-subtle">
+                      {s.listName} · <span className="font-mono">{s.cartCode}</span>
+                    </span>
+                  </span>
+                  <span className="hidden shrink-0 items-center gap-5 text-xs text-ink-muted md:flex">
+                    <span className="tabular flex items-center gap-1">
+                      <Clock className="size-3.5" aria-hidden="true" />
+                      {s.durationSeconds != null ? formatDuration(s.durationSeconds) : '—'}
+                    </span>
+                    <span className="tabular w-24 text-right font-medium text-ink">{formatCurrency(s.total ?? 0)}</span>
+                  </span>
+                  <ChevronDown
+                    className={`size-4 shrink-0 text-ink-subtle transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    aria-hidden="true"
+                  />
+                </button>
+                {isActive && (
+                  <Button variant="danger-soft" size="sm" onClick={() => setEndTarget(s)} aria-label={`End session on ${s.cartCode}`}>
+                    <CircleStop aria-hidden="true" />
+                    <span className="hidden sm:inline">End</span>
+                  </Button>
                 )}
               </div>
 
-              {/* Expanded detail */}
               {isExpanded && (
-                <div className="border-t border-slate-100 grid grid-cols-2 gap-3 px-4 py-3 sm:grid-cols-4 text-xs">
+                <dl id={detailsId} className="grid grid-cols-2 gap-3 border-t border-line px-4 py-3 text-xs sm:grid-cols-4 sm:px-5">
                   <div>
-                    <p className="text-slate-400 font-semibold uppercase tracking-wider">Cart</p>
-                    <p className="font-mono font-bold text-slate-800 mt-0.5">{s.cartCode}</p>
+                    <dt className="text-ink-subtle">Customer</dt>
+                    <dd className="mt-0.5 truncate font-medium text-ink">{s.userEmail ?? 'Guest'}</dd>
                   </div>
                   <div>
-                    <p className="text-slate-400 font-semibold uppercase tracking-wider">Customer</p>
-                    <p className="font-medium text-slate-800 mt-0.5 truncate">{s.userEmail ?? 'Guest'}</p>
+                    <dt className="text-ink-subtle">Items</dt>
+                    <dd className="tabular mt-0.5 font-medium text-ink">
+                      {s.collectedCount ?? 0} / {s.itemCount ?? 0} collected
+                    </dd>
                   </div>
                   <div>
-                    <p className="text-slate-400 font-semibold uppercase tracking-wider">Items</p>
-                    <p className="font-medium text-slate-800 mt-0.5">{s.collectedCount ?? 0} / {s.itemCount ?? 0} collected</p>
+                    <dt className="text-ink-subtle">Started</dt>
+                    <dd className="mt-0.5 font-medium text-ink">{formatDistanceToNow(new Date(s.startedAt), { addSuffix: true })}</dd>
                   </div>
                   <div>
-                    <p className="text-slate-400 font-semibold uppercase tracking-wider">Started</p>
-                    <p className="font-medium text-slate-800 mt-0.5">
-                      {formatDistanceToNow(new Date(s.startedAt), { addSuffix: true })}
-                    </p>
+                    <dt className="text-ink-subtle">Total · duration</dt>
+                    <dd className="tabular mt-0.5 font-medium text-ink">
+                      {formatCurrency(s.total ?? 0)} · {s.durationSeconds != null ? formatDuration(s.durationSeconds) : '—'}
+                    </dd>
                   </div>
-                </div>
+                </dl>
               )}
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
       <ConfirmDialog
         open={!!endTarget}
         onClose={() => setEndTarget(null)}
         title="Force-end this session?"
-        description={`Cart ${endTarget?.cartCode} will be released and marked as Available.`}
-        confirmLabel="End Session"
+        description={`Cart ${endTarget?.cartCode} will be released and marked as available.`}
+        confirmLabel="End session"
         loading={ending}
         onConfirm={async () => {
           if (!endTarget) return;

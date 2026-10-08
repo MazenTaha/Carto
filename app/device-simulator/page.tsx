@@ -18,7 +18,8 @@ import {
   WifiOff,
 } from 'lucide-react';
 import QRCode from 'react-qr-code';
-import { PageContainer } from '@/components/layout/PageContainer';
+import Link from 'next/link';
+import { Logo } from '@/components/ui/Logo';
 import {
   DEMO_PAYMENT_AMOUNT_EGP,
   DEMO_PAYMENT_CURRENCY,
@@ -858,50 +859,61 @@ export default function DeviceSimulatorPage() {
   const receiptReference = currentReceiptId ? currentReceiptId.slice(-6).toUpperCase() : null;
 
   return (
-    <PageContainer>
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <div className="min-h-dvh bg-canvas">
+      <header className="border-b border-line bg-surface">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
+          <Link href="/auth/signin" aria-label="Carto home" className="rounded-lg">
+            <Logo height={24} priority />
+          </Link>
+          <span className="rounded-md bg-brand-50 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-primary">Dev tools</span>
+          <Link href="/admin/carts" className="ml-auto text-sm font-medium text-ink-muted hover:text-ink">
+            Admin · Carts
+          </Link>
+        </div>
+      </header>
+      <main id="main-content" className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-6 overflow-hidden rounded-3xl border border-line bg-white shadow-sm">
           <div className="bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_34%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_28%)] px-6 py-6 sm:px-8">
             <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
               <div className="max-w-3xl">
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
+                <div className="inline-flex items-center gap-2 rounded-full border border-line bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-muted shadow-sm">
                   <QrCode className="h-3.5 w-3.5" />
                   Device Simulator
                 </div>
-                <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-4xl">
-                  Live cart preview with pairing, session, receipt, and payment handoff
+                <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+                  Simulate a smart cart display
                 </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-400 sm:text-base">
-                  The simulator logic stays the same. This cleanup makes the control panel, device screen, and log much easier to read while keeping cart pairing, session polling, payment QR generation, and disconnect flows intact.
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-ink-muted sm:text-base">
+                  Power on a demo cart to show its pairing QR, receive a shopper&apos;s list, scan items onto the receipt and hand off to payment — exactly like the in-store device.
                 </p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[440px] xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200 bg-white/90 px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                <div className="rounded-2xl border border-line bg-white/90 px-4 py-4 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-subtle">
                     Connection
                   </p>
-                  <p className="mt-3 text-base font-semibold text-slate-950 dark:text-white">{connectionLabel}</p>
+                  <p className="mt-3 text-base font-semibold text-ink">{connectionLabel}</p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white/90 px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                <div className="rounded-2xl border border-line bg-white/90 px-4 py-4 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-subtle">
                     Cart
                   </p>
-                  <p className="mt-3 text-base font-semibold text-slate-950 dark:text-white">
+                  <p className="mt-3 text-base font-semibold text-ink">
                     {trimmedCartCode || DEFAULT_SIMULATOR_CART_CODE}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white/90 px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                <div className="rounded-2xl border border-line bg-white/90 px-4 py-4 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-subtle">
                     Screen
                   </p>
-                  <p className="mt-3 text-base font-semibold text-slate-950 dark:text-white">{screenModeLabel}</p>
+                  <p className="mt-3 text-base font-semibold text-ink">{screenModeLabel}</p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white/90 px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                <div className="rounded-2xl border border-line bg-white/90 px-4 py-4 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-subtle">
                     Last poll
                   </p>
-                  <p className="mt-3 text-base font-semibold text-slate-950 dark:text-white">{lastPollLabel}</p>
+                  <p className="mt-3 text-base font-semibold text-ink">{lastPollLabel}</p>
                 </div>
               </div>
             </div>
@@ -910,14 +922,14 @@ export default function DeviceSimulatorPage() {
 
         <div className="grid w-full grid-cols-1 gap-6 xl:grid-cols-[420px_minmax(0,1fr)] xl:items-start">
           <aside className="min-w-0 space-y-6">
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">
               <div className="mb-6 flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white dark:bg-slate-100 dark:text-slate-950">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white">
                   <SlidersHorizontal className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-950 dark:text-white">Device Config</h2>
-                  <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                  <h2 className="text-xl font-semibold text-ink">Device Config</h2>
+                  <p className="mt-1 text-sm leading-6 text-ink-muted">
                     Choose the demo cart, confirm its secret, then power on the simulator.
                   </p>
                 </div>
@@ -925,7 +937,7 @@ export default function DeviceSimulatorPage() {
 
               <form onSubmit={handleConnect} className="space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label className="mb-2 block text-sm font-medium text-ink-muted">
                     Demo Cart
                   </label>
                   <select
@@ -935,7 +947,7 @@ export default function DeviceSimulatorPage() {
                       applyCartPreset(event.target.value, nextPreset?.deviceSecret);
                     }}
                     disabled={isConnected}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-950 transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-slate-600 dark:focus:ring-slate-800"
+                    className="w-full rounded-2xl border border-line bg-surface-muted px-4 py-3 text-[15px] text-ink transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
                   >
                     {DEMO_CART_PRESETS.map((preset) => (
                       <option key={preset.cartCode} value={preset.cartCode}>
@@ -946,7 +958,7 @@ export default function DeviceSimulatorPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label className="mb-2 block text-sm font-medium text-ink-muted">
                     Cart Code
                   </label>
                   <input
@@ -954,13 +966,13 @@ export default function DeviceSimulatorPage() {
                     value={cartCode}
                     onChange={(event) => setCartCode(event.target.value)}
                     disabled={isConnected}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-950 transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-slate-600 dark:focus:ring-slate-800"
+                    className="w-full rounded-2xl border border-line bg-surface-muted px-4 py-3 text-[15px] text-ink transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
                     placeholder="cart-02"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label className="mb-2 block text-sm font-medium text-ink-muted">
                     Device Secret
                   </label>
                   <input
@@ -968,71 +980,71 @@ export default function DeviceSimulatorPage() {
                     value={deviceSecret}
                     onChange={(event) => setDeviceSecret(event.target.value)}
                     disabled={isConnected}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-950 transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-slate-600 dark:focus:ring-slate-800"
+                    className="w-full rounded-2xl border border-line bg-surface-muted px-4 py-3 text-[15px] text-ink transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
                     placeholder="Device secret for the selected cart"
                   />
-                  <p className="mt-2 text-xs leading-6 text-slate-500 dark:text-slate-400">
+                  <p className="mt-2 text-xs leading-6 text-ink-subtle">
                     Presets default to the repo demo secrets. If your current database uses a custom secret for{' '}
                     {trimmedCartCode || DEFAULT_SIMULATOR_CART_CODE}, replace it here before connecting.
                   </p>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  <div className="rounded-2xl border border-line bg-surface-muted px-4 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-subtle">
                       Pairing code
                     </p>
-                    <p className="mt-3 font-mono text-lg font-semibold text-slate-950 dark:text-white">
+                    <p className="mt-3 font-mono text-lg font-semibold text-ink">
                       {qrData?.payload?.pairingCode ?? 'Waiting...'}
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  <div className="rounded-2xl border border-line bg-surface-muted px-4 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-subtle">
                       Expires
                     </p>
-                    <p className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">
+                    <p className="mt-3 text-lg font-semibold text-ink">
                       {qrData?.expiresAt ? new Date(qrData.expiresAt).toLocaleTimeString() : 'Waiting...'}
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  <div className="rounded-2xl border border-line bg-surface-muted px-4 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-subtle">
                       Cart status
                     </p>
-                    <p className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">{cartStatus}</p>
+                    <p className="mt-3 text-lg font-semibold text-ink">{cartStatus}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  <div className="rounded-2xl border border-line bg-surface-muted px-4 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-subtle">
                       Poll status
                     </p>
-                    <p className="mt-3 text-sm font-medium leading-6 text-slate-700 dark:text-slate-300">
+                    <p className="mt-3 text-sm font-medium leading-6 text-ink-muted">
                       {pollStatus}
                     </p>
                   </div>
                 </div>
 
                 {deviceError && (
-                  <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+                  <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                     <p>{deviceError.message}</p>
                   </div>
                 )}
 
                 {qrError && (
-                  <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                  <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                     <p>{qrError.message}</p>
                   </div>
                 )}
 
                 {paymentError && (
-                  <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+                  <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                     <p>{paymentError}</p>
                   </div>
                 )}
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                <div className="rounded-2xl border border-line bg-surface-muted p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-subtle">
                     Simulator controls
                   </p>
                   <div className="mt-4 grid grid-cols-2 gap-3">
@@ -1041,14 +1053,14 @@ export default function DeviceSimulatorPage() {
                         type="button"
                         onClick={handleDisconnect}
                         disabled={isDisconnecting}
-                        className="col-span-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-200"
+                        className="col-span-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
                       </button>
                     ) : (
                       <button
                         type="submit"
-                        className="col-span-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                        className="col-span-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-hover"
                       >
                         Power On and Connect
                       </button>
@@ -1057,7 +1069,7 @@ export default function DeviceSimulatorPage() {
                       type="button"
                       onClick={() => void refreshDevice()}
                       disabled={!isConnected || isDisconnecting}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-ink-muted transition hover:bg-surface-sunken disabled:opacity-50"
                     >
                       Poll now
                     </button>
@@ -1065,7 +1077,7 @@ export default function DeviceSimulatorPage() {
                       type="button"
                       onClick={() => void refreshQr()}
                       disabled={!isConnected || isDisconnecting || isActive || cartStatus !== 'AVAILABLE'}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-ink-muted transition hover:bg-surface-sunken disabled:opacity-50"
                     >
                       Refresh QR
                     </button>
@@ -1074,7 +1086,7 @@ export default function DeviceSimulatorPage() {
                         type="button"
                         onClick={() => void handleResetCart()}
                         disabled={!isConnected || isResetting || isDisconnecting}
-                        className="col-span-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:opacity-50 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
+                        className="col-span-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:opacity-50"
                       >
                         {isResetting ? 'Resetting Cart...' : 'Reset Cart'}
                       </button>
@@ -1170,17 +1182,17 @@ export default function DeviceSimulatorPage() {
 
           <main className="min-w-0">
             <div className="mx-auto w-full max-w-[780px] space-y-4">
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white px-5 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white px-5 py-4 shadow-sm">
                 <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                       Live Device Preview
                     </p>
-                    <h2 className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+                    <h2 className="mt-1 text-xl font-semibold text-slate-950">
                       Full-size cart screen
                     </h2>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 rounded-full bg-stone-900 p-1">
                     <span className={connectionBadgeClassName}>
                       {isConnected && !deviceError ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
                       {connectionLabel}
@@ -1190,7 +1202,7 @@ export default function DeviceSimulatorPage() {
                 </div>
               </div>
 
-              <div className="w-full rounded-[2.25rem] bg-gradient-to-br from-slate-200 via-white to-slate-100 p-2 shadow-[0_24px_80px_rgba(15,23,42,0.14)] sm:p-3 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
+              <div className="w-full rounded-[2.25rem] bg-gradient-to-br from-slate-200 via-white to-slate-100 p-2 shadow-[0_24px_80px_rgba(15,23,42,0.14)] sm:p-3">
                 <div className="relative w-full overflow-hidden rounded-[2rem] border-[10px] border-slate-950 bg-[#050816] shadow-2xl sm:border-[12px] lg:border-[14px]">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.12),transparent_30%)]" />
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-white/[0.08]" />
@@ -1685,7 +1697,7 @@ export default function DeviceSimulatorPage() {
             </div>
           </main>
         </div>
-      </div>
+      </main>
 
       {showAddListedItemsDialog && isActive && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4">
@@ -1735,6 +1747,6 @@ export default function DeviceSimulatorPage() {
           </div>
         </div>
       )}
-    </PageContainer>
+    </div>
   );
 }

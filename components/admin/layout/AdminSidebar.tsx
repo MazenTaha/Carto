@@ -2,103 +2,109 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
-import {
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  Activity,
-  Users,
-  BarChart3,
-  ChevronLeft,
-  ChevronRight,
-  Zap,
-} from 'lucide-react';
-import { useState } from 'react';
+import { ADMIN_NAV_ITEMS, isAdminNavActive } from './admin-nav';
 
-const NAV_ITEMS = [
-  { href: '/admin',           label: 'Dashboard',  icon: LayoutDashboard, exact: true },
-  { href: '/admin/products',  label: 'Products',   icon: Package },
-  { href: '/admin/carts',     label: 'Carts',      icon: ShoppingCart },
-  { href: '/admin/sessions',  label: 'Sessions',   icon: Activity },
-  { href: '/admin/users',     label: 'Users',      icon: Users },
-  { href: '/admin/analytics', label: 'Analytics',  icon: BarChart3 },
-];
+interface AdminSidebarProps {
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
+  onNavigate?: () => void;
+  /** Drawer mode renders full labels and no collapse control. */
+  variant?: 'rail' | 'drawer';
+}
 
-export function AdminSidebar() {
+export function AdminSidebar({ collapsed = false, onToggleCollapsed, onNavigate, variant = 'rail' }: AdminSidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const isCollapsed = variant === 'rail' && collapsed;
 
   return (
     <aside
       className={cn(
-        'relative flex h-screen flex-col border-r border-slate-200 bg-white transition-all duration-300',
-        collapsed ? 'w-[68px]' : 'w-[240px]'
+        'flex h-full flex-col border-r border-line bg-surface transition-[width] duration-200',
+        variant === 'rail' ? (isCollapsed ? 'w-[4.5rem]' : 'w-60') : 'w-72'
       )}
     >
-      {/* Logo */}
-      <div className={cn(
-        'flex h-16 items-center border-b border-slate-100 px-4 gap-3',
-        collapsed && 'justify-center px-0'
-      )}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600">
-          <Zap size={16} className="text-white" />
-        </div>
-        {!collapsed && (
-          <div>
-            <span className="text-sm font-bold text-slate-900">Carto</span>
-            <span className="block text-[10px] font-medium uppercase tracking-widest text-slate-400">Admin</span>
-          </div>
-        )}
+      <div className={cn('flex h-16 shrink-0 items-center gap-2 border-b border-line px-4', isCollapsed && 'justify-center px-0')}>
+        <Link href="/admin" onClick={onNavigate} className="flex items-center gap-2 rounded-lg" aria-label="Carto admin home">
+          {isCollapsed ? (
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary font-display text-lg font-bold text-white">
+              C
+            </span>
+          ) : (
+            <>
+              <Logo height={24} />
+              <span className="rounded-md bg-brand-50 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-primary">
+                Admin
+              </span>
+            </>
+          )}
+        </Link>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
-        {NAV_ITEMS.map(({ href, label, icon: Icon, exact }) => {
-          const active = exact ? pathname === href : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              title={collapsed ? label : undefined}
-              className={cn(
-                'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
-                active
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
-                collapsed && 'justify-center px-0'
-              )}
-            >
-              <Icon
-                size={18}
-                className={cn(
-                  'shrink-0 transition-colors',
-                  active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'
-                )}
-              />
-              {!collapsed && <span>{label}</span>}
-            </Link>
-          );
-        })}
+      <nav aria-label="Admin" className="flex-1 overflow-y-auto px-3 py-4">
+        <ul className="space-y-1">
+          {ADMIN_NAV_ITEMS.map((item) => {
+            const active = isAdminNavActive(pathname, item);
+            const Icon = item.icon;
+
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={onNavigate}
+                  title={isCollapsed ? item.label : undefined}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                    active ? 'bg-brand-50 text-primary' : 'text-ink-muted hover:bg-surface-muted hover:text-ink',
+                    isCollapsed && 'justify-center px-0'
+                  )}
+                >
+                  <Icon className="size-[1.125rem] shrink-0" strokeWidth={active ? 2.25 : 1.9} aria-hidden="true" />
+                  {isCollapsed ? <span className="sr-only">{item.label}</span> : item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
-      {/* Collapse toggle */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm hover:text-slate-700"
-      >
-        {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-      </button>
-
-      {/* Bottom */}
-      {!collapsed && (
-        <div className="border-t border-slate-100 p-3">
-          <div className="rounded-lg bg-indigo-50 px-3 py-2">
-            <p className="text-xs font-semibold text-indigo-700">Carto Admin v1.0</p>
-            <p className="text-[10px] text-indigo-400 mt-0.5">Smart Retail Platform</p>
-          </div>
-        </div>
-      )}
+      <div className={cn('space-y-1 border-t border-line p-3', isCollapsed && 'px-2')}>
+        <Link
+          href="/dashboard"
+          onClick={onNavigate}
+          title={isCollapsed ? 'Open shopper app' : undefined}
+          className={cn(
+            'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-muted transition hover:bg-surface-muted hover:text-ink',
+            isCollapsed && 'justify-center px-0'
+          )}
+        >
+          <ExternalLink className="size-[1.125rem] shrink-0" aria-hidden="true" />
+          {isCollapsed ? <span className="sr-only">Open shopper app</span> : 'Shopper app'}
+        </Link>
+        {variant === 'rail' && onToggleCollapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-muted transition hover:bg-surface-muted hover:text-ink',
+              isCollapsed && 'justify-center px-0'
+            )}
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen className="size-[1.125rem]" aria-hidden="true" />
+            ) : (
+              <>
+                <PanelLeftClose className="size-[1.125rem]" aria-hidden="true" />
+                Collapse
+              </>
+            )}
+          </button>
+        )}
+      </div>
     </aside>
   );
 }

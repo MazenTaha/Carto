@@ -1,34 +1,28 @@
 import { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MetricCardProps {
-  icon: string;
+  icon?: LucideIcon;
   label: string;
   value: ReactNode;
   helper?: ReactNode;
-  tone?: 'brand' | 'slate' | 'amber';
   className?: string;
 }
 
-export function MetricCard({ icon, label, value, helper, tone = 'brand', className }: MetricCardProps) {
-  const tones = {
-    brand: 'bg-primary/10 text-primary',
-    slate: 'bg-primary-soft text-warm-muted dark:bg-primary-soft dark:text-warm-muted',
-    amber: 'bg-surface-muted/70 text-primary-dark dark:bg-surface-muted/70 dark:text-primary-dark',
-  };
-
+export function MetricCard({ icon: Icon, label, value, helper, className }: MetricCardProps) {
   return (
-    <div className={cn('rounded-2xl border border-warm-border/45 bg-white p-4 shadow-card dark:border-warm-border/45 dark:bg-white sm:p-5', className)}>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{label}</p>
-          <div className="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-950">{value}</div>
-        </div>
-        <div className={cn('flex size-11 shrink-0 items-center justify-center rounded-2xl', tones[tone])}>
-          <span className="material-symbols-outlined">{icon}</span>
-        </div>
+    <div className={cn('surface-card p-4 sm:p-5', className)}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-ink-muted">{label}</p>
+        {Icon && (
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-primary">
+            <Icon className="size-4" aria-hidden="true" />
+          </span>
+        )}
       </div>
-      {helper && <div className="mt-3 text-sm font-medium text-slate-500 dark:text-slate-500">{helper}</div>}
+      <div className="tabular mt-2 font-display text-2xl font-semibold tracking-tight text-ink">{value}</div>
+      {helper && <div className="mt-1 text-sm text-ink-subtle">{helper}</div>}
     </div>
   );
 }

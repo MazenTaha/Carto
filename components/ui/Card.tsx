@@ -1,26 +1,41 @@
-// Reusable Card component
-
-import { ReactNode } from 'react';
+import { ElementType, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 interface CardProps {
   children: ReactNode;
   className?: string;
-  title?: string;
-  subtitle?: string;
+  as?: ElementType;
+  padding?: 'none' | 'sm' | 'md' | 'lg';
 }
 
-export function Card({ children, className, title, subtitle }: CardProps) {
+const paddings = {
+  none: '',
+  sm: 'p-4',
+  md: 'p-5 sm:p-6',
+  lg: 'p-6 sm:p-8',
+};
+
+export function Card({ children, className, as: Component = 'section', padding = 'md' }: CardProps) {
+  return <Component className={cn('surface-card', paddings[padding], className)}>{children}</Component>;
+}
+
+interface CardHeaderProps {
+  title: ReactNode;
+  description?: ReactNode;
+  eyebrow?: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}
+
+export function CardHeader({ title, description, eyebrow, action, className }: CardHeaderProps) {
   return (
-    <div className={cn('rounded-2xl border border-warm-border/45 bg-white p-5 shadow-card dark:border-warm-border/45 dark:bg-white', className)}>
-      {(title || subtitle) && (
-        <div className="mb-4">
-          {title && <h2 className="text-lg font-bold text-slate-950 dark:text-slate-950">{title}</h2>}
-          {subtitle && <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">{subtitle}</p>}
-        </div>
-      )}
-      {children}
+    <div className={cn('flex items-start justify-between gap-4', className)}>
+      <div className="min-w-0">
+        {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
+        <h2 className="text-lg font-semibold leading-snug">{title}</h2>
+        {description && <p className="mt-1 text-sm text-ink-muted">{description}</p>}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
-

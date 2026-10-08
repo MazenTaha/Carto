@@ -1,31 +1,27 @@
-'use client';
-
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
+
+const WORDMARK_RATIO = 640 / 280;
 
 interface LogoProps {
-    width?: number;
-    height?: number;
-    className?: string;
-    variant?: 'white' | 'dark' | 'brand';
+  /** Rendered height in px; width follows the wordmark's aspect ratio. */
+  height?: number;
+  variant?: 'dark' | 'white';
+  className?: string;
+  priority?: boolean;
 }
 
-export function Logo({
-    width = 150,
-    height = 50,
-    className = "",
-    variant = 'brand'
-}: LogoProps) {
-    // Use the same logo image for all variants currently as it has its own branding
-    return (
-        <div className={`flex items-center ${className}`}>
-            <Image
-                src="/images/carto-logo.png"
-                alt="Carto Logo"
-                width={width}
-                height={height}
-                className="object-contain"
-                priority
-            />
-        </div>
-    );
+export function Logo({ height = 28, variant = 'dark', className, priority = false }: LogoProps) {
+  const width = Math.round(height * WORDMARK_RATIO);
+
+  return (
+    <Image
+      src={variant === 'white' ? '/images/carto-wordmark-white.png' : '/images/carto-wordmark.png'}
+      alt="Carto"
+      width={width}
+      height={height}
+      className={cn('shrink-0 select-none', className)}
+      priority={priority}
+    />
+  );
 }

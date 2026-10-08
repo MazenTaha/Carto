@@ -1,8 +1,8 @@
 'use client';
 
+import { Clock } from 'lucide-react';
 import { AdminCart } from '@/types/admin';
-import { X, Clock, QrCode } from 'lucide-react';
-import Image from 'next/image';
+import { Modal } from '@/components/ui/Modal';
 
 interface QRModalProps {
   open: boolean;
@@ -12,44 +12,29 @@ interface QRModalProps {
 }
 
 export function QRModal({ open, onClose, cart, qrData }: QRModalProps) {
-  if (!open || !cart || !qrData) return null;
-
-  const expiresIn = Math.max(
-    0,
-    Math.floor((new Date(qrData.expiresAt).getTime() - Date.now()) / 1000 / 60)
-  );
+  const isOpen = open && Boolean(cart && qrData);
+  const expiresIn = qrData ? Math.max(0, Math.floor((new Date(qrData.expiresAt).getTime() - Date.now()) / 1000 / 60)) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl text-center">
-        <button onClick={onClose} className="absolute right-4 top-4 rounded-lg p-1 text-slate-400 hover:bg-slate-100">
-          <X size={16} />
-        </button>
+    <Modal open={isOpen} onClose={onClose} size="sm" title="Cart pairing QR" description={cart ? `Scan to link a list to ${cart.cartCode}.` : undefined}>
+      {cart && qrData && (
+        <div className="text-center">
+          <div className="mx-auto w-fit rounded-2xl border border-line bg-white p-3 shadow-xs">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qrData.qrDataUrl} alt={`Pairing QR code for ${cart.cartCode}`} width={220} height={220} className="rounded-lg" />
+          </div>
 
-        <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-          <QrCode size={20} />
-        </div>
-        <h2 className="text-base font-bold text-slate-900">Cart QR Code</h2>
-        <p className="mt-0.5 text-sm text-slate-500 font-mono">{cart.cartCode}</p>
+          <div className="mt-5 rounded-xl bg-surface-muted px-4 py-3">
+            <p className="text-xs font-medium text-ink-subtle">Pairing code</p>
+            <p className="tabular mt-1 font-mono text-2xl font-semibold tracking-[0.3em] text-ink">{qrData.pairingCode}</p>
+          </div>
 
-        <div className="my-5 mx-auto w-fit rounded-2xl border-4 border-slate-100 p-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={qrData.qrDataUrl} alt="Cart QR" width={220} height={220} className="rounded-xl" />
-        </div>
-
-        <div className="rounded-xl bg-slate-50 px-4 py-3">
-          <p className="text-xs text-slate-400 mb-1">Pairing Code</p>
-          <p className="text-2xl font-bold font-mono tracking-widest text-slate-900">
-            {qrData.pairingCode}
+          <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
+            <Clock className="size-3.5" aria-hidden="true" />
+            Expires in {expiresIn} minute{expiresIn !== 1 ? 's' : ''}
           </p>
         </div>
-
-        <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-amber-600">
-          <Clock size={11} />
-          Expires in {expiresIn} minute{expiresIn !== 1 ? 's' : ''}
-        </div>
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 }

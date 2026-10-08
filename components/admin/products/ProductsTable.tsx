@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { Package, Pencil, Trash2 } from 'lucide-react';
 import { AdminProduct } from '@/types/admin';
 import { DataTable } from '@/components/admin/shared/DataTable';
-import { StatusBadge } from '@/components/admin/shared/StatusBadge';
 import { ConfirmDialog } from '@/components/admin/shared/ConfirmDialog';
 import { EmptyState } from '@/components/admin/shared/EmptyState';
-import { Pencil, Trash2, Package } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 interface ProductsTableProps {
   products: AdminProduct[];
@@ -21,7 +21,7 @@ export function ProductsTable({ products, onEdit, onDelete }: ProductsTableProps
   if (!products.length) {
     return (
       <EmptyState
-        icon={<Package size={22} />}
+        icon={<Package />}
         title="No products found"
         description="Try adjusting your search or filters, or add a new product."
       />
@@ -32,56 +32,64 @@ export function ProductsTable({ products, onEdit, onDelete }: ProductsTableProps
     {
       key: 'name',
       label: 'Product',
-      render: (_: any, row: AdminProduct) => (
+      render: (_: unknown, row: AdminProduct) => (
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-xl">
+          <span className="hidden size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-xl sm:flex" aria-hidden="true">
             {row.emoji ?? '📦'}
-          </div>
-          <div>
-            <p className="font-medium text-slate-900">{row.name}</p>
-            <p className="text-xs text-slate-400">{row.category}</p>
-          </div>
+          </span>
+          <span className="min-w-0">
+            <span className="block max-w-[8.5rem] truncate font-medium capitalize text-ink sm:max-w-[16rem]">{row.name}</span>
+            <span className="block max-w-[8.5rem] truncate text-xs text-ink-subtle sm:max-w-none">{row.category}</span>
+          </span>
         </div>
       ),
     },
     {
       key: 'price',
       label: 'Price',
-      render: (v: number) => (
-        <span className="font-semibold text-slate-800">${v.toFixed(2)}</span>
-      ),
+      className: 'whitespace-nowrap text-right',
+      render: (v: number) => <span className="tabular font-medium text-ink">{formatCurrency(v)}</span>,
     },
     {
       key: 'popularity',
       label: 'Popularity',
+      className: 'hidden md:table-cell',
       render: (v: number) => (
         <div className="flex items-center gap-2">
-          <div className="h-1.5 w-20 rounded-full bg-slate-100">
-            <div
-              className="h-1.5 rounded-full bg-indigo-500"
-              style={{ width: `${Math.min(100, v)}%` }}
-            />
+          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
+            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, v)}%` }} />
           </div>
-          <span className="text-xs text-slate-500">{v}</span>
+          <span className="tabular text-xs text-ink-muted">{v}</span>
         </div>
       ),
     },
     {
       key: 'actions',
       label: '',
-      render: (_: any, row: AdminProduct) => (
-        <div className="flex items-center justify-end gap-2">
+      className: 'w-24 !pl-0',
+      render: (_: unknown, row: AdminProduct) => (
+        <div className="flex items-center justify-end gap-1">
           <button
-            onClick={(e) => { e.stopPropagation(); onEdit(row); }}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(row);
+            }}
+            className="flex size-9 items-center justify-center rounded-lg text-ink-subtle transition hover:bg-brand-50 hover:text-primary"
+            aria-label={`Edit ${row.name}`}
           >
-            <Pencil size={14} />
+            <Pencil className="size-4" aria-hidden="true" />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteTarget(row);
+            }}
+            className="flex size-9 items-center justify-center rounded-lg text-ink-subtle transition hover:bg-red-50 hover:text-red-600"
+            aria-label={`Delete ${row.name}`}
           >
-            <Trash2 size={14} />
+            <Trash2 className="size-4" aria-hidden="true" />
           </button>
         </div>
       ),
@@ -90,14 +98,14 @@ export function ProductsTable({ products, onEdit, onDelete }: ProductsTableProps
 
   return (
     <>
-      <DataTable columns={columns} data={products} keyField="id" />
+      <DataTable columns={columns} data={products} keyField="id" caption="Products" minWidthClassName="min-w-0" />
 
       <ConfirmDialog
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         title={`Delete "${deleteTarget?.name}"?`}
-        description="This action cannot be undone. The product will be removed from the catalog."
-        confirmLabel="Delete Product"
+        description="This cannot be undone. The product will be removed from the catalog."
+        confirmLabel="Delete product"
         loading={deleting}
         onConfirm={async () => {
           if (!deleteTarget) return;

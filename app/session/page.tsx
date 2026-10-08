@@ -2,14 +2,18 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { PageContainer } from '@/components/layout/PageContainer';
-import { Header } from '@/components/layout/Header';
+import { Check, CircleAlert, ClipboardList, ReceiptText, ShoppingCart, Unlink } from 'lucide-react';
+import { AppShell, MobileActionBar } from '@/components/layout/AppShell';
+import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { Modal } from '@/components/ui/Modal';
+import { ProgressBar } from '@/components/ui/ProgressBar';
+import { ReceiptDivider, ReceiptPanel } from '@/components/ui/ReceiptPanel';
 import { useSessionStore } from '@/store/session-store';
-import { formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
 
 type SessionFetchResult = 'live' | 'stopped' | 'missing' | 'error';
@@ -36,12 +40,15 @@ function SessionContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFinishing, setIsFinishing] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isDisconnectConfirmOpen, setIsDisconnectConfirmOpen] = useState(false);
   const [error, setError] = useState('');
   const sessionRequestInFlightRef = useRef(false);
   const activeRequestInFlightRef = useRef(false);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
+    // Re-arm on every mount: React Strict Mode unmounts and remounts once in development.
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
@@ -249,150 +256,214 @@ function SessionContent() {
     } catch (err: any) {
       setError(err?.message || 'Could not disconnect this cart.');
       setIsDisconnecting(false);
+      setIsDisconnectConfirmOpen(false);
     }
   };
 
   if (isLoading) {
     return (
-      <PageContainer>
-        <LoadingState label="Loading session" />
-      </PageContainer>
+      <AppShell title="Shopping session">
+        <LoadingState label="Loading your cart session…" />
+      </AppShell>
     );
   }
 
   if (!session) {
     return (
-      <PageContainer>
-        <main className="flex min-h-screen items-center justify-center p-4">
-          <EmptyState
-            icon="shopping_basket"
-            title={error ? 'Session unavailable' : 'No active session'}
-            description={error || 'Select a shopping list first, then scan the QR code on a cart to start a live session.'}
-            actionLabel="Select a list"
-            actionHref="/lists?activate=1"
-            className="max-w-md"
-          />
-        </main>
-      </PageContainer>
+      <AppShell title="Shopping session" maxWidth="md">
+        <EmptyState
+          icon={error ? CircleAlert : ShoppingCart}
+          tone={error ? 'danger' : 'neutral'}
+          title={error ? 'Session unavailable' : 'No active cart session'}
+          description={error || 'Pick a shopping list, then scan the QR code on a cart to start a live session.'}
+          actionLabel="Choose a list"
+          actionHref="/lists?activate=1"
+        />
+      </AppShell>
     );
   }
 
   const isSessionLive = isActiveCartSessionStatus(session.status);
+  const listItems = session.shoppingList?.items ?? [];
+  const receiptItems = receipt?.items ?? [];
+  const collectedCount = listItems.filter((item) => item.isCollected).length;
+  const progressValue = listItems.length > 0 ? (collectedCount / listItems.length) * 100 : 0;
+  const totalLabel = formatCurrency(receipt?.total || 0);
+  const actionsDisabled = isDisconnecting || isFinishing || !isSessionLive;
+
+  const finishButton = (
+    <Button size="lg" onClick={handleFinishShopping} disabled={actionsDisabled} loading={isFinishing}>
+      {!isFinishing && <ShoppingCart aria-hidden="true" />}
+      {isFinishing ? 'Preparing checkout…' : 'Finish shopping'}
+    </Button>
+  );
 
   return (
-    <PageContainer maxWidth="lg">
-      <Header
-        title="Active Session"
-        showBack
-        onBack={() => router.push('/dashboard')}
-        rightElement={
-          <Badge variant={isSessionLive && isConnected ? 'connected' : 'warning'}>
-            <span className="size-1.5 rounded-full bg-current" />
-            {isSessionLive ? (isConnected ? 'Linked' : 'Syncing') : 'Ended'}
+    <AppShell title={session.shoppingList?.name || 'Shopping session'} back="/dashboard" bottomBar>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <Badge tone={isSessionLive ? (isConnected ? 'success' : 'warning') : 'neutral'} pulse={isSessionLive && isConnected} dot>
+            {isSessionLive ? (isConnected ? 'Live on cart' : 'Syncing…') : 'Session ended'}
           </Badge>
-        }
-      />
-
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 pb-44 pt-6 md:pb-10">
-        {error && (
-          <section className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
-            {error}
-          </section>
-        )}
-
-        {!isSessionLive && (
-          <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
-            This session is {session.status.toLowerCase().replace('_', ' ')}. Live polling has stopped.
-          </section>
-        )}
-
-        <section className="rounded-3xl bg-slate-950 p-5 text-white shadow-soft md:p-6">
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-            <div>
-              <Badge className="bg-white/10 text-white ring-white/15">Cart session</Badge>
-              <h1 className="mt-4 text-3xl font-black tracking-tight">{session.shoppingList?.name || 'Shopping in progress'}</h1>
-              <p className="mt-2 text-sm leading-6 text-white/70">
-                Your cart is connected and ready. Finish shopping whenever you want to move into secure checkout.
-              </p>
-            </div>
-            <div className="rounded-2xl bg-white/10 px-4 py-3 text-right">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/50">Estimated total</p>
-              <p className="text-2xl font-black">{formatCurrency(receipt?.total || 0)}</p>
-            </div>
-          </div>
-        </section>
-
-        {session.cart && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Linked physical cart</p>
-                <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-slate-100">{session.cart.cartCode}</h2>
-              </div>
-              <Badge variant={session.cart.status === 'IN_USE' ? 'connected' : 'warning'}>
-                {session.cart.status.replace('_', ' ')}
-              </Badge>
-            </div>
-            <div className="grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <p className="font-bold text-slate-500">Device name</p>
-                <p className="mt-1 truncate font-black text-slate-900 dark:text-slate-100">
-                  {session.cart.bluetoothName || 'Not provided'}
-                </p>
-              </div>
-              <div>
-                <p className="font-bold text-slate-500">Store</p>
-                <p className="mt-1 truncate font-black text-slate-900 dark:text-slate-100">
-                  {session.cart.store?.name || 'Carto Store'}
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-      </main>
-
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white p-4 shadow-[0_-14px_30px_rgba(114,47,55,0.12)] dark:border-slate-800 dark:bg-slate-950 md:hidden">
-        <div className="mx-auto max-w-lg">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-bold text-slate-500">Estimated total</span>
-            <span className="text-2xl font-black text-slate-950 dark:text-slate-100">{formatCurrency(receipt?.total || 0)}</span>
-          </div>
-          <div className="grid grid-cols-1 gap-3 min-[520px]:grid-cols-2">
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
-              onClick={handleDisconnectCart}
-              disabled={isDisconnecting || isFinishing || !isSessionLive}
-            >
-              <span className="material-symbols-outlined">link_off</span>
-              {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
-            </Button>
-            <Button size="lg" className="w-full" onClick={handleFinishShopping} disabled={isFinishing || isDisconnecting || !isSessionLive}>
-              <span className="material-symbols-outlined">shopping_cart_checkout</span>
-              {isFinishing ? 'Preparing checkout...' : 'Finish Shopping'}
-            </Button>
-          </div>
+          <h1 className="mt-3 break-words text-[1.75rem] font-bold leading-tight sm:text-[2rem]">
+            {session.shoppingList?.name || 'Shopping in progress'}
+          </h1>
+          {session.cart && (
+            <p className="mt-1.5 text-[0.9375rem] text-ink-muted">
+              Cart <span className="font-mono font-medium text-ink">{session.cart.cartCode}</span>
+              {' · '}
+              {session.cart.store?.name || 'Carto Store'}
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="hidden lg:fixed lg:bottom-6 lg:right-6 lg:z-40 lg:flex lg:items-center lg:gap-3">
-        <Button
-          size="lg"
-          variant="outline"
-          className="border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
-          onClick={handleDisconnectCart}
-          disabled={isDisconnecting || isFinishing || !isSessionLive}
-        >
-          <span className="material-symbols-outlined">link_off</span>
-          {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
-        </Button>
-        <Button size="lg" onClick={handleFinishShopping} disabled={isFinishing || isDisconnecting || !isSessionLive}>
-          <span className="material-symbols-outlined">shopping_cart_checkout</span>
-          {isFinishing ? 'Preparing checkout...' : 'Finish Shopping'}
-        </Button>
+      {error && (
+        <Alert tone="danger" className="mt-5">
+          {error}
+        </Alert>
+      )}
+
+      {!isSessionLive && (
+        <Alert tone="warning" className="mt-5" title="Live updates stopped">
+          This session is {session.status.toLowerCase().replace('_', ' ')}. Start a new session from your lists.
+        </Alert>
+      )}
+
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+        <div className="space-y-6">
+          <section aria-labelledby="progress-heading" className="surface-card p-5 sm:p-6">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <h2 id="progress-heading" className="text-base font-semibold">
+                  Shopping progress
+                </h2>
+                <p className="tabular mt-0.5 text-sm text-ink-muted">
+                  {collectedCount} of {listItems.length} item{listItems.length === 1 ? '' : 's'} collected
+                </p>
+              </div>
+              <p className="tabular font-display text-2xl font-semibold text-ink">{Math.round(progressValue)}%</p>
+            </div>
+            <ProgressBar value={progressValue} showValue={false} className="mt-4" tone={progressValue >= 100 ? 'success' : 'brand'} />
+          </section>
+
+          <section aria-labelledby="list-heading">
+            <h2 id="list-heading" className="mb-3 text-base font-semibold">
+              Your list
+            </h2>
+            {listItems.length === 0 ? (
+              <EmptyState icon={ClipboardList} title="No items on this list" />
+            ) : (
+              <ul className="surface-card divide-y divide-line overflow-hidden">
+                {listItems.map((item) => (
+                  <li key={item.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
+                    <span
+                      className={cn(
+                        'flex size-6 shrink-0 items-center justify-center rounded-full',
+                        item.isCollected ? 'bg-emerald-500 text-white' : 'border-[1.5px] border-line-strong'
+                      )}
+                    >
+                      {item.isCollected && <Check className="size-3.5" aria-hidden="true" />}
+                    </span>
+                    <span className="sr-only">{item.isCollected ? 'Collected:' : 'Not collected yet:'}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className={cn('truncate text-[0.9375rem] font-medium', item.isCollected ? 'text-ink-subtle line-through' : 'text-ink')}>
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-ink-subtle">{item.category || 'General'}</p>
+                    </div>
+                    <span className="tabular shrink-0 text-sm font-medium text-ink-muted">×{item.quantity}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-24">
+          <ReceiptPanel>
+            <div className="flex items-start justify-between gap-3 px-5 pb-4 pt-5">
+              <div>
+                <h2 className="text-base font-semibold">Live receipt</h2>
+                <p className="text-sm text-ink-subtle">Updates as the cart scans items</p>
+              </div>
+              <ReceiptText className="size-5 text-ink-subtle" aria-hidden="true" />
+            </div>
+            <ReceiptDivider />
+            {receiptItems.length === 0 ? (
+              <p className="px-5 py-6 text-center text-sm text-ink-subtle">No items scanned yet.</p>
+            ) : (
+              <ul className="max-h-72 space-y-2.5 overflow-y-auto px-5 py-4 custom-scrollbar">
+                {receiptItems.map((item) => (
+                  <li key={item.id} className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="min-w-0 truncate text-ink">
+                      <span className="tabular text-ink-subtle">{item.quantity}× </span>
+                      {item.name}
+                    </span>
+                    <span className="tabular shrink-0 font-medium text-ink">{formatCurrency(item.price * item.quantity)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <ReceiptDivider />
+            <div className="space-y-2 px-5 py-4 text-sm">
+              <div className="flex justify-between text-ink-muted">
+                <span>Subtotal</span>
+                <span className="tabular">{formatCurrency(receipt?.subtotal || 0)}</span>
+              </div>
+              <div className="flex justify-between text-ink-muted">
+                <span>Tax</span>
+                <span className="tabular">{formatCurrency(receipt?.tax || 0)}</span>
+              </div>
+              <div className="flex items-baseline justify-between pt-1">
+                <span className="font-semibold text-ink">Total</span>
+                <span className="tabular font-display text-2xl font-semibold text-ink">{totalLabel}</span>
+              </div>
+            </div>
+            <div className="hidden gap-2 px-5 pb-5 lg:grid">{finishButton}</div>
+          </ReceiptPanel>
+
+          <Button
+            variant="danger-soft"
+            fullWidth
+            onClick={() => setIsDisconnectConfirmOpen(true)}
+            disabled={actionsDisabled}
+          >
+            <Unlink aria-hidden="true" />
+            Disconnect cart
+          </Button>
+        </aside>
       </div>
-    </PageContainer>
+
+      <MobileActionBar aboveNav>
+        <div className="flex items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-ink-subtle">Current total</p>
+            <p className="tabular truncate font-display text-lg font-semibold text-ink">{totalLabel}</p>
+          </div>
+          {finishButton}
+        </div>
+      </MobileActionBar>
+
+      <Modal
+        open={isDisconnectConfirmOpen}
+        onClose={() => setIsDisconnectConfirmOpen(false)}
+        dismissible={!isDisconnecting}
+        size="sm"
+        title="Disconnect this cart?"
+        description="Your list will be removed from the cart display and this session will end. You can start a new session any time."
+        footer={
+          <div className="grid gap-3 min-[400px]:grid-cols-2">
+            <Button variant="outline" onClick={() => setIsDisconnectConfirmOpen(false)} disabled={isDisconnecting}>
+              Keep shopping
+            </Button>
+            <Button variant="danger" onClick={handleDisconnectCart} loading={isDisconnecting}>
+              {isDisconnecting ? 'Disconnecting…' : 'Disconnect'}
+            </Button>
+          </div>
+        }
+      />
+    </AppShell>
   );
 }
 
@@ -400,9 +471,9 @@ export default function SessionPage() {
   return (
     <Suspense
       fallback={
-        <PageContainer>
-          <LoadingState label="Loading session" />
-        </PageContainer>
+        <AppShell title="Shopping session">
+          <LoadingState label="Loading your cart session…" />
+        </AppShell>
       }
     >
       <SessionContent />

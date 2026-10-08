@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { PageContainer } from '@/components/layout/PageContainer';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { QrCode, ScanLine } from 'lucide-react';
+import { StatusScreen } from '@/components/layout/StatusScreen';
+import { ButtonLink } from '@/components/ui/Button';
 import { requireUserOrGuest } from '@/lib/guest-session';
 import { ApiErrorResponse } from '@/lib/api-response';
 import { PaymentService } from '@/lib/services/payment.service';
@@ -32,18 +32,17 @@ function PaymentQrErrorState({
   description: string;
 }) {
   return (
-    <PageContainer maxWidth="md">
-      <main className="flex min-h-screen items-center justify-center p-4">
-        <EmptyState
-          icon="qr_code_2"
-          title={title}
-          description={description}
-          actionLabel="Back to dashboard"
-          actionHref="/dashboard"
-          className="max-w-md"
-        />
-      </main>
-    </PageContainer>
+    <StatusScreen
+      icon={QrCode}
+      tone="warning"
+      title={title}
+      description={description}
+      actions={
+        <ButtonLink href="/dashboard" size="lg">
+          Back to home
+        </ButtonLink>
+      }
+    />
   );
 }
 
@@ -67,30 +66,22 @@ export default async function CheckoutScanPage({
 
   if (!owner) {
     return (
-      <PageContainer maxWidth="md">
-        <main className="flex min-h-screen items-center justify-center p-4">
-          <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-soft dark:border-slate-800 dark:bg-slate-900">
-            <h1 className="text-2xl font-black text-slate-950 dark:text-slate-100">Open this QR from your Carto session</h1>
-            <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
-              Sign in or continue as guest on the same device that owns this cart session, then scan the payment QR again.
-            </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <Link
-                href="/auth/signin"
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-primary px-5 text-sm font-black text-white shadow-glow transition active:scale-[0.98]"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/dashboard"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 transition hover:border-primary/30 hover:text-primary dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-              >
-                Back to dashboard
-              </Link>
-            </div>
-          </section>
-        </main>
-      </PageContainer>
+      <StatusScreen
+        icon={ScanLine}
+        tone="brand"
+        title="Open this QR from your Carto session"
+        description="Sign in or continue as a guest on the same device that started this cart session, then scan the payment QR again."
+        actions={
+          <>
+            <ButtonLink href="/auth/signin" size="lg">
+              Sign in
+            </ButtonLink>
+            <ButtonLink href="/dashboard" size="lg" variant="outline">
+              Back to home
+            </ButtonLink>
+          </>
+        }
+      />
     );
   }
 

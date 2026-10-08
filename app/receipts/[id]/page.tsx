@@ -1,9 +1,13 @@
 import { redirect } from 'next/navigation';
-import { PageContainer } from '@/components/layout/PageContainer';
-import { Header } from '@/components/layout/Header';
-import { BottomNav } from '@/components/layout/BottomNav';
+import { format } from 'date-fns';
+import { ReceiptText } from 'lucide-react';
+import { AppShell } from '@/components/layout/AppShell';
 import { Badge } from '@/components/ui/Badge';
+import { DescriptionList } from '@/components/ui/DescriptionList';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Logo } from '@/components/ui/Logo';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { ReceiptDivider, ReceiptPanel } from '@/components/ui/ReceiptPanel';
 import { DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY } from '@/lib/constants/demo-payment';
 import { formatPaymentCurrency } from '@/lib/payment-money';
 import { formatCurrency } from '@/lib/utils';
@@ -97,102 +101,94 @@ export default async function ReceiptDetailPage({
 
   if (!receipt) {
     return (
-      <PageContainer maxWidth="lg">
-        <Header title="Receipt" showBack />
-        <main className="flex-1 pb-32 pt-6 md:pb-10">
-          <EmptyState
-            icon="receipt_long"
-            title="Receipt not found"
-            description="We could not find that completed receipt for this account."
-            actionLabel="Back to history"
-            actionHref="/history"
-          />
-        </main>
-        <BottomNav />
-      </PageContainer>
+      <AppShell back="/history" title="Receipt" maxWidth="md">
+        <EmptyState
+          icon={ReceiptText}
+          title="Receipt not found"
+          description="We could not find that completed receipt for this account."
+          actionLabel="Back to receipts"
+          actionHref="/history"
+        />
+      </AppShell>
     );
   }
 
+  const createdAt = new Date(receipt.createdAt);
+  const itemsSubtotal = receipt.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
   return (
-    <PageContainer maxWidth="lg">
-      <Header title="Receipt" showBack />
+    <AppShell back="/history" title={`Receipt #${receipt.id.slice(-6).toUpperCase()}`} maxWidth="md">
+      <PageHeader
+        eyebrow={
+          <Badge tone="success" dot>
+            Paid
+          </Badge>
+        }
+        title={receipt.cartSession?.shoppingList?.name || 'Completed shopping session'}
+        description={
+          <time dateTime={createdAt.toISOString()}>{format(createdAt, "EEEE d MMMM yyyy 'at' HH:mm")}</time>
+        }
+      />
 
-      <main className="flex-1 pb-32 pt-6 md:pb-10">
-        <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-soft">
-          <Badge className="bg-white/10 text-white ring-white/15">Receipt #{receipt.id.slice(-6).toUpperCase()}</Badge>
-          <h1 className="mt-4 text-3xl font-black tracking-tight">{demoAmountLabel}</h1>
-          <p className="mt-2 text-sm leading-6 text-white/70">
-            {new Date(receipt.createdAt).toLocaleString()} · {receipt.cartSession?.shoppingList?.name || 'Completed shopping session'}
-          </p>
+      <ReceiptPanel className="mt-6">
+        <div className="flex items-center justify-between gap-4 px-5 pb-4 pt-5 sm:px-6">
+          <Logo height={22} />
+          <span className="font-mono text-sm text-ink-subtle">#{receipt.id.slice(-6).toUpperCase()}</span>
+        </div>
+        <ReceiptDivider />
+
+        <DescriptionList
+          layout="grid"
+          className="grid-cols-3 gap-2 px-5 py-4 sm:gap-3 sm:px-6"
+          items={[
+            { label: 'Cart', value: receipt.cartSession?.cart?.cartCode || 'Carto cart', mono: true },
+            { label: 'Payment', value: <span className="capitalize">{receipt.paymentStatus.replace('_', ' ').toLowerCase()}</span> },
+            { label: 'Method', value: <span className="capitalize">{receipt.paymentMethod.toLowerCase()}</span> },
+          ]}
+        />
+        <ReceiptDivider />
+
+        <section aria-labelledby="receipt-items" className="px-5 py-4 sm:px-6">
+          <h2 id="receipt-items" className="eyebrow mb-3">
+            {receipt.items.length} item line{receipt.items.length === 1 ? '' : 's'}
+          </h2>
+          {receipt.items.length === 0 ? (
+            <p className="text-sm text-ink-subtle">No items were scanned in this session.</p>
+          ) : (
+            <ul className="space-y-3">
+              {receipt.items.map((item) => (
+                <li key={item.id} className="flex items-baseline justify-between gap-4 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-ink">{item.name}</p>
+                    <p className="tabular text-xs text-ink-subtle">
+                      {item.quantity} × {formatCurrency(item.price)} · {item.category || 'General'}
+                    </p>
+                  </div>
+                  <p className="tabular shrink-0 font-medium text-ink">{formatCurrency(item.price * item.quantity)}</p>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
+        <ReceiptDivider />
 
-        <section className="mt-6 grid gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Status</p>
-            <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">{receipt.status}</p>
+        <div className="space-y-2 px-5 py-4 text-sm sm:px-6">
+          <div className="flex justify-between text-ink-muted">
+            <span>Items subtotal</span>
+            <span className="tabular">{formatCurrency(itemsSubtotal)}</span>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Payment</p>
-            <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">{receipt.paymentStatus.replace('_', ' ')}</p>
+          <div className="flex justify-between text-ink-muted">
+            <span>Tax</span>
+            <span className="tabular">{formatPaymentCurrency(0, DEMO_PAYMENT_CURRENCY)}</span>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Cart code</p>
-            <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">{receipt.cartSession?.cart?.cartCode || 'Carto cart'}</p>
+          <div className="flex items-baseline justify-between pt-2">
+            <span className="font-semibold text-ink">
+              Amount paid <span className="font-normal text-ink-subtle">(test mode)</span>
+            </span>
+            <span className="tabular font-display text-2xl font-semibold text-ink">{demoAmountLabel}</span>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Payment method</p>
-            <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">{receipt.paymentMethod}</p>
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Receipt items</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {receipt.items.length} item line{receipt.items.length === 1 ? '' : 's'} in this completed receipt.
-              </p>
-            </div>
-            <Badge variant="success">Paid</Badge>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {receipt.items.map((item) => (
-              <article
-                key={item.id}
-                className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-black text-slate-950 dark:text-slate-100">{item.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {item.category || 'General'} · Qty {item.quantity}
-                  </p>
-                </div>
-                <p className="shrink-0 font-black text-slate-950 dark:text-slate-100">
-                  {formatCurrency(item.price * item.quantity)}
-                </p>
-              </article>
-            ))}
-          </div>
-
-          <div className="mt-6 space-y-3 border-t border-slate-100 pt-4 dark:border-slate-800">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">Demo payment amount</span>
-              <span className="font-bold text-slate-950 dark:text-slate-100">{demoAmountLabel}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">Tax</span>
-              <span className="font-bold text-slate-950 dark:text-slate-100">{formatPaymentCurrency(0, DEMO_PAYMENT_CURRENCY)}</span>
-            </div>
-            <div className="flex items-center justify-between text-base">
-              <span className="font-black text-slate-950 dark:text-slate-100">Total</span>
-              <span className="text-2xl font-black text-primary">{demoAmountLabel}</span>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <BottomNav />
-    </PageContainer>
+        </div>
+      </ReceiptPanel>
+    </AppShell>
   );
 }

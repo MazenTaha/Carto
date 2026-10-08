@@ -3,13 +3,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ListItem } from '@/types';
-import { PageContainer } from '@/components/layout/PageContainer';
-import { Header } from '@/components/layout/Header';
-import { BottomNav } from '@/components/layout/BottomNav';
+import {
+  CircleCheck,
+  Loader2,
+  Lock,
+  Minus,
+  PackageSearch,
+  Plus,
+  ScanLine,
+  ShoppingBasket,
+  ShoppingCart,
+  Trash2,
+  Undo2,
+} from 'lucide-react';
+import { AppShell, MobileActionBar } from '@/components/layout/AppShell';
 import { ProductSearch } from '@/components/lists/ProductSearch';
+import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { LoadingState } from '@/components/ui/LoadingState';
+import { Button, ButtonLink } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { inputClassName } from '@/components/ui/Input';
+import { Skeleton } from '@/components/ui/LoadingState';
+import { Modal } from '@/components/ui/Modal';
 import { normalizeListItemName } from '@/lib/list-items';
 import { EMPTY_LIST_MESSAGE } from '@/lib/list-constants';
 import { DEFAULT_BASE_PRICE_EGP, normalizeBasePriceEGP } from '@/lib/pricing';
@@ -75,6 +90,12 @@ export function ListItemsManager({
   const quantityRequestsRef = useRef(
     new Map<string, { confirmedQuantity: number; desiredQuantity: number; inFlight: boolean }>()
   );
+
+  useEffect(() => {
+    if (!notice) return;
+    const timeoutId = window.setTimeout(() => setNotice(''), 2500);
+    return () => window.clearTimeout(timeoutId);
+  }, [notice]);
 
   const markItemPending = useCallback((itemId: string) => {
     setPendingItemIds((current) => new Set(current).add(itemId));
@@ -606,263 +627,300 @@ export function ListItemsManager({
     router.push(`/session/start?listId=${listId}`);
   }, [activeSession?.sessionId, hasOwnedActiveSession, isCurrentListSession, listId, router]);
 
-  const renderItem = (item: ListItem) => (
-    (() => {
-      const isPending = pendingItemIds.has(item.id);
-      const isQuantitySyncing = quantitySyncItemIds.has(item.id);
-      const isBusy = isPending || isQuantitySyncing;
-      const itemMeta = [item.category || 'General', item.price ? formatCurrency(item.price) : null]
-        .filter(Boolean)
-        .join(' | ');
-      return (
-    <article
-      key={item.id}
-      className={cn(
-        'flex min-h-[92px] w-full max-w-full items-center gap-3 rounded-2xl border bg-white p-3 shadow-sm transition-all duration-200 ease-out dark:bg-slate-900 sm:p-4',
-        isBusy && 'scale-[0.99] opacity-70',
-        'border-slate-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-card dark:border-slate-800'
-      )}
-    >
-      <div className="min-w-0 flex-1 self-center">
-        <h3 className="break-words text-base font-bold leading-5 text-slate-950 dark:text-slate-100">
-          {item.name}
-        </h3>
-        <p className="mt-1 text-xs font-medium text-slate-500">{itemMeta}</p>
-      </div>
+  const estimatedTotal = items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+  const totalUnits = items.reduce((sum, item) => sum + item.quantity, 0);
+  const editingBlocked = isLockedForActiveSession || (hasOwnedActiveSession && !isCurrentListSession);
+  const activationLabel = isActivating ? 'Opening scanner…' : isCurrentListSession ? 'Continue session' : 'Start shopping';
+  const ActivationIcon = isCurrentListSession ? ShoppingCart : ScanLine;
 
-      <div className="ml-auto flex w-[122px] shrink-0 items-center justify-end gap-2 self-center">
-        <div className={cn('flex h-11 flex-1 items-center rounded-full bg-slate-100 p-1 dark:bg-slate-800', isQuantitySyncing && 'ring-1 ring-primary/15')}>
+  const renderItem = (item: ListItem) => {
+    const isPending = pendingItemIds.has(item.id);
+    const isQuantitySyncing = quantitySyncItemIds.has(item.id);
+    const isBusy = isPending || isQuantitySyncing;
+    const lineTotal = item.price ? formatCurrency(item.price * item.quantity) : null;
+
+    return (
+      <li
+        key={item.id}
+        className={cn(
+          'flex items-center gap-3 px-4 py-3 transition-opacity duration-200 sm:px-5',
+          isPending && 'opacity-60'
+        )}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-[0.9375rem] font-medium leading-5 text-ink">{item.name}</p>
+          <p className="mt-0.5 truncate text-xs text-ink-subtle">
+            {item.category || 'General'}
+            {item.price ? ` · ${formatCurrency(item.price)} each` : ''}
+          </p>
+        </div>
+
+        {lineTotal && (
+          <p className="tabular hidden w-24 shrink-0 text-right text-sm font-medium text-ink-muted sm:block">{lineTotal}</p>
+        )}
+
+        <div
+          className={cn(
+            'flex h-10 shrink-0 items-center rounded-full border border-line bg-surface-muted p-0.5',
+            isQuantitySyncing && 'border-brand-200'
+          )}
+          role="group"
+          aria-label={`${item.name} quantity`}
+        >
           <button
             type="button"
             onClick={() => handleUpdateQuantity(item.id, -1)}
             disabled={isPending || isLockedForActiveSession || item.quantity <= 1}
-            className="flex size-8 items-center justify-center rounded-full text-primary transition active:scale-90 hover:bg-white disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-slate-700"
+            className="flex size-9 items-center justify-center rounded-full text-ink transition hover:bg-surface active:scale-90 disabled:text-ink-subtle/50 disabled:hover:bg-transparent"
             aria-label={`Decrease ${item.name} quantity`}
           >
-            <span className="material-symbols-outlined text-[18px]">remove</span>
+            <Minus className="size-4" aria-hidden="true" />
           </button>
-          <span className="min-w-[1.75rem] text-center text-sm font-black tabular-nums">{item.quantity}</span>
+          <span className="tabular min-w-[1.75rem] text-center text-sm font-semibold" aria-live="polite">
+            {item.quantity}
+          </span>
           <button
             type="button"
             onClick={() => handleUpdateQuantity(item.id, 1)}
             disabled={isPending || isLockedForActiveSession}
-            className="flex size-8 items-center justify-center rounded-full text-primary transition active:scale-90 hover:bg-white disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-slate-700"
+            className="flex size-9 items-center justify-center rounded-full text-ink transition hover:bg-surface active:scale-90 disabled:text-ink-subtle/50 disabled:hover:bg-transparent"
             aria-label={`Increase ${item.name} quantity`}
           >
-            <span className="material-symbols-outlined text-[18px]">add</span>
+            <Plus className="size-4" aria-hidden="true" />
           </button>
         </div>
+
         <button
           type="button"
           onClick={() => handleDeleteItem(item)}
           disabled={isBusy || isLockedForActiveSession}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition-all duration-200 active:scale-90 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:active:scale-100 dark:hover:bg-red-500/10"
-          aria-label={`Delete ${item.name}`}
+          className="-mr-2 flex size-10 shrink-0 items-center justify-center rounded-full text-ink-subtle transition hover:bg-red-50 hover:text-red-600 active:scale-90 disabled:opacity-40 disabled:hover:bg-transparent"
+          aria-label={`Remove ${item.name}`}
         >
-          <span className={cn('material-symbols-outlined text-[20px]', isPending && 'animate-pulse')}>{isPending ? 'progress_activity' : 'delete'}</span>
+          {isPending ? <Loader2 className="size-[1.125rem] animate-spin" aria-hidden="true" /> : <Trash2 className="size-[1.125rem]" aria-hidden="true" />}
         </button>
-      </div>
-    </article>
-      );
-    })()
-  );
+      </li>
+    );
+  };
 
   return (
-    <PageContainer maxWidth="lg">
-      <Header
-        title={listName}
-        showBack
-        showLogo
-        rightElement={
-          <Button
-            size="sm"
-            onClick={handleActivationClick}
-            disabled={isActivating}
-          >
-            <span className={cn('material-symbols-outlined text-[18px]', isActivating && 'animate-spin')}>
-              {isActivating ? 'progress_activity' : isCurrentListSession ? 'shopping_cart' : 'qr_code_scanner'}
-            </span>
-            <span className="hidden sm:inline">
-              {isActivating ? 'Opening' : isCurrentListSession ? 'Continue session' : 'Activate'}
-            </span>
-          </Button>
-        }
-      />
-
-      <main className="flex-1 pb-28 pt-6 md:pb-10">
-        <section>
-          <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-soft md:p-6">
-            <Badge className="bg-white/10 text-white ring-white/15">
-              {hasOwnedActiveSession ? 'Cart connected' : isLockedForActiveSession ? 'Active on cart' : 'Shopping list'}
-            </Badge>
-            <h1 className="mt-4 text-3xl font-black tracking-tight">{listName}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">
-              {hasOwnedActiveSession && !isCurrentListSession
-                ? existingSessionMessage
-                : isLockedForActiveSession
-                ? 'This list is currently assigned to a cart. Finish the session before changing it.'
-                : 'Keep the list ready, then activate it to link with the QR code on a cart.'}
-            </p>
-            {hasOwnedActiveSession && activeSession && (
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Cart</p>
-                  <p className="mt-2 text-lg font-black">{activeSession.cartCode}</p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">List</p>
-                  <p className="mt-2 truncate text-lg font-black">{activeSession.shoppingList.name}</p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Items</p>
-                  <p className="mt-2 text-lg font-black">
-                    {activeSession.shoppingList.itemsCount} item{activeSession.shoppingList.itemsCount === 1 ? '' : 's'}
-                  </p>
-                </div>
-              </div>
+    <AppShell
+      back="/lists"
+      title={listName}
+      bottomBar
+      actions={
+        <Button
+          size="sm"
+          onClick={handleActivationClick}
+          loading={isActivating}
+          className="hidden lg:inline-flex"
+        >
+          {!isActivating && <ActivationIcon aria-hidden="true" />}
+          {activationLabel}
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap gap-2">
+            {isLockedForActiveSession || isCurrentListSession ? (
+              <Badge tone="success" pulse>
+                On cart {activeSession?.cartCode ?? ''}
+              </Badge>
+            ) : (
+              <Badge tone="neutral">Shopping list</Badge>
             )}
           </div>
-        </section>
+          <h1 className="break-words text-[1.75rem] font-bold leading-tight sm:text-[2rem]">{listName}</h1>
+          <p className="tabular mt-1.5 text-[0.9375rem] text-ink-muted">
+            {items.length} product{items.length === 1 ? '' : 's'} · {totalUnits} unit{totalUnits === 1 ? '' : 's'} · Est.{' '}
+            {formatCurrency(estimatedTotal)}
+          </p>
+        </div>
+      </div>
 
-        <section className="sticky top-[65px] z-30 -mx-4 mt-5 border-y border-slate-200/70 bg-background-light/95 px-4 py-3 backdrop-blur-xl dark:border-slate-800 dark:bg-background-dark/95 sm:mx-0 sm:rounded-2xl sm:border">
-          <div className="flex items-stretch gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (!isLockedForActiveSession) setIsProductSearchOpen(true);
-              }}
-              disabled={isLockedForActiveSession}
-              className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-primary shadow-sm transition hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-800 dark:bg-slate-900"
-              aria-label="Open product search"
-            >
-              <span className="material-symbols-outlined">search</span>
-            </button>
-            <label className="sr-only" htmlFor="quick-add-item">Quick add item</label>
+      {editingBlocked && (
+        <Alert
+          tone={isCurrentListSession ? 'success' : 'warning'}
+          icon={Lock}
+          className="mt-5"
+          title={hasOwnedActiveSession && !isCurrentListSession ? 'Another list is on a cart' : 'This list is on a cart'}
+          action={
+            activeSession?.sessionId ? (
+              <ButtonLink href={`/session?sessionId=${encodeURIComponent(activeSession.sessionId)}`} size="sm" variant="outline">
+                <ShoppingCart aria-hidden="true" />
+                Open {activeSession.shoppingList.name}
+              </ButtonLink>
+            ) : undefined
+          }
+        >
+          {hasOwnedActiveSession && !isCurrentListSession ? existingSessionMessage : activeSessionLockMessage}
+        </Alert>
+      )}
+
+      <section aria-label="Add items" className="sticky top-16 z-20 -mx-4 mt-6 bg-canvas/95 px-4 py-3 backdrop-blur-lg sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <form
+          className="flex items-stretch gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleAddItem(searchTerm);
+          }}
+        >
+          <div className="relative min-w-0 flex-1">
+            <label className="sr-only" htmlFor="quick-add-item">
+              Add an item
+            </label>
             <input
               id="quick-add-item"
-              className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 text-base font-medium text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
-              placeholder="Quick add item and press Enter"
+              className={cn(inputClassName, 'pr-4')}
+              placeholder={editingBlocked ? 'Editing is paused' : 'Add an item, e.g. Bananas'}
               value={searchTerm}
+              autoComplete="off"
+              enterKeyHint="done"
               onChange={(event) => setSearchTerm(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key !== 'Enter') return;
-                event.preventDefault();
-                void handleAddItem(searchTerm);
-              }}
               disabled={isLoading || isLockedForActiveSession}
             />
-            <Button
-              size="icon"
-              onClick={() => handleAddItem(searchTerm)}
-              disabled={isLoading || isLockedForActiveSession || !searchTerm.trim()}
-              aria-label="Add item"
-            >
-              <span className={cn('material-symbols-outlined', isLoading && 'animate-spin')}>{isLoading ? 'progress_activity' : 'add'}</span>
-            </Button>
           </div>
-          {(isLockedForActiveSession || (hasOwnedActiveSession && !isCurrentListSession)) && (
-            <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
-              {hasOwnedActiveSession && !isCurrentListSession ? existingSessionMessage : activeSessionLockMessage}
+          <Button
+            type="submit"
+            size="icon"
+            className="size-12"
+            disabled={isLoading || isLockedForActiveSession || !searchTerm.trim()}
+            aria-label="Add item"
+          >
+            {isLoading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Plus aria-hidden="true" />}
+          </Button>
+          <Button
+            variant="outline"
+            className="h-12 px-3 sm:px-4"
+            onClick={() => {
+              if (!isLockedForActiveSession) setIsProductSearchOpen(true);
+            }}
+            disabled={isLockedForActiveSession}
+            aria-label="Browse products"
+          >
+            <PackageSearch aria-hidden="true" />
+            <span className="hidden sm:inline">Browse</span>
+          </Button>
+        </form>
+        <div aria-live="polite" className="min-h-0">
+          {error ? (
+            <Alert tone="danger" className="mt-3">
+              {error}
+            </Alert>
+          ) : notice ? (
+            <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-emerald-700">
+              <CircleCheck className="size-4" aria-hidden="true" />
+              {notice}
             </p>
-          )}
-          {error && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-300">{error}</p>}
-          {!error && items.length === 0 && (
-            <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
-              {EMPTY_LIST_MESSAGE}
-            </p>
-          )}
-          {notice && !error && <p className="mt-2 rounded-xl bg-primary/10 px-3 py-2 text-sm font-bold text-primary">{notice}</p>}
-        </section>
+          ) : null}
+        </div>
+      </section>
 
-        {isItemsLoading && items.length === 0 ? (
-          <div className="mt-6">
-            <LoadingState label="Loading list items" />
-          </div>
-        ) : (
-          <div className={cn('mt-6 grid gap-6', deletedItems.length > 0 && 'lg:grid-cols-2')}>
-            <section>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-600 dark:text-slate-300">
-                  Items ({items.length})
-                </h2>
+      {isItemsLoading && items.length === 0 ? (
+        <div className="surface-card mt-4 divide-y divide-line" aria-busy="true">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="flex items-center gap-3 px-5 py-4">
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-3 w-1/4" />
               </div>
-              <div className="space-y-3">
-                {items.length > 0 ? (
-                  items.map((item) => renderItem(item))
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm font-medium text-slate-500 dark:border-slate-800 dark:bg-slate-900">
-                    No active items yet.
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {deletedItems.length > 0 && (
-              <section>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-500">
-                    Deleted items ({deletedItems.length})
-                  </h2>
-                </div>
-                <div className="space-y-3">
-                  {deletedItems.map((item) => {
-                    const isPending = pendingItemIds.has(item.id);
-                    return (
-                      <article
-                        key={item.id}
-                        className={cn(
-                          'flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/90 p-4 shadow-sm transition-all duration-200 ease-out dark:border-slate-800 dark:bg-slate-900/70',
-                          isPending && 'scale-[0.99] opacity-70'
-                        )}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <h3 className="break-words text-base font-bold text-slate-950 dark:text-slate-100">{item.name}</h3>
-                          <p className="mt-1 text-xs font-medium text-slate-500">
-                            Qty: {item.quantity}
-                            {item.category ? ` | ${item.category}` : ''}
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void handleRestoreDeletedItem(item)}
-                          disabled={isPending || isLockedForActiveSession}
-                          className="min-w-[88px] rounded-xl border-primary/20 bg-white/80 transition-all duration-200 hover:border-primary/40 hover:bg-white dark:bg-slate-900"
-                        >
-                          {isPending ? 'Restoring...' : 'Restore'}
-                        </Button>
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
+              <Skeleton className="h-10 w-28 rounded-full" />
+            </div>
+          ))}
+          <span className="sr-only">Loading list items</span>
+        </div>
+      ) : (
+        <div className={cn('mt-4 grid items-start gap-6', deletedItems.length > 0 && 'lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]')}>
+          <section aria-labelledby="list-items-heading">
+            <h2 id="list-items-heading" className="sr-only">
+              Items
+            </h2>
+            {items.length > 0 ? (
+              <ul className="surface-card divide-y divide-line overflow-hidden">{items.map((item) => renderItem(item))}</ul>
+            ) : (
+              <EmptyState
+                icon={ShoppingBasket}
+                title="This list is empty"
+                description={`${EMPTY_LIST_MESSAGE} Type an item above or browse the catalog.`}
+                action={
+                  !isLockedForActiveSession ? (
+                    <Button variant="outline" onClick={() => setIsProductSearchOpen(true)}>
+                      <PackageSearch aria-hidden="true" />
+                      Browse products
+                    </Button>
+                  ) : undefined
+                }
+              />
             )}
-          </div>
-        )}
-      </main>
+          </section>
 
-      {isProductSearchOpen && !isLockedForActiveSession && (
-        <div className="fixed inset-0 z-[100] flex max-h-dvh items-end justify-center overflow-hidden md:items-start md:p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
-            aria-label="Close product search"
-            onClick={() => setIsProductSearchOpen(false)}
-          />
-          <div className="relative z-10 flex max-h-dvh min-h-0 w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white p-4 pb-0 shadow-2xl dark:border-slate-800 dark:bg-slate-950 md:mt-6 md:max-h-[calc(100dvh-3rem)] md:w-[min(920px,calc(100%-2rem))] md:rounded-3xl md:p-6 md:pb-0">
-            <ProductSearch
-              onCancel={() => setIsProductSearchOpen(false)}
-              onSelect={async (product) => {
-                setIsProductSearchOpen(false);
-                await handleAddItem(product.name, product.category);
-              }}
-            />
-          </div>
+          {deletedItems.length > 0 && (
+            <section aria-labelledby="removed-items-heading">
+              <h2 id="removed-items-heading" className="mb-3 text-sm font-semibold text-ink-muted">
+                Removed from this list ({deletedItems.length})
+              </h2>
+              <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-dashed border-line-strong bg-surface/60">
+                {deletedItems.map((item) => {
+                  const isPending = pendingItemIds.has(item.id);
+                  return (
+                    <li key={item.id} className={cn('flex items-center gap-3 px-4 py-3', isPending && 'opacity-60')}>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-ink-muted line-through decoration-ink-subtle/40">{item.name}</p>
+                        <p className="mt-0.5 text-xs text-ink-subtle">
+                          Qty {item.quantity}
+                          {item.category ? ` · ${item.category}` : ''}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void handleRestoreDeletedItem(item)}
+                        disabled={isPending || isLockedForActiveSession}
+                        loading={isPending}
+                      >
+                        {!isPending && <Undo2 aria-hidden="true" />}
+                        {isPending ? 'Restoring…' : 'Restore'}
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
         </div>
       )}
 
-      <BottomNav />
-    </PageContainer>
+      <MobileActionBar aboveNav>
+        <div className="flex items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-ink-subtle">Estimated total</p>
+            <p className="tabular truncate font-display text-lg font-semibold text-ink">{formatCurrency(estimatedTotal)}</p>
+          </div>
+          <Button onClick={handleActivationClick} loading={isActivating}>
+            {!isActivating && <ActivationIcon aria-hidden="true" />}
+            {activationLabel}
+          </Button>
+        </div>
+      </MobileActionBar>
+
+      <Modal
+        open={isProductSearchOpen && !isLockedForActiveSession}
+        onClose={() => setIsProductSearchOpen(false)}
+        title="Add products"
+        description="Search the catalog or pick from popular items."
+        size="xl"
+        className="h-[92dvh] sm:h-[min(88dvh,48rem)]"
+        bodyClassName="flex flex-col overflow-hidden px-0 pb-0 sm:px-0 sm:pb-0"
+      >
+        <ProductSearch
+          onCancel={() => setIsProductSearchOpen(false)}
+          onSelect={async (product) => {
+            setIsProductSearchOpen(false);
+            await handleAddItem(product.name, product.category);
+          }}
+        />
+      </Modal>
+    </AppShell>
   );
 }

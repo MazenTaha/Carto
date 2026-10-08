@@ -1,97 +1,95 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, ChevronDown, LogOut, User } from 'lucide-react';
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
+import { useEffect, useRef, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { ChevronDown, ExternalLink, Menu } from 'lucide-react';
+import { SignOutButton } from '@/components/auth/SignOutButton';
+import { Avatar } from '@/components/layout/UserMenu';
+import { Badge } from '@/components/ui/Badge';
+import { getAdminPageTitle } from './admin-nav';
 
-const BREADCRUMB_MAP: Record<string, string> = {
-  '/admin':            'Dashboard',
-  '/admin/products':   'Products',
-  '/admin/carts':      'Carts',
-  '/admin/sessions':   'Sessions',
-  '/admin/users':      'Users',
-  '/admin/analytics':  'Analytics',
-};
-
-export function AdminTopNav() {
+export function AdminTopNav({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const name = session?.user?.name ?? session?.user?.email?.split('@')[0] ?? 'Admin';
 
-  const breadcrumb = BREADCRUMB_MAP[pathname] ?? 'Admin';
-
-  const initials = session?.user?.name
-    ? session.user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-    : session?.user?.email?.[0]?.toUpperCase() ?? 'A';
+  useEffect(() => {
+    if (!open) return;
+    const handlePointer = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointer);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handlePointer);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-slate-400">Carto</span>
-        <span className="text-slate-300">/</span>
-        <span className="font-semibold text-slate-800">{breadcrumb}</span>
-      </div>
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-line bg-canvas/90 px-4 backdrop-blur-lg sm:px-6">
+      <button
+        type="button"
+        onClick={onOpenMenu}
+        className="-ml-1 flex size-10 items-center justify-center rounded-xl text-ink transition hover:bg-surface-sunken/70 lg:hidden"
+        aria-label="Open navigation"
+      >
+        <Menu className="size-5" aria-hidden="true" />
+      </button>
 
-      {/* Right side */}
-      <div className="flex items-center gap-3">
-        {/* Live badge */}
-        <span className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 sm:inline-flex">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          </span>
-          Live
+      <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
+        <span className="hidden text-ink-subtle sm:inline">Admin</span>
+        <span className="hidden text-line-strong sm:inline" aria-hidden="true">
+          /
         </span>
+        <span className="truncate font-semibold text-ink" aria-current="page">
+          {getAdminPageTitle(pathname)}
+        </span>
+      </nav>
 
-        {/* Notifications (static) */}
-        <button className="relative rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
-          <Bell size={18} />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-        </button>
+      <div className="ml-auto flex items-center gap-3">
+        <Badge tone="success" pulse className="hidden sm:inline-flex">
+          Live data
+        </Badge>
 
-        {/* Avatar dropdown */}
-        <div className="relative">
+        <div ref={containerRef} className="relative">
           <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 text-sm hover:bg-slate-50"
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-haspopup="menu"
+            aria-expanded={open}
+            aria-label="Account menu"
+            className="flex items-center gap-2 rounded-full p-1 transition hover:bg-surface-sunken/70 sm:pr-2"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-xs font-bold text-white">
-              {initials}
-            </div>
-            <span className="hidden max-w-[100px] truncate font-medium text-slate-700 sm:block">
-              {session?.user?.name ?? session?.user?.email ?? 'Admin'}
-            </span>
-            <ChevronDown size={14} className="text-slate-400" />
+            <Avatar name={name} image={session?.user?.image} />
+            <span className="hidden max-w-[10rem] truncate text-sm font-medium text-ink sm:block">{name}</span>
+            <ChevronDown className="hidden size-4 text-ink-subtle sm:block" aria-hidden="true" />
           </button>
 
-          {dropdownOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setDropdownOpen(false)}
-              />
-              <div className="absolute right-0 top-full z-20 mt-1.5 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                <div className="border-b border-slate-100 px-4 py-3">
-                  <p className="text-xs font-semibold text-slate-900 truncate">
-                    {session?.user?.name ?? 'Admin'}
-                  </p>
-                  <p className="text-xs text-slate-400 truncate">{session?.user?.email}</p>
-                </div>
-                <button
-                  onClick={async () => {
-                    await signOut({ redirect: false });
-                    window.location.href = '/auth/signin';
-                  }}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
-                >
-                  <LogOut size={14} />
-                  Sign out
-                </button>
+          {open && (
+            <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-line bg-surface p-1.5 shadow-raised animate-rise-in">
+              <div className="px-3 py-2.5">
+                <p className="truncate text-sm font-semibold text-ink">{name}</p>
+                <p className="truncate text-xs text-ink-subtle">{session?.user?.email ?? 'Not signed in'}</p>
               </div>
-            </>
+              <div className="my-1 border-t border-line" />
+              <Link
+                href="/dashboard"
+                role="menuitem"
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-surface-muted"
+              >
+                <ExternalLink className="size-4 text-ink-subtle" aria-hidden="true" />
+                Open shopper app
+              </Link>
+              <SignOutButton variant="menu" />
+            </div>
           )}
         </div>
       </div>

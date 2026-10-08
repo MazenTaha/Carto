@@ -1,12 +1,9 @@
 import { AdminSessionRow } from '@/types/admin';
 import { StatusBadge } from '@/components/admin/shared/StatusBadge';
-import { formatDistanceToNow } from 'date-fns';
-import { ShoppingCart, User } from 'lucide-react';
+import { EmptyState } from '@/components/admin/shared/EmptyState';
+import { ShoppingCart } from 'lucide-react';
 import { isActiveCartSessionStatus } from '@/lib/cart-session-status';
-
-interface RecentSessionsTableProps {
-  sessions: AdminSessionRow[];
-}
+import { formatCurrency } from '@/lib/utils';
 
 function formatDuration(seconds: number) {
   if (seconds < 60) return `${seconds}s`;
@@ -14,61 +11,36 @@ function formatDuration(seconds: number) {
   return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
 }
 
-export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
+export function RecentSessionsTable({ sessions }: { sessions: AdminSessionRow[] }) {
   if (!sessions.length) {
-    return (
-      <div className="flex flex-col items-center justify-center py-10 text-slate-400">
-        <ShoppingCart size={32} className="mb-2 opacity-30" />
-        <p className="text-sm">No recent sessions</p>
-      </div>
-    );
+    return <EmptyState icon={<ShoppingCart />} title="No recent sessions" description="Sessions appear here once shoppers link a cart." />;
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+    <div className="custom-scrollbar relative overflow-x-auto">
+      <table className="w-full min-w-[40rem] text-sm">
+        <caption className="sr-only">Recent shopping sessions</caption>
         <thead>
-          <tr className="border-b border-slate-100">
-            <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Cart</th>
-            <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Customer</th>
-            <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">List</th>
-            <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Status</th>
-            <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Duration</th>
-            <th className="pb-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">Total</th>
+          <tr className="border-b border-line text-left text-xs font-medium text-ink-subtle">
+            <th scope="col" className="py-3 pl-5 pr-4">Cart</th>
+            <th scope="col" className="px-4 py-3">Customer</th>
+            <th scope="col" className="px-4 py-3">List</th>
+            <th scope="col" className="px-4 py-3">Status</th>
+            <th scope="col" className="px-4 py-3">Duration</th>
+            <th scope="col" className="py-3 pl-4 pr-5 text-right">Total</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-50">
+        <tbody className="divide-y divide-line">
           {sessions.map((s) => (
-            <tr key={s.id} className="hover:bg-slate-50/60">
-              <td className="py-3 pr-4">
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-mono font-medium text-slate-700">
-                  <ShoppingCart size={10} />
-                  {s.cartCode}
-                </span>
+            <tr key={s.id} className="transition-colors hover:bg-surface-muted/60">
+              <td className="py-3 pl-5 pr-4 font-mono text-xs font-medium text-ink">{s.cartCode}</td>
+              <td className="max-w-[10rem] truncate px-4 py-3 text-ink">{s.userName ?? s.userEmail ?? 'Guest'}</td>
+              <td className="max-w-[10rem] truncate px-4 py-3 text-ink-muted">{s.listName}</td>
+              <td className="px-4 py-3">
+                <StatusBadge status={s.status} pulse={isActiveCartSessionStatus(s.status)} />
               </td>
-              <td className="py-3 pr-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-                    <User size={11} />
-                  </div>
-                  <span className="max-w-[120px] truncate text-slate-700">
-                    {s.userName ?? s.userEmail ?? 'Guest'}
-                  </span>
-                </div>
-              </td>
-              <td className="py-3 pr-4 max-w-[140px] truncate text-slate-600">{s.listName}</td>
-              <td className="py-3 pr-4">
-                <StatusBadge
-                  status={s.status}
-                  pulse={isActiveCartSessionStatus(s.status)}
-                />
-              </td>
-              <td className="py-3 pr-4 text-slate-500 text-xs">
-                {s.durationSeconds != null ? formatDuration(s.durationSeconds) : '—'}
-              </td>
-              <td className="py-3 text-right font-semibold text-slate-800">
-                ${(s.total ?? 0).toFixed(2)}
-              </td>
+              <td className="tabular px-4 py-3 text-ink-muted">{s.durationSeconds != null ? formatDuration(s.durationSeconds) : '—'}</td>
+              <td className="tabular py-3 pl-4 pr-5 text-right font-medium text-ink">{formatCurrency(s.total ?? 0)}</td>
             </tr>
           ))}
         </tbody>

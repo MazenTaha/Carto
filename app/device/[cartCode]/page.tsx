@@ -1,9 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { PageContainer } from '@/components/layout/PageContainer';
+import { Circle, CircleCheck, KeyRound, RefreshCw, ScanLine } from 'lucide-react';
+import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Input } from '@/components/ui/Input';
+import { Logo } from '@/components/ui/Logo';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { ReceiptDivider, ReceiptPanel } from '@/components/ui/ReceiptPanel';
 import { formatCurrency } from '@/lib/utils';
 
 type DeviceState =
@@ -88,7 +94,9 @@ export default function DevicePage({ params }: { params: { cartCode: string } })
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    setDeviceSecret(window.localStorage.getItem(storageKey) || '');
+    try {
+      setDeviceSecret(window.localStorage.getItem(storageKey) || '');
+    } catch {}
   }, [storageKey]);
 
   const fetchActiveSession = useCallback(async () => {
@@ -125,7 +133,9 @@ export default function DevicePage({ params }: { params: { cartCode: string } })
   useEffect(() => {
     if (!deviceSecret.trim()) return;
 
-    window.localStorage.setItem(storageKey, deviceSecret.trim());
+    try {
+      window.localStorage.setItem(storageKey, deviceSecret.trim());
+    } catch {}
     void fetchActiveSession();
     const interval = setInterval(fetchActiveSession, 2000);
 
@@ -138,108 +148,125 @@ export default function DevicePage({ params }: { params: { cartCode: string } })
   const cartStatus = data?.cartStatus ?? data?.cart.status ?? 'Waiting';
 
   return (
-    <PageContainer maxWidth="lg">
-      <main className="flex-1 pb-10 pt-6">
-        <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-soft">
-          <Badge className="bg-white/10 text-white ring-white/15">Device test display</Badge>
-          <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight">{params.cartCode}</h1>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">
-                This development page polls the backend with a device secret and shows the live list assigned to this cart.
-              </p>
-            </div>
-            <Badge variant={data?.active ? 'success' : 'warning'} className="w-fit">
-              {data?.active ? 'Active session' : cartStatus}
+    <div className="min-h-dvh bg-canvas">
+      <header className="border-b border-line bg-surface">
+        <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6">
+          <Logo height={24} priority />
+          <Badge tone="neutral" className="hidden sm:inline-flex">
+            Device test display
+          </Badge>
+          <div className="ml-auto">
+            <Badge tone={data?.active ? 'success' : 'neutral'} dot pulse={Boolean(data?.active)}>
+              {data?.active ? 'Session active' : cartStatus.replace('_', ' ').toLowerCase()}
             </Badge>
           </div>
-        </section>
+        </div>
+      </header>
 
-        <section className="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
-          <label className="block text-xs font-black uppercase tracking-[0.16em] text-slate-500" htmlFor="device-secret">
-            Device secret
-          </label>
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-            <input
+      <main id="main-content" className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+        <PageHeader
+          title={<span className="font-mono">{params.cartCode}</span>}
+          description="Development view that polls the device API every 2 seconds and shows the list assigned to this cart."
+        />
+
+        <form
+          className="surface-card mt-6 p-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void fetchActiveSession();
+          }}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <Input
               id="device-secret"
+              label="Device secret"
+              hint="Saved on this device for next time."
               value={deviceSecret}
               onChange={(event) => setDeviceSecret(event.target.value)}
               placeholder="dev-device-secret"
-              className="h-12 min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 text-base text-slate-950 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+              autoComplete="off"
+              leading={<KeyRound aria-hidden="true" />}
+              containerClassName="flex-1"
             />
-            <Button onClick={fetchActiveSession} disabled={!deviceSecret.trim() || isLoading}>
-              {isLoading ? 'Checking...' : 'Poll now'}
+            <Button type="submit" size="lg" disabled={!deviceSecret.trim()} loading={isLoading} className="sm:mb-7">
+              {!isLoading && <RefreshCw aria-hidden="true" />}
+              {isLoading ? 'Checking…' : 'Poll now'}
             </Button>
           </div>
           {error && (
-            <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:bg-red-500/10 dark:text-red-300">
+            <Alert tone="danger" className="mt-4">
               {error}
-            </p>
+            </Alert>
           )}
-        </section>
+        </form>
 
         {!data?.active ? (
-          <section className="mt-5 rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-card dark:border-slate-800 dark:bg-slate-900">
-            <span className="material-symbols-outlined text-5xl text-primary">qr_code_scanner</span>
-            <h2 className="mt-4 text-2xl font-black text-slate-950 dark:text-slate-100">Waiting for shopper to scan QR...</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              Generate a QR for this cart, select a list on the shopper app, and scan the QR to assign the list.
-            </p>
-          </section>
+          <EmptyState
+            icon={ScanLine}
+            className="mt-6"
+            title={deviceSecret.trim() ? 'Waiting for a shopper to scan…' : 'Enter the device secret to connect'}
+            description="Show this cart's pairing QR, choose a list in the shopper app, and scan it to assign the list here."
+          />
         ) : (
-          <section className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-primary">Assigned list</p>
-                  <h2 className="mt-1 text-2xl font-black text-slate-950 dark:text-slate-100">{data.list.name}</h2>
+          <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <section aria-labelledby="assigned-list" className="surface-card overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-5 pb-4 pt-5">
+                <div className="min-w-0">
+                  <p className="eyebrow">Assigned list</p>
+                  <h2 id="assigned-list" className="mt-1 truncate text-xl font-semibold">
+                    {data.list.name}
+                  </h2>
                 </div>
-                <Badge variant="success">{collectedCount}/{data.list.items.length} collected</Badge>
+                <Badge tone="brand">
+                  {collectedCount}/{data.list.items.length} collected
+                </Badge>
               </div>
-              <div className="space-y-3">
+              <ul className="divide-y divide-line border-t border-line">
                 {data.list.items.map((item) => (
-                  <article
-                    key={item.id}
-                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950"
-                  >
-                    <span className="material-symbols-outlined text-primary">
-                      {item.isCollected ? 'check_circle' : 'radio_button_unchecked'}
-                    </span>
+                  <li key={item.id} className="flex items-center gap-3 px-5 py-3">
+                    {item.isCollected ? (
+                      <CircleCheck className="size-5 shrink-0 text-emerald-600" aria-label="Collected" />
+                    ) : (
+                      <Circle className="size-5 shrink-0 text-line-strong" aria-label="Not collected" />
+                    )}
                     <div className="min-w-0 flex-1">
-                      <h3 className="truncate font-black text-slate-950 dark:text-slate-100">{item.name}</h3>
-                      <p className="text-sm text-slate-500">{item.category || 'General'} · Qty {item.quantity}</p>
+                      <p className={item.isCollected ? 'truncate font-medium text-ink-subtle line-through' : 'truncate font-medium text-ink'}>
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-ink-subtle">
+                        {item.category || 'General'} · Qty {item.quantity}
+                      </p>
                     </div>
-                    <p className="font-black text-slate-950 dark:text-slate-100">
-                      {formatCurrency((item.price || 0) * item.quantity)}
-                    </p>
-                  </article>
+                    <p className="tabular shrink-0 text-sm font-medium text-ink">{formatCurrency((item.price || 0) * item.quantity)}</p>
+                  </li>
                 ))}
-              </div>
-            </div>
+              </ul>
+            </section>
 
-            <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Receipt</p>
-              <h2 className="mt-2 text-xl font-black text-slate-950 dark:text-slate-100">
-                {data.receipt?.status || 'No receipt'}
-              </h2>
-              <div className="mt-5 space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Subtotal</span>
-                  <span className="font-black">{formatCurrency(data.receipt?.subtotal || 0)}</span>
+            <ReceiptPanel className="lg:sticky lg:top-6">
+              <div className="flex items-center justify-between px-5 pb-4 pt-5">
+                <h2 className="text-base font-semibold">Receipt</h2>
+                <Badge tone="neutral">{data.receipt?.status || 'No receipt'}</Badge>
+              </div>
+              <ReceiptDivider />
+              <div className="space-y-2 px-5 py-4 text-sm">
+                <div className="flex justify-between text-ink-muted">
+                  <span>Subtotal</span>
+                  <span className="tabular">{formatCurrency(data.receipt?.subtotal || 0)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Tax</span>
-                  <span className="font-black">{formatCurrency(data.receipt?.tax || 0)}</span>
+                <div className="flex justify-between text-ink-muted">
+                  <span>Tax</span>
+                  <span className="tabular">{formatCurrency(data.receipt?.tax || 0)}</span>
                 </div>
-                <div className="flex justify-between border-t border-slate-200 pt-3 text-base dark:border-slate-800">
-                  <span className="font-black">Total</span>
-                  <span className="font-black text-primary">{formatCurrency(data.receipt?.total || 0)}</span>
+                <div className="flex items-baseline justify-between pt-1">
+                  <span className="font-semibold text-ink">Total</span>
+                  <span className="tabular font-display text-2xl font-semibold text-ink">{formatCurrency(data.receipt?.total || 0)}</span>
                 </div>
               </div>
-            </aside>
-          </section>
+            </ReceiptPanel>
+          </div>
         )}
       </main>
-    </PageContainer>
+    </div>
   );
 }

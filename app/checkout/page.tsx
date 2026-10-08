@@ -2,14 +2,16 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { PageContainer } from '@/components/layout/PageContainer';
-import { Header } from '@/components/layout/Header';
+import { ArrowLeft, Lock, ReceiptText, ShieldCheck, Unlink } from 'lucide-react';
+import { AppShell, MobileActionBar } from '@/components/layout/AppShell';
+import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { DescriptionList } from '@/components/ui/DescriptionList';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { Logo } from '@/components/ui/Logo';
-import { ReceiptPanel } from '@/components/ui/ReceiptPanel';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { ReceiptDivider, ReceiptPanel } from '@/components/ui/ReceiptPanel';
 import { Receipt } from '@/types';
 import { DEMO_PAYMENT_AMOUNT_EGP, DEMO_PAYMENT_CURRENCY } from '@/lib/constants/demo-payment';
 import { formatPaymentCurrency } from '@/lib/payment-money';
@@ -204,186 +206,111 @@ function CheckoutContent() {
 
   if (isLoading) {
     return (
-      <PageContainer>
-        <LoadingState label="Preparing checkout" />
-      </PageContainer>
+      <AppShell variant="focus" title="Checkout" back={sessionHref} maxWidth="md">
+        <LoadingState label="Preparing checkout…" />
+      </AppShell>
     );
   }
 
   if (!receipt) {
     return (
-      <PageContainer>
-        <main className="flex min-h-screen items-center justify-center p-4">
-          <EmptyState
-            icon="receipt_long"
-            title="Checkout is not ready"
-            description={error || 'Finish an active shopping session before opening checkout.'}
-            actionLabel="Back to dashboard"
-            actionHref="/dashboard"
-            className="max-w-md"
-          />
-        </main>
-      </PageContainer>
+      <AppShell variant="focus" title="Checkout" back={sessionHref} maxWidth="md">
+        <EmptyState
+          icon={ReceiptText}
+          title="Checkout is not ready"
+          description={error || 'Finish an active shopping session before opening checkout.'}
+          actionLabel="Back to home"
+          actionHref="/dashboard"
+        />
+      </AppShell>
     );
   }
 
+  const payButton = (
+    <Button size="lg" fullWidth onClick={handlePayment} loading={isProcessing} disabled={isDisconnecting}>
+      {!isProcessing && <Lock aria-hidden="true" />}
+      {isProcessing ? 'Opening Paymob…' : `Pay ${demoAmountLabel}`}
+    </Button>
+  );
+
   return (
-    <PageContainer maxWidth="lg">
-      <Header title="Checkout" showBack />
-
-      <main className="grid flex-1 gap-6 pb-44 pt-6 lg:grid-cols-[minmax(0,1fr)_390px] md:pb-12">
-        <section className="space-y-6">
-          <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-soft md:p-6">
-            <Logo width={132} height={48} />
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Badge className="bg-white/10 text-white ring-white/15">Secure Checkout</Badge>
-              <Badge className="bg-emerald-400/15 text-emerald-100 ring-emerald-300/20">Paymob test mode</Badge>
-            </div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight">Secure Checkout</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">
-              Review your Carto receipt, then continue to the hosted Paymob checkout. Card and wallet details stay on Paymob, and your receipt becomes paid only after verified gateway confirmation.
-            </p>
-            <div className="mt-5 rounded-2xl bg-white/10 p-4 text-sm text-white/80">
-              <p className="font-black text-white">Your cart session is still active</p>
-              <p className="mt-2">Going to checkout does not finish your shopping session. You can return to your session until payment is completed.</p>
-            </div>
+    <AppShell variant="focus" title="Checkout" back={sessionHref} maxWidth="md" bottomBar>
+      <PageHeader
+        eyebrow={
+          <div className="flex flex-wrap gap-2">
+            <Badge tone="brand">
+              <ShieldCheck className="size-3.5" aria-hidden="true" />
+              Secure checkout
+            </Badge>
+            <Badge tone="warning">Paymob test mode</Badge>
           </div>
+        }
+        title="Review and pay"
+        description="You will finish on Paymob's hosted page. Card and wallet details never touch Carto."
+      />
 
-          <section className="rounded-[2rem] border border-primary/10 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900 md:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Payment summary</p>
-                <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Pay securely with Paymob</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                  Review the amount and continue when you&apos;re ready.
-                </p>
-              </div>
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <span className="material-symbols-outlined">lock</span>
-              </div>
-            </div>
+      {error && (
+        <Alert tone="danger" className="mt-6">
+          {error}
+        </Alert>
+      )}
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-[1.75rem] border border-primary/10 bg-[#fffaf8] p-5 shadow-sm">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Amount to pay</p>
-                <p className="mt-3 text-4xl font-black tracking-tight text-slate-950">{demoAmountLabel}</p>
-              </div>
-              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Payment status</p>
-                <p className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">{paymentStatusCopy.label}</p>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{paymentStatusCopy.description}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-[1.75rem] border border-primary/10 bg-white p-5 shadow-sm">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Receipt number</p>
-                  <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">#{receiptReference}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Secure payment</p>
-                  <p className="mt-2 text-lg font-black text-slate-950 dark:text-slate-100">Powered by Paymob</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
-              {error}
-            </div>
-          )}
-        </section>
-
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <ReceiptPanel>
-            <div className="p-5 md:p-6">
-              <Badge className="bg-primary/10 text-primary ring-primary/10">Receipt summary</Badge>
-              <h2 className="mt-4 text-2xl font-black text-slate-950 dark:text-slate-100">Carto checkout</h2>
-              <p className="mt-1 text-sm text-slate-500">Receipt #{receiptReference}</p>
-            </div>
-
-            <div className="space-y-4 border-y border-dashed border-slate-200 p-5 dark:border-slate-800 md:p-6">
-              <div className="rounded-[1.5rem] border border-primary/10 bg-[#fffaf8] p-4 shadow-sm">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Amount</p>
-                <p className="mt-3 text-3xl font-black tracking-tight text-slate-950">{demoAmountLabel}</p>
-              </div>
-
-              <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-                <div className="flex items-center justify-between">
-                  <span className="text-base font-black text-slate-950 dark:text-slate-100">Total</span>
-                  <span className="text-3xl font-black text-primary">{demoAmountLabel}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-[#fffaf8] p-5 dark:bg-slate-950/50 md:p-6">
-              <div className="rounded-[1.5rem] border border-primary/10 bg-white p-4 shadow-sm dark:bg-slate-950">
-                <p className="text-sm font-black text-slate-950 dark:text-slate-100">Secure payment</p>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Powered by Paymob</p>
-              </div>
-
-              <Button
-                size="lg"
-                className="mt-4 h-12 w-full rounded-2xl shadow-sm shadow-primary/20"
-                onClick={handlePayment}
-                disabled={isProcessing}
-              >
-                {isProcessing ? 'Opening Paymob...' : 'Continue to Paymob Checkout'}
-              </Button>
-
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 rounded-2xl border-primary/20 bg-white text-primary hover:border-primary/35 hover:bg-primary/5 dark:border-primary/25 dark:bg-slate-950"
-                  onClick={() => router.push(sessionHref)}
-                  disabled={isProcessing || isDisconnecting}
-                >
-                  Back to my session
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 rounded-2xl border-red-200 bg-white text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-500/30 dark:bg-slate-950 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
-                  onClick={() => void handleDisconnect()}
-                  disabled={isProcessing || isDisconnecting}
-                >
-                  {isDisconnecting ? 'Disconnecting cart...' : 'Disconnect cart'}
-                </Button>
-              </div>
-            </div>
-          </ReceiptPanel>
-        </aside>
-      </main>
-
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200/80 bg-white/95 px-4 pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur pb-[calc(env(safe-area-inset-bottom)+12px)] dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
-        <div className="mx-auto flex max-w-md items-center gap-4">
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Total</p>
-            <p className="text-2xl font-black text-slate-950 dark:text-slate-100">{demoAmountLabel}</p>
+      <ReceiptPanel className="mt-6">
+        <div className="px-5 pb-5 pt-6 text-center sm:px-8 sm:pt-8">
+          <p className="text-sm font-medium text-ink-muted">Amount to pay</p>
+          <p className="tabular mt-1 font-display text-5xl font-bold tracking-tight text-ink">{demoAmountLabel}</p>
+          <div className="mt-3 flex justify-center">
+            <Badge tone={receipt.paymentStatus === 'FAILED' ? 'danger' : receipt.paymentStatus === 'COMPLETED' ? 'success' : 'neutral'} dot>
+              {paymentStatusCopy.label} · {paymentStatusCopy.description}
+            </Badge>
           </div>
-          <Button
-            onClick={handlePayment}
-            disabled={isProcessing || isDisconnecting}
-            className="h-12 shrink-0 rounded-2xl px-5 text-sm font-bold shadow-sm shadow-primary/20"
-          >
-            {isProcessing ? 'Opening Paymob...' : 'Continue to Paymob'}
-          </Button>
         </div>
+        <ReceiptDivider />
+        <DescriptionList
+          className="px-5 py-4 sm:px-8"
+          items={[
+            { label: 'Receipt', value: `#${receiptReference}`, mono: true },
+            { label: 'Payment provider', value: 'Paymob' },
+            { label: 'Currency', value: DEMO_PAYMENT_CURRENCY },
+          ]}
+        />
+        <div className="hidden px-5 pb-6 sm:px-8 lg:block">{payButton}</div>
+      </ReceiptPanel>
+
+      <Alert tone="info" className="mt-4" title="Your cart session stays active">
+        Opening checkout does not end your session. Your receipt is marked paid only after Paymob confirms the payment.
+      </Alert>
+
+      <div className="mt-6 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <Button variant="ghost" onClick={() => router.push(sessionHref)} disabled={isProcessing || isDisconnecting}>
+          <ArrowLeft aria-hidden="true" />
+          Back to my session
+        </Button>
+        <Button
+          variant="danger-soft"
+          onClick={() => void handleDisconnect()}
+          loading={isDisconnecting}
+          disabled={isProcessing}
+        >
+          {!isDisconnecting && <Unlink aria-hidden="true" />}
+          {isDisconnecting ? 'Disconnecting cart…' : 'Disconnect cart'}
+        </Button>
       </div>
-    </PageContainer>
+
+      <MobileActionBar>{payButton}</MobileActionBar>
+    </AppShell>
   );
 }
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={
-      <PageContainer>
-        <LoadingState label="Loading checkout" />
-      </PageContainer>
-    }>
+    <Suspense
+      fallback={
+        <AppShell variant="focus" title="Checkout" back="/dashboard" maxWidth="md">
+          <LoadingState label="Loading checkout…" />
+        </AppShell>
+      }
+    >
       <CheckoutContent />
     </Suspense>
   );

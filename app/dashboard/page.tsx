@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { PageContainer } from '@/components/layout/PageContainer';
 import { purgeExpiredShoppingLists } from '@/lib/list-retention';
 import { ownerWhere, requireUserOrGuest } from '@/lib/guest-session';
 import { getOwnedActiveCartSession } from '@/lib/active-cart-session';
@@ -86,14 +85,12 @@ export default async function DashboardPage() {
   }
 
   return (
-    <PageContainer maxWidth="lg">
-      <DashboardPageClient
-        isGuest={isGuest}
-        userName={userName}
-        stats={stats}
-        recentLists={recentLists}
-        initialActiveSession={activeSession}
-      />
-    </PageContainer>
+    <DashboardPageClient
+      isGuest={isGuest}
+      userName={userName}
+      stats={stats}
+      recentLists={recentLists}
+      initialActiveSession={activeSession}
+    />
   );
 }

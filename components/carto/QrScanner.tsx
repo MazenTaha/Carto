@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser';
+import { Camera, CameraOff, Pause } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 type ScannerStatus = 'idle' | 'starting' | 'scanning' | 'found';
 
@@ -183,67 +185,70 @@ export function QrScanner({
   const isScanning = status === 'starting' || status === 'scanning';
 
   return (
-    <div className="w-full max-w-sm">
-      <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-slate-200 bg-slate-200 shadow-soft dark:border-slate-800 dark:bg-slate-800">
+    <div className="mx-auto w-full max-w-sm">
+      <div className="relative aspect-square w-full overflow-hidden rounded-3xl bg-stone-900 shadow-raised">
         <video
           ref={videoRef}
           className="absolute inset-0 h-full w-full object-cover"
           autoPlay
           muted
           playsInline
+          aria-label="Camera preview"
         />
 
-        {/* Viewfinder Overlay */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-950/10">
-          <div className="relative flex h-[72%] w-[72%] items-center justify-center rounded-3xl border border-white/50">
-            <div className="absolute -left-1 -top-1 h-10 w-10 rounded-tl-2xl border-l-4 border-t-4 border-primary"></div>
-            <div className="absolute -right-1 -top-1 h-10 w-10 rounded-tr-2xl border-r-4 border-t-4 border-primary"></div>
-            <div className="absolute -bottom-1 -left-1 h-10 w-10 rounded-bl-2xl border-b-4 border-l-4 border-primary"></div>
-            <div className="absolute -bottom-1 -right-1 h-10 w-10 rounded-br-2xl border-b-4 border-r-4 border-primary"></div>
+        {!isScanning && !error && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/70" aria-hidden="true">
+            <Camera className="size-10" />
+          </div>
+        )}
 
-            {isScanning && (
-              <div className="absolute top-1/2 h-0.5 w-full -translate-y-1/2 animate-bounce bg-primary/70 shadow-[0_0_18px_rgba(114,47,55,0.75)]"></div>
+        {/* Viewfinder */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="relative h-[68%] w-[68%] overflow-hidden rounded-3xl shadow-[0_0_0_999px_rgb(28_25_23/0.45)]">
+            <span className="absolute left-0 top-0 h-9 w-9 rounded-tl-3xl border-l-4 border-t-4 border-white" />
+            <span className="absolute right-0 top-0 h-9 w-9 rounded-tr-3xl border-r-4 border-t-4 border-white" />
+            <span className="absolute bottom-0 left-0 h-9 w-9 rounded-bl-3xl border-b-4 border-l-4 border-white" />
+            <span className="absolute bottom-0 right-0 h-9 w-9 rounded-br-3xl border-b-4 border-r-4 border-white" />
+            {status === 'scanning' && (
+              <span className="absolute inset-x-4 top-1/2 h-0.5 rounded-full bg-brand-300 shadow-[0_0_16px_2px_theme(colors.brand.400)] animate-scan-line" />
             )}
           </div>
         </div>
+
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70 px-5 text-center">
-            <p className="text-sm font-semibold leading-6 text-white">{error}</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-stone-950/80 px-6 text-center" role="alert">
+            <CameraOff className="size-8 text-white/80" aria-hidden="true" />
+            <p className="text-sm font-medium leading-6 text-white">{error}</p>
           </div>
         )}
-        <div className="absolute inset-x-4 bottom-4 rounded-2xl bg-white/90 px-4 py-3 text-center text-sm font-bold text-slate-700 shadow-sm backdrop-blur dark:bg-slate-950/80 dark:text-slate-100">
+
+        <div
+          className="absolute inset-x-3 bottom-3 rounded-xl bg-stone-950/70 px-3 py-2 text-center text-xs font-medium text-white backdrop-blur"
+          aria-live="polite"
+        >
           {status === 'starting'
-            ? 'Requesting camera permission...'
+            ? 'Requesting camera permission…'
             : status === 'scanning'
-              ? 'Align the cart QR inside the frame'
+              ? 'Align the QR code inside the frame'
               : status === 'found'
-                ? 'QR code detected. Review before connecting.'
-                : 'Camera will start automatically'}
+                ? 'QR code detected'
+                : 'Camera is paused'}
         </div>
       </div>
 
-      <div className="mt-4 flex gap-3">
+      <div className="mt-4">
         {!isScanning ? (
-          <button
-            type="button"
-            onClick={start}
-            className="h-12 flex-1 rounded-2xl bg-primary text-white font-bold shadow-glow transition-transform active:scale-95"
-          >
-            Scan QR
-          </button>
+          <Button size="lg" fullWidth onClick={start}>
+            <Camera aria-hidden="true" />
+            {error ? 'Try camera again' : 'Start camera'}
+          </Button>
         ) : (
-          <button
-            type="button"
-            onClick={() => stop()}
-            className="h-12 flex-1 rounded-2xl bg-slate-950 text-white font-bold transition-transform active:scale-95 dark:bg-slate-700"
-          >
-            Pause camera
-          </button>
+          <Button size="lg" variant="outline" fullWidth onClick={() => stop()} loading={status === 'starting'}>
+            {status !== 'starting' && <Pause aria-hidden="true" />}
+            {status === 'starting' ? 'Starting camera…' : 'Pause camera'}
+          </Button>
         )}
       </div>
-
-      {error && <p className="text-red-500 text-xs text-center mt-2">{error}</p>}
     </div>
   );
 }
-

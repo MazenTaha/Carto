@@ -1,32 +1,37 @@
 import Link from 'next/link';
-import { Package, ShoppingCart, Activity, BarChart3, Users, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { ADMIN_NAV_ITEMS } from '@/components/admin/layout/admin-nav';
 
-const ACTIONS = [
-  { label: 'Manage Products',  href: '/admin/products',  icon: Package,      color: 'text-violet-600', bg: 'bg-violet-50' },
-  { label: 'View Carts',       href: '/admin/carts',     icon: ShoppingCart, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-  { label: 'Live Sessions',    href: '/admin/sessions',  icon: Activity,     color: 'text-emerald-600',bg: 'bg-emerald-50' },
-  { label: 'Analytics',        href: '/admin/analytics', icon: BarChart3,    color: 'text-blue-600',   bg: 'bg-blue-50' },
-  { label: 'Users',            href: '/admin/users',     icon: Users,        color: 'text-amber-600',  bg: 'bg-amber-50' },
-];
+const DESCRIPTIONS: Record<string, string> = {
+  '/admin/sessions': 'Monitor live carts',
+  '/admin/carts': 'Fleet, QR and resets',
+  '/admin/products': 'Catalog and prices',
+  '/admin/users': 'Shopper accounts',
+  '/admin/analytics': 'Trends and peak hours',
+};
 
 export function QuickActions() {
+  const actions = ADMIN_NAV_ITEMS.filter((item) => item.href !== '/admin');
+
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      {ACTIONS.map(({ label, href, icon: Icon, color, bg }) => (
-        <Link
-          key={href}
-          href={href}
-          className="group flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white p-4 text-center transition-all hover:border-indigo-100 hover:shadow-md"
-        >
-          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bg}`}>
-            <Icon size={18} className={color} />
-          </div>
-          <span className="text-xs font-semibold text-slate-700 group-hover:text-slate-900">
-            {label}
-          </span>
-          <ArrowRight size={12} className="text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-indigo-400" />
-        </Link>
+    <ul className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+      {actions.map(({ label, href, icon: Icon }) => (
+        <li key={href}>
+          <Link
+            href={href}
+            className="group flex h-full items-center gap-3 rounded-2xl border border-line bg-surface p-4 shadow-xs transition hover:border-brand-200 hover:shadow-card"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-primary">
+              <Icon className="size-[1.125rem]" aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-ink">{label}</span>
+              <span className="block truncate text-xs text-ink-subtle">{DESCRIPTIONS[href]}</span>
+            </span>
+            <ArrowRight className="size-4 shrink-0 text-ink-subtle transition group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden="true" />
+          </Link>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

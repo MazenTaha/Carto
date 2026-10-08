@@ -2,13 +2,17 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { CircleAlert, House, Loader2, ScanLine, Unlink } from 'lucide-react';
 import { QrScanner } from '@/components/carto/QrScanner';
-import { PageContainer } from '@/components/layout/PageContainer';
-import { Header } from '@/components/layout/Header';
+import { AppShell, MobileActionBar } from '@/components/layout/AppShell';
+import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { DescriptionList } from '@/components/ui/DescriptionList';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { Modal } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 type ActiveSessionSummary = {
   sessionId: string;
@@ -108,6 +112,7 @@ function ReadySessionContent() {
   const [isContinuing, setIsContinuing] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isDisconnectConfirmOpen, setIsDisconnectConfirmOpen] = useState(false);
   const [isValidatingQr, setIsValidatingQr] = useState(false);
   const [error, setError] = useState('');
 
@@ -401,31 +406,30 @@ function ReadySessionContent() {
     } catch (err: any) {
       setError(err.message || 'Could not disconnect this cart.');
       setIsDisconnecting(false);
+      setIsDisconnectConfirmOpen(false);
     }
   }, [isDisconnecting, router, sessionData, sessionId]);
 
   if (isLoading || isCheckingCurrentSession) {
     return (
-      <PageContainer>
-        <LoadingState label="Preparing your cart" />
-      </PageContainer>
+      <AppShell variant="focus" title="Checkout" back="/dashboard" maxWidth="md">
+        <LoadingState label="Preparing your cart…" />
+      </AppShell>
     );
   }
 
   if (!sessionData) {
     return (
-      <PageContainer>
-        <main className="flex min-h-screen items-center justify-center p-4">
-          <EmptyState
-            icon="shopping_basket"
-            title="Cart session unavailable"
-            description={error || 'We could not find the linked cart session.'}
-            actionLabel="Back to home"
-            actionHref="/dashboard"
-            className="max-w-md"
-          />
-        </main>
-      </PageContainer>
+      <AppShell variant="focus" title="Checkout" back="/dashboard" maxWidth="md">
+        <EmptyState
+          icon={CircleAlert}
+          tone="danger"
+          title="Cart session unavailable"
+          description={error || 'We could not find the linked cart session.'}
+          actionLabel="Back to home"
+          actionHref="/dashboard"
+        />
+      </AppShell>
     );
   }
 
@@ -450,151 +454,139 @@ function ReadySessionContent() {
   const isPreparingQr = isContinuing || isValidatingQr;
   const scanDisabled = isBusy || sessionEndedOrDisconnected;
 
+  const scanButton = (
+    <Button size="lg" fullWidth onClick={() => setIsScannerOpen(true)} disabled={scanDisabled} loading={isPreparingQr}>
+      {!isPreparingQr && <ScanLine aria-hidden="true" />}
+      {isPreparingQr ? 'Preparing payment…' : 'Scan payment QR'}
+    </Button>
+  );
+
   return (
-    <PageContainer maxWidth="md">
-      <Header showBack onBack={() => router.push('/dashboard')} />
+    <AppShell variant="focus" title="Checkout" onBack={() => router.push('/dashboard')} maxWidth="md" bottomBar>
+      <PageHeader
+        eyebrow={
+          <Badge tone={hasActiveSession ? 'success' : isPaymentRetryState ? 'warning' : 'neutral'} dot pulse={hasActiveSession}>
+            {hasActiveSession ? 'Cart connected' : isPaymentRetryState ? 'Payment pending' : 'Session ended'}
+          </Badge>
+        }
+        title={sessionEndedOrDisconnected ? 'This session has ended' : 'Ready to check out?'}
+        description={
+          hasActiveSession
+            ? `Your session is live on ${cartCode}. When you are done, scan the payment QR shown on the cart.`
+            : isPaymentRetryState
+              ? 'The cart is no longer connected, but you can still finish paying for this receipt.'
+              : 'This cart session has ended or been disconnected. Start a new one from your lists.'
+        }
+      />
 
-      <main className="flex min-h-[calc(100dvh-4.5rem)] flex-col justify-center px-4 pb-60 pt-6 sm:px-6 sm:pb-44">
-        <section className="overflow-hidden rounded-[2rem] bg-slate-950 text-white shadow-soft">
-          <div className="bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_transparent_42%)] p-6 sm:p-8">
-            <Badge variant={hasActiveSession ? 'connected' : 'warning'}>
-              {hasActiveSession ? 'Cart connected' : isPaymentRetryState ? 'Payment ready' : 'Session ended'}
-            </Badge>
-            <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Your cart session</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-white/75 sm:text-base">
-              {hasActiveSession
-                ? `Your smart cart session is live on ${cartCode}. Continue whenever you are ready to move into secure checkout.`
-                : isPaymentRetryState
-                  ? 'This cart session is no longer connected, but your secure checkout link is still available to retry safely.'
-                  : 'This cart session has ended or been disconnected. Return home to start a new activation when you are ready.'}
-            </p>
+      {error && (
+        <Alert tone="danger" className="mt-6">
+          {error}
+        </Alert>
+      )}
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl bg-white/10 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Shopping list</p>
-                <p className="mt-2 text-lg font-black">{listName}</p>
-              </div>
-              <div className="rounded-2xl bg-white/10 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Items</p>
-                <p className="mt-2 text-lg font-black">
-                  {itemCount} item{itemCount === 1 ? '' : 's'}
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <section aria-labelledby="summary-heading" className="surface-card p-5">
+          <h2 id="summary-heading" className="eyebrow">
+            Session
+          </h2>
+          <DescriptionList
+            className="mt-3"
+            items={[
+              { label: 'List', value: listName },
+              { label: 'Items', value: `${itemCount} item${itemCount === 1 ? '' : 's'}` },
+              { label: 'Cart', value: cartCode, mono: true },
+            ]}
+          />
         </section>
 
-        <section className="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <span className="material-symbols-outlined">shopping_cart_checkout</span>
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Next step: secure checkout</h2>
-              <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-                {hasActiveSession
-                  ? 'Scan the checkout QR code to continue to payment.'
-                  : isPaymentRetryState
-                    ? 'This session is already finalized, so scanning will open checkout directly.'
-                    : 'Session ended or disconnected. Payment actions are unavailable on this page now.'}
-              </p>
-            </div>
-          </div>
-
-          {error && (
-            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
-              {error}
-            </div>
-          )}
+        <section aria-labelledby="how-heading" className="surface-card p-5">
+          <h2 id="how-heading" className="eyebrow">
+            How to pay
+          </h2>
+          <ol className="mt-3 space-y-3 text-sm">
+            {[
+              'Tap “Scan payment QR” below.',
+              'Point your camera at the QR on the cart screen.',
+              'Pay securely on the Paymob checkout page.',
+            ].map((step, index) => (
+              <li key={step} className="flex gap-3">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-semibold text-primary">
+                  {index + 1}
+                </span>
+                <span className="pt-0.5 text-ink-muted">{step}</span>
+              </li>
+            ))}
+          </ol>
         </section>
-      </main>
-
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/80 bg-white/98 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 shadow-[0_-16px_32px_rgba(15,23,42,0.08)] dark:border-slate-800 dark:bg-slate-950">
-        <div className="mx-auto max-w-xl rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-3">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Session actions</p>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Continue through the payment QR flow, return home, or disconnect this cart when you are done.
-            </p>
-          </div>
-
-          <Button
-            type="button"
-            size="md"
-            className="h-12 w-full rounded-2xl text-sm font-semibold shadow-sm shadow-primary/20 disabled:shadow-none"
-            onClick={() => setIsScannerOpen(true)}
-            disabled={scanDisabled}
-          >
-            <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
-            {isPreparingQr ? 'Preparing QR...' : 'Scan payment QR'}
-          </Button>
-          <div className="mt-3 space-y-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 w-full rounded-2xl border-primary/20 bg-white text-primary shadow-none hover:border-primary/35 hover:bg-primary/5 dark:border-primary/25 dark:bg-slate-950 dark:text-primary dark:hover:bg-primary/10"
-              onClick={() => {
-                router.replace('/dashboard');
-                router.refresh();
-              }}
-              disabled={isBusy}
-            >
-              Back to home
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 w-full rounded-2xl border-red-200 bg-white text-red-600 shadow-none hover:border-red-300 hover:bg-red-50 hover:text-red-700 dark:border-red-500/30 dark:bg-slate-950 dark:text-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-200"
-              onClick={() => void handleDisconnect()}
-              disabled={!hasActiveSession || isBusy}
-            >
-              {isDisconnecting ? 'Disconnecting...' : 'Disconnect cart'}
-            </Button>
-          </div>
-        </div>
       </div>
 
-      {isScannerOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center overflow-hidden bg-slate-950/75 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-4 backdrop-blur-sm sm:items-center sm:px-4 sm:pb-4">
-          <button
-            type="button"
-            className="absolute inset-0"
-            aria-label="Close payment scanner"
-            onClick={() => {
-              if (!isValidatingQr) {
-                setIsScannerOpen(false);
-              }
-            }}
-            disabled={isValidatingQr}
-          />
-          <div className="relative z-[101] w-full max-w-md overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
-            <div className="max-h-[calc(100dvh-1rem)] overflow-y-auto p-5 sm:p-6">
-              <Badge className="bg-primary/10 text-primary ring-primary/10">Checkout scanner</Badge>
-              <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-100">Scan payment QR</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Scan the checkout QR code to continue to payment. Only Carto checkout QR codes for this session are accepted.
-              </p>
+      <div className="mt-6 hidden lg:block">{scanButton}</div>
 
-              <div className="mt-5 flex justify-center">
-                <QrScanner onDetected={handleScanDetected} />
-              </div>
+      <div className="mt-6 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            router.replace('/dashboard');
+            router.refresh();
+          }}
+          disabled={isBusy}
+        >
+          <House aria-hidden="true" />
+          Back to home
+        </Button>
+        <Button
+          variant="danger-soft"
+          onClick={() => setIsDisconnectConfirmOpen(true)}
+          disabled={!hasActiveSession || isBusy}
+        >
+          <Unlink aria-hidden="true" />
+          Disconnect cart
+        </Button>
+      </div>
 
-              <div className="mt-5 flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 flex-1 rounded-2xl"
-                  onClick={() => setIsScannerOpen(false)}
-                  disabled={isValidatingQr}
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
+      <MobileActionBar>{scanButton}</MobileActionBar>
+
+      <Modal
+        open={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        dismissible={!isValidatingQr}
+        title="Scan payment QR"
+        description="Only the checkout QR for this session is accepted."
+      >
+        <QrScanner onDetected={handleScanDetected} />
+        {isValidatingQr && (
+          <p className="mt-4 flex items-center justify-center gap-2 text-sm text-ink-muted" aria-live="polite">
+            <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />
+            Checking the QR code…
+          </p>
+        )}
+        {error && (
+          <Alert tone="danger" className="mt-4">
+            {error}
+          </Alert>
+        )}
+      </Modal>
+
+      <Modal
+        open={isDisconnectConfirmOpen}
+        onClose={() => setIsDisconnectConfirmOpen(false)}
+        dismissible={!isDisconnecting}
+        size="sm"
+        title="Disconnect this cart?"
+        description="Your list will be removed from the cart display and this session will end."
+        footer={
+          <div className="grid gap-3 min-[400px]:grid-cols-2">
+            <Button variant="outline" onClick={() => setIsDisconnectConfirmOpen(false)} disabled={isDisconnecting}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={() => void handleDisconnect()} loading={isDisconnecting}>
+              {isDisconnecting ? 'Disconnecting…' : 'Disconnect'}
+            </Button>
           </div>
-        </div>
-      )}
-    </PageContainer>
+        }
+      />
+    </AppShell>
   );
 }
 
@@ -602,9 +594,9 @@ export default function ReadySessionPage() {
   return (
     <Suspense
       fallback={
-        <PageContainer>
-          <LoadingState label="Preparing your cart" />
-        </PageContainer>
+        <AppShell variant="focus" title="Checkout" back="/dashboard" maxWidth="md">
+          <LoadingState label="Preparing your cart…" />
+        </AppShell>
       }
     >
       <ReadySessionContent />

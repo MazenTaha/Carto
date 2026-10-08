@@ -6,10 +6,9 @@ import { ConfirmDialog } from '@/components/admin/shared/ConfirmDialog';
 import { QRModal } from './QRModal';
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import {
-  ShoppingCart, RefreshCw, QrCode, Wifi, WifiOff,
-  MoreVertical, Settings,
-} from 'lucide-react';
+import { MoreVertical, QrCode, RefreshCw, Settings, ShoppingCart, Wifi, WifiOff } from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
 interface CartsGridProps {
@@ -26,54 +25,66 @@ export function CartsGrid({ carts, onReset, onSetStatus, onGenerateQR }: CartsGr
   const [qrData, setQrData] = useState<any>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-  const STATUS_COLORS: Record<string, string> = {
-    AVAILABLE:   'border-emerald-200 bg-emerald-50/30',
-    IN_USE:      'border-indigo-200 bg-indigo-50/30',
-    MAINTENANCE: 'border-amber-200 bg-amber-50/30',
-    OFFLINE:     'border-red-200 bg-red-50/30',
+  const STATUS_ACCENTS: Record<string, string> = {
+    AVAILABLE: 'before:bg-emerald-500',
+    IN_USE: 'before:bg-primary',
+    MAINTENANCE: 'before:bg-amber-500',
+    OFFLINE: 'before:bg-red-500',
   };
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {carts.map((cart) => (
-          <div
+          <li
             key={cart.id}
             className={cn(
-              'relative rounded-2xl border-2 bg-white p-5 shadow-sm transition-shadow hover:shadow-md',
-              STATUS_COLORS[cart.status] ?? 'border-slate-100'
+              'surface-card relative flex flex-col overflow-hidden p-5 before:absolute before:inset-x-0 before:top-0 before:h-1',
+              STATUS_ACCENTS[cart.status] ?? 'before:bg-line-strong'
             )}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                  <ShoppingCart size={17} />
-                </div>
-                <div>
-                  <p className="font-bold text-slate-900 font-mono text-sm">{cart.cartCode}</p>
-                  <p className="text-[10px] text-slate-400 truncate max-w-[100px]">
-                    {cart.storeName ?? 'Unknown store'}
-                  </p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-ink-muted">
+                  <ShoppingCart className="size-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-mono text-sm font-semibold text-ink">{cart.cartCode}</p>
+                  <p className="truncate text-xs text-ink-subtle">{cart.storeName ?? 'Unknown store'}</p>
                 </div>
               </div>
 
-              {/* Menu */}
               <div className="relative">
                 <button
+                  type="button"
                   onClick={() => setOpenMenu(openMenu === cart.id ? null : cart.id)}
-                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"
+                  aria-haspopup="menu"
+                  aria-expanded={openMenu === cart.id}
+                  aria-label={`Change status of ${cart.cartCode}`}
+                  className="-mr-2 -mt-1 flex size-9 items-center justify-center rounded-lg text-ink-subtle transition hover:bg-surface-muted hover:text-ink"
                 >
-                  <MoreVertical size={15} />
+                  <MoreVertical className="size-4" aria-hidden="true" />
                 </button>
                 {openMenu === cart.id && (
                   <>
-                    <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
-                    <div className="absolute right-0 top-7 z-20 w-44 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
-                      {['AVAILABLE','IN_USE','MAINTENANCE','OFFLINE'].map((s) => (
-                        <button key={s} onClick={async () => { await onSetStatus(cart.id, s); setOpenMenu(null); }}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">
-                          <Settings size={11} /> Set to {s.replace('_',' ')}
+                    <div className="fixed inset-0 z-10" aria-hidden="true" onClick={() => setOpenMenu(null)} />
+                    <div role="menu" className="absolute right-0 top-9 z-20 w-48 overflow-hidden rounded-xl border border-line bg-surface p-1 shadow-raised animate-rise-in">
+                      <p className="px-3 pb-1 pt-2 text-2xs font-semibold uppercase tracking-wider text-ink-subtle">Set status</p>
+                      {['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'OFFLINE'].map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          role="menuitem"
+                          disabled={cart.status === s}
+                          onClick={async () => {
+                            await onSetStatus(cart.id, s);
+                            setOpenMenu(null);
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-ink transition hover:bg-surface-muted disabled:text-ink-subtle disabled:hover:bg-transparent"
+                        >
+                          <Settings className="size-3.5 text-ink-subtle" aria-hidden="true" />
+                          <span className="capitalize">{s.replace('_', ' ').toLowerCase()}</span>
+                          {cart.status === s && <span className="ml-auto text-2xs text-ink-subtle">Current</span>}
                         </button>
                       ))}
                     </div>
@@ -82,71 +93,59 @@ export function CartsGrid({ carts, onReset, onSetStatus, onGenerateQR }: CartsGr
               </div>
             </div>
 
-            {/* Status & Battery */}
-            <div className="mt-3 flex items-center justify-between">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <StatusBadge status={cart.status} pulse={cart.status === 'IN_USE'} />
-              <span
-                className={cn(
-                  'rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wider',
-                  cart.hasDeviceSecret
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'bg-amber-50 text-amber-700'
-                )}
-              >
-                {cart.hasDeviceSecret ? 'Device ready' : 'No secret'}
-              </span>
+              <Badge tone={cart.hasDeviceSecret ? 'neutral' : 'warning'}>{cart.hasDeviceSecret ? 'Device ready' : 'No device secret'}</Badge>
             </div>
 
-            {/* Connectivity */}
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-              {cart.isOnline
-                ? <><Wifi size={11} className="text-emerald-500" /> Online</>
-                : <><WifiOff size={11} className="text-red-400" /> Offline</>
-              }
-              <span className="ml-auto text-[10px] text-slate-400">
-                {formatDistanceToNow(new Date(cart.lastSeen), { addSuffix: true })}
-              </span>
-            </div>
+            <p className="mt-3 flex items-center gap-1.5 text-xs text-ink-muted">
+              {cart.isOnline ? (
+                <Wifi className="size-3.5 text-emerald-600" aria-hidden="true" />
+              ) : (
+                <WifiOff className="size-3.5 text-red-500" aria-hidden="true" />
+              )}
+              {cart.isOnline ? 'Online' : 'Offline'}
+              <span className="ml-auto text-ink-subtle">Seen {formatDistanceToNow(new Date(cart.lastSeen), { addSuffix: true })}</span>
+            </p>
 
-            {/* Active session pill */}
             {cart.currentSession && (
-              <div className="mt-3 rounded-lg bg-indigo-50 px-3 py-2">
-                <p className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider">Active Session</p>
-                <p className="text-xs font-medium text-indigo-800 truncate">
-                  {cart.currentSession.userEmail ?? 'Guest'}
-                </p>
-                <p className="text-[10px] text-indigo-400 truncate">{cart.currentSession.listName}</p>
+              <div className="mt-3 rounded-xl bg-brand-50 px-3 py-2.5">
+                <p className="text-2xs font-semibold uppercase tracking-wider text-primary">Active session</p>
+                <p className="mt-0.5 truncate text-sm font-medium text-ink">{cart.currentSession.userEmail ?? 'Guest'}</p>
+                <p className="truncate text-xs text-ink-muted">{cart.currentSession.listName}</p>
               </div>
             )}
 
-            {/* Actions */}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button
+            <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={async () => {
                   const result = await onGenerateQR(cart.id);
-                  if (result?.data) { setQrData(result.data); setQrTarget(cart); }
+                  if (result?.data) {
+                    setQrData(result.data);
+                    setQrTarget(cart);
+                  }
                 }}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
-                <QrCode size={13} /> QR Code
-              </button>
-              <button
-                onClick={() => setResetTarget(cart)}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-200 py-2 text-xs font-medium text-amber-700 hover:bg-amber-50"
-              >
-                <RefreshCw size={13} /> Reset
-              </button>
+                <QrCode aria-hidden="true" />
+                QR code
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setResetTarget(cart)}>
+                <RefreshCw aria-hidden="true" />
+                Reset
+              </Button>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
 
       <ConfirmDialog
         open={!!resetTarget}
         onClose={() => setResetTarget(null)}
-        title={`Reset cart "${resetTarget?.cartCode}"?`}
-        description="This will end all active sessions and mark the cart as Available."
-        confirmLabel="Reset Cart"
+        title={`Reset ${resetTarget?.cartCode}?`}
+        description="This ends any active session on the cart and marks it as available."
+        confirmLabel="Reset cart"
         variant="warning"
         loading={resetting}
         onConfirm={async () => {
@@ -160,7 +159,10 @@ export function CartsGrid({ carts, onReset, onSetStatus, onGenerateQR }: CartsGr
 
       <QRModal
         open={!!qrTarget}
-        onClose={() => { setQrTarget(null); setQrData(null); }}
+        onClose={() => {
+          setQrTarget(null);
+          setQrData(null);
+        }}
         cart={qrTarget}
         qrData={qrData}
       />
